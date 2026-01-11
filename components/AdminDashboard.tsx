@@ -50,7 +50,14 @@ const compressImage = (file: File): Promise<string> => {
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
+
+        // Fix: Add null check for canvas context
+        if (!ctx) {
+          reject(new Error('Kon canvas context niet verkrijgen'));
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
         resolve(dataUrl);
       };

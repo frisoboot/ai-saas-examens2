@@ -70,9 +70,17 @@ const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => 
 };
 
 // Convert BulkImportQuestion to Question
+// Counter to prevent ID collisions during bulk imports
+let importCounter = 0;
+
 const convertToQuestion = (q: BulkImportQuestion): Question => {
+  // Fix: Use counter to prevent ID collisions during rapid bulk imports
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substr(2, 9);
+  const counter = importCounter++;
+
   const question: Question = {
-    id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+    id: `${timestamp}-${counter}-${random}`,
     type: q.type,
     subject: q.subject,
     level: q.level,
@@ -112,7 +120,8 @@ export const parseCSV = (csvText: string): BulkImportQuestion[] => {
 
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
-    const question: any = {};
+    // Fix: Use proper typing instead of 'any'
+    const question: Partial<BulkImportQuestion> = {};
 
     headers.forEach((header, idx) => {
       const value = values[idx]?.trim();

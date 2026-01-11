@@ -206,14 +206,13 @@ export const getStudentProfile = async (name: string): Promise<StudentProfile | 
   return students.find(s => s.name.toLowerCase() === name.toLowerCase());
 };
 
-// Check if credentials match
+// DEPRECATED: This function has been removed. Use authService.verifyStudentLogin instead.
+// This function was using insecure plain text password comparison.
 export const verifyStudentLogin = async (name: string, password: string): Promise<boolean> => {
-  const profile = await getStudentProfile(name);
-  if (!profile) return false;
-
-  // NOTE: In production, never compare plain text passwords. Use hashing (e.g., bcrypt).
-  // TODO: This function is deprecated - use authService.verifyStudentLogin instead
-  return profile.password === password;
+  throw new Error(
+    'verifyStudentLogin is deprecated and removed for security reasons. ' +
+    'Use authService.verifyStudentLogin instead, which uses bcrypt password hashing.'
+  );
 };
 
 // ============================================================================
