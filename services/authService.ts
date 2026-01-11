@@ -15,24 +15,29 @@ export const verifyPassword = async (password: string, hash: string): Promise<bo
 
 // Admin authentication
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  console.log('verifyAdminLogin called with:', username, password);
+  console.log('verifyAdminLogin called for user:', username);
   console.log('Supabase available:', !!supabase);
 
   if (!supabase) {
-    // Fallback: hardcoded admin check (development only)
-    console.log('Using fallback admin login');
-    if (username === 'admin' && password === 'admin123') {
-      console.log('Fallback admin login SUCCESS');
-      return {
-        id: 'admin-001',
-        username: 'admin',
-        passwordHash: '',
-        email: undefined,
-        lastLogin: new Date().toISOString()
-      };
+    // Fallback: hardcoded admin check (DEVELOPMENT ONLY - disable in production!)
+    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
+      console.log('Using development fallback admin login');
+      if (username === 'admin' && password === 'admin123') {
+        console.log('Fallback admin login SUCCESS');
+        return {
+          id: 'admin-001',
+          username: 'admin',
+          passwordHash: '',
+          email: undefined,
+          lastLogin: new Date().toISOString()
+        };
+      }
+      console.log('Fallback admin login FAILED - wrong credentials');
+      return null;
+    } else {
+      console.error('Database unavailable and fallback disabled in production');
+      return null;
     }
-    console.log('Fallback admin login FAILED - wrong credentials');
-    return null;
   }
 
   try {
@@ -76,17 +81,21 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
   } catch (error) {
     console.error('Error verifying admin login:', error);
 
-    // Fallback if database fails
-    console.log('Database login failed, trying fallback...');
-    if (username === 'admin' && password === 'admin123') {
-      console.log('Fallback admin login SUCCESS');
-      return {
-        id: 'admin-001',
-        username: 'admin',
-        passwordHash: '',
-        email: undefined,
-        lastLogin: new Date().toISOString()
-      };
+    // Fallback if database fails (DEVELOPMENT ONLY)
+    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
+      console.log('Database login failed, trying development fallback...');
+      if (username === 'admin' && password === 'admin123') {
+        console.log('Fallback admin login SUCCESS');
+        return {
+          id: 'admin-001',
+          username: 'admin',
+          passwordHash: '',
+          email: undefined,
+          lastLogin: new Date().toISOString()
+        };
+      }
+    } else {
+      console.error('Database login failed and fallback disabled in production');
     }
 
     return null;

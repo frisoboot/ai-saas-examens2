@@ -1,7 +1,14 @@
 import { GoogleGenAI, Chat } from "@google/genai";
 import { Question, StudentProfile } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Fix: Use Vite's import.meta.env instead of process.env
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
+
+if (!apiKey) {
+  console.warn('Gemini API key not found. Set VITE_GEMINI_API_KEY in your .env file.');
+}
+
+const ai = new GoogleGenAI({ apiKey });
 
 // Explanation for Exam Review
 export const getExplanation = async (question: Question, studentAnswer: number | string): Promise<string> => {

@@ -52,7 +52,8 @@ export const calculateProgress = (
     const firstAvg = firstHalf.reduce((sum, r) => sum + (r.score / r.totalQuestions), 0) / firstHalf.length;
     const secondAvg = secondHalf.reduce((sum, r) => sum + (r.score / r.totalQuestions), 0) / secondHalf.length;
 
-    improvementRate = ((secondAvg - firstAvg) / firstAvg) * 100;
+    // Fix: Prevent division by zero
+    improvementRate = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
   }
 
   const lastExamDate = sortedResults[0].date;
@@ -194,7 +195,8 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
         const firstAvg = firstHalf.reduce((sum, r) => sum + (r.score / r.total_questions), 0) / firstHalf.length;
         const secondAvg = secondHalf.reduce((sum, r) => sum + (r.score / r.total_questions), 0) / secondHalf.length;
 
-        newImprovementRate = ((secondAvg - firstAvg) / firstAvg) * 100;
+        // Fix: Prevent division by zero
+        newImprovementRate = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
       }
     }
 
