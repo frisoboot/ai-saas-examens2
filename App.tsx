@@ -1,35 +1,33 @@
 import React, { useState } from 'react';
-import { ViewState, ExamSession, StudentProfile, StudentLevel } from './types';
-import { getQuestions, saveStudentProfile, getStudentProfile, verifyStudentLogin } from './services/storageService';
+import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser } from './types';
+import { getQuestions } from './services/storageService';
+import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, Lock, UserPlus, LogIn, CheckCircle2 } from 'lucide-react';
-
-const ADMIN_PIN = "admin123";
+import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('LANDING');
-  
+
   // Auth State
-  const [isRegistering, setIsRegistering] = useState(false);
   const [showAdminLogin, setShowAdminLogin] = useState(false);
-  
+
   // Input State
   const [studentName, setStudentName] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
-  const [studentLevel, setStudentLevel] = useState<StudentLevel>('HAVO');
-  const [studentStruggle, setStudentStruggle] = useState('');
-  const [adminPinInput, setAdminPinInput] = useState('');
-  
+  const [adminUsername, setAdminUsername] = useState('');
+  const [adminPassword, setAdminPassword] = useState('');
+
   const [currentProfile, setCurrentProfile] = useState<StudentProfile | null>(null);
+  const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
   const [loginError, setLoginError] = useState('');
 
-  const handleStudentAuth = (e: React.FormEvent) => {
+  const handleStudentAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
@@ -38,70 +36,76 @@ const App: React.FC = () => {
       return;
     }
 
-    if (isRegistering) {
-      const existing = getStudentProfile(studentName);
-      if (existing) {
-        setLoginError("Deze naam bestaat al. Log in of kies een andere naam.");
-        return;
-      }
-
-      const newProfile: StudentProfile = {
-        name: studentName,
-        password: studentPassword,
-        level: studentLevel,
-        strugglePoints: studentStruggle || 'Algemene examenstof'
-      };
-      
-      saveStudentProfile(newProfile);
-      setCurrentProfile(newProfile);
-      setView('STUDENT_DASHBOARD');
-      
-    } else {
-      const isValid = verifyStudentLogin(studentName, studentPassword);
-      if (isValid) {
-        const profile = getStudentProfile(studentName);
-        if (profile) {
-            setCurrentProfile(profile);
-            setView('STUDENT_DASHBOARD');
+    try {
+      const profile = await verifyStudentLogin(studentName, studentPassword);
+      if (profile) {
+        if (profile.isActive === false) {
+          setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
+          return;
         }
+        setCurrentProfile(profile);
+        setView('STUDENT_DASHBOARD');
       } else {
         setLoginError("Naam of wachtwoord onjuist.");
       }
+    } catch (error) {
+      setLoginError("Er ging iets mis bij het inloggen.");
     }
   };
 
-  const handleAdminLogin = (e: React.FormEvent) => {
+  const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPinInput === ADMIN_PIN) {
-      setView('ADMIN');
-      setShowAdminLogin(false);
-      setAdminPinInput('');
-    } else {
-      alert("Foute toegangscode!");
+    setLoginError('');
+
+    if (!adminUsername.trim() || !adminPassword.trim()) {
+      setLoginError("Vul gebruikersnaam en wachtwoord in.");
+      return;
+    }
+
+    try {
+      const admin = await verifyAdminLogin(adminUsername, adminPassword);
+      if (admin) {
+        setCurrentAdmin(admin);
+        setView('ADMIN');
+        setShowAdminLogin(false);
+        setAdminUsername('');
+        setAdminPassword('');
+      } else {
+        setLoginError("Gebruikersnaam of wachtwoord onjuist.");
+      }
+    } catch (error) {
+      setLoginError("Er ging iets mis bij het inloggen.");
     }
   };
 
-  const startExam = (subject: string) => {
+  const startExam = async (subject: string) => {
     if (!currentProfile) return;
 
-    const allQuestions = getQuestions();
-    const subjectQuestions = allQuestions.filter(q => 
-        q.subject === subject && q.level === currentProfile.level
-    );
-    
-    if (subjectQuestions.length === 0) {
-        alert(`Er zijn nog geen vragen voor ${subject} op ${currentProfile.level} niveau.`);
-        return;
-    }
+    try {
+      const allQuestions = await getQuestions();
+      const subjectQuestions = allQuestions.filter(q => 
+          q.subject === subject && q.level === currentProfile.level
+      );
+      
+      if (subjectQuestions.length === 0) {
+          alert(`Er zijn nog geen vragen voor ${subject} op ${currentProfile.level} niveau.`);
+          return;
+      }
 
-    setCurrentExamSession({
-      studentName: currentProfile.name,
-      subject,
-      questions: subjectQuestions,
-      currentQuestionIndex: 0,
-      answers: {}
-    });
-    setView('EXAM');
+      setCurrentExamSession({
+        studentName: currentProfile.name,
+        subject,
+        questions: subjectQuestions,
+        currentQuestionIndex: 0,
+        answers: {},
+        examType: 'subject_practice',
+        startTime: Date.now()
+      });
+      setView('EXAM');
+    } catch (error) {
+      console.error('Fout bij ophalen vragen:', error);
+      alert('Er ging iets mis bij het ophalen van de vragen.');
+    }
   };
 
   const startChat = (subject: string) => {
@@ -165,24 +169,14 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
-                  <div className="flex bg-slate-100/80 p-1 rounded-xl mb-8">
-                    <button 
-                      type="button"
-                      onClick={() => { setIsRegistering(false); setLoginError(''); }}
-                      className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${!isRegistering ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Inloggen
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => { setIsRegistering(true); setLoginError(''); }}
-                      className={`flex-1 py-2.5 text-sm font-semibold rounded-lg transition-all ${isRegistering ? 'bg-white text-slate-900 shadow-sm ring-1 ring-black/5' : 'text-slate-500 hover:text-slate-700'}`}
-                    >
-                      Registreren
-                    </button>
-                  </div>
+                  {!showAdminLogin ? (
+                    <>
+                      <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-slate-900">Student Login</h2>
+                        <p className="text-slate-500 text-sm mt-2">Log in met je account</p>
+                      </div>
 
-                  <form onSubmit={handleStudentAuth} className="space-y-5">
+                      <form onSubmit={handleStudentAuth} className="space-y-5">
                     <div>
                       <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Gebruikersnaam</label>
                       <input
@@ -207,84 +201,79 @@ const App: React.FC = () => {
                       />
                     </div>
 
-                    {isRegistering && (
-                      <div className="space-y-5 animate-fadeIn">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Niveau</label>
-                          <div className="grid grid-cols-3 gap-3">
-                              {(['VMBO-TL', 'HAVO', 'VWO'] as StudentLevel[]).map((lvl) => (
-                                <button
-                                  key={lvl}
-                                  type="button"
-                                  onClick={() => setStudentLevel(lvl)}
-                                  className={`py-2.5 rounded-xl text-xs font-bold border transition-all ${
-                                    studentLevel === lvl 
-                                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-200' 
-                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {lvl}
-                                </button>
-                              ))}
+                        {loginError && (
+                          <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center">
+                            <Lock className="w-4 h-4 mr-2 flex-shrink-0" />
+                            {loginError}
                           </div>
-                        </div>
-                        
+                        )}
+
+                        <Button type="submit" className="w-full justify-center h-12 text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all" size="lg">
+                          Inloggen
+                          <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                      </form>
+                    </>
+                  ) : (
+                    <>
+                      <div className="text-center mb-6">
+                        <h2 className="text-2xl font-bold text-slate-900">Admin Login</h2>
+                        <p className="text-slate-500 text-sm mt-2">Inloggen als docent</p>
+                      </div>
+
+                      <form onSubmit={handleAdminLogin} className="space-y-5">
                         <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Waar heb je moeite mee?</label>
-                          <textarea
-                            rows={2}
-                            className="block w-full px-4 py-3 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-sm resize-none"
-                            placeholder="Bijv: Economie vraagstukken, Engelse teksten..."
-                            value={studentStruggle}
-                            onChange={(e) => setStudentStruggle(e.target.value)}
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Gebruikersnaam</label>
+                          <input
+                            type="text"
+                            required
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                            placeholder="Admin gebruikersnaam"
+                            value={adminUsername}
+                            onChange={(e) => setAdminUsername(e.target.value)}
                           />
                         </div>
-                      </div>
-                    )}
 
-                    {loginError && (
-                      <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center">
-                        <Lock className="w-4 h-4 mr-2 flex-shrink-0" />
-                        {loginError}
-                      </div>
-                    )}
+                        <div>
+                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Wachtwoord</label>
+                          <input
+                            type="password"
+                            required
+                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                            placeholder="Admin wachtwoord"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                          />
+                        </div>
 
-                    <Button type="submit" className="w-full justify-center h-12 text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all" size="lg">
-                      {isRegistering ? 'Account Aanmaken' : 'Starten'}
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </form>
+                        {loginError && (
+                          <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center">
+                            <Lock className="w-4 h-4 mr-2 flex-shrink-0" />
+                            {loginError}
+                          </div>
+                        )}
+
+                        <Button type="submit" className="w-full justify-center h-12 text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all" size="lg">
+                          Admin Inloggen
+                          <ArrowRight className="w-5 h-5 ml-2" />
+                        </Button>
+                      </form>
+                    </>
+                  )}
                 </div>
 
-                {/* Footer Admin Link */}
+                {/* Footer Toggle Link */}
                 <div className="text-center">
-                   {!showAdminLogin ? (
-                    <button 
-                      onClick={() => setShowAdminLogin(true)}
-                      className="text-xs font-semibold text-slate-400 hover:text-indigo-600 inline-flex items-center transition-colors px-4 py-2 rounded-lg hover:bg-slate-100"
-                    >
-                      <UserCog className="w-3 h-3 mr-2" />
-                      Docenten portaal
-                    </button>
-                  ) : (
-                    <form onSubmit={handleAdminLogin} className="flex gap-2 justify-center animate-fadeIn max-w-[200px] mx-auto">
-                       <input 
-                         type="password"
-                         placeholder="PIN Code"
-                         className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                         value={adminPinInput}
-                         onChange={(e) => setAdminPinInput(e.target.value)}
-                         autoFocus
-                       />
-                       <button 
-                         type="button" 
-                         onClick={() => setShowAdminLogin(false)}
-                         className="px-2 text-slate-400 hover:text-slate-600"
-                       >
-                         <Lock className="w-3 h-3" />
-                       </button>
-                    </form>
-                  )}
+                  <button
+                    onClick={() => {
+                      setShowAdminLogin(!showAdminLogin);
+                      setLoginError('');
+                    }}
+                    className="text-xs font-semibold text-slate-400 hover:text-indigo-600 inline-flex items-center transition-colors px-4 py-2 rounded-lg hover:bg-slate-100"
+                  >
+                    <UserCog className="w-3 h-3 mr-2" />
+                    {showAdminLogin ? 'Terug naar student login' : 'Docenten portaal'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -292,7 +281,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('LANDING')} />;
+        return <AdminDashboard onBack={() => setView('LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -304,7 +293,6 @@ const App: React.FC = () => {
             onLogout={() => {
               setStudentName('');
               setStudentPassword('');
-              setStudentStruggle('');
               setCurrentProfile(null);
               setView('LANDING');
             }} 

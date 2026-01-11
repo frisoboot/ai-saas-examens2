@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Question, ExamSession, ExamResult } from '../types';
 import { saveResult } from '../services/storageService';
+import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation } from '../services/geminiService';
 import { Button } from './Button';
 import { CheckCircle, XCircle, ArrowRight, Home, BrainCircuit, FileText, ChevronRight, X } from 'lucide-react';
@@ -53,7 +54,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
   };
 
-  const finishExam = () => {
+  const finishExam = async () => {
     let finalAnswers = { ...session.answers };
     if (currentQuestion.type === 'OPEN') {
       finalAnswers[currentQuestion.id] = openAnswerInput;
@@ -66,6 +67,11 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       } 
     });
 
+    // Calculate duration in seconds
+    const durationSeconds = session.startTime
+      ? Math.floor((Date.now() - session.startTime) / 1000)
+      : undefined;
+
     const result: ExamResult = {
       id: Date.now().toString(),
       studentName: session.studentName,
@@ -73,10 +79,21 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       score: correctCount,
       totalQuestions: session.questions.length,
       date: new Date().toISOString(),
-      answers: Object.entries(finalAnswers).map(([qid, val]) => ({ questionId: qid, value: val as string | number }))
+      answers: Object.entries(finalAnswers).map(([qid, val]) => ({ questionId: qid, value: val as string | number })),
+      examYear: session.examYear,
+      examType: session.examType,
+      durationSeconds,
+      level: session.questions[0]?.level // Get level from first question
     };
 
-    saveResult(result);
+    try {
+      await saveResult(result);
+
+      // Update student progress
+      await updateProgressAfterExam(result);
+    } catch (error) {
+      console.error('Fout bij opslaan resultaat:', error);
+    }
     setSession(prev => ({ ...prev, answers: finalAnswers }));
     setIsFinished(true);
   };

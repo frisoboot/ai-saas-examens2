@@ -2,16 +2,26 @@ export type QuestionType = 'MULTIPLE_CHOICE' | 'OPEN';
 
 export type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
 
+export type ExamType = 'practice' | 'official_exam';
+
+export type ImportType = 'csv' | 'json' | 'ai_pdf';
+
+export type ExamMode = 'BY_SUBJECT' | 'BY_YEAR';
+
 export interface Question {
   id: string;
   type: QuestionType;
   subject: string;
-  level: StudentLevel; // New field: determines difficulty/target audience
-  text: string; 
-  
+  level: StudentLevel;
+  text: string;
+
+  // Year-based exam fields
+  examYear?: number; // e.g., 2024, 2023, null for practice questions
+  examType?: ExamType; // 'practice' or 'official_exam'
+
   // For context/reading comprehension
-  contextText?: string; 
-  
+  contextText?: string;
+
   // Media & Source
   imageUrl?: string;
   source?: string;
@@ -21,7 +31,7 @@ export interface Question {
   correctIndex?: number;
 
   // For Open Questions
-  modelAnswer?: string; 
+  modelAnswer?: string;
 }
 
 export interface Answer {
@@ -33,25 +43,100 @@ export interface ExamResult {
   id: string;
   studentName: string;
   subject: string;
-  score: number; 
+  score: number;
   totalQuestions: number;
   date: string;
   answers: Answer[];
+
+  // Year and type tracking
+  examYear?: number;
+  examType?: 'subject_practice' | 'year_exam';
+  durationSeconds?: number;
+  level?: StudentLevel; // Student level at time of exam
 }
 
 export interface StudentProfile {
   name: string;
-  password: string; // WARNING: In a real app, never store plain text passwords!
+  password?: string; // Deprecated - for migration only
+  passwordHash?: string; // Hashed password with bcrypt
   level: StudentLevel;
-  strugglePoints: string; 
+  strugglePoints: string;
+  email?: string;
+  createdByAdmin?: string; // Admin username who created this account
+  isActive?: boolean;
 }
 
-export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT';
+export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD';
 
 export interface ExamSession {
   studentName: string;
   subject: string;
   questions: Question[];
   currentQuestionIndex: number;
-  answers: Record<string, number | string>; 
+  answers: Record<string, number | string>;
+
+  // Year-based exam tracking
+  examYear?: number;
+  examType: 'subject_practice' | 'year_exam';
+  startTime?: number; // Timestamp when exam started
+}
+
+// Admin user interface
+export interface AdminUser {
+  id: string;
+  username: string;
+  passwordHash: string;
+  email?: string;
+  lastLogin?: string;
+}
+
+// Progress tracking interface
+export interface StudentProgress {
+  id: string;
+  studentName: string;
+  subject: string;
+  totalExamsTaken: number;
+  totalQuestionsAnswered: number;
+  totalCorrectAnswers: number;
+  averageScore: number; // Percentage
+  lastExamDate?: string;
+  weakestTopics?: string[];
+  improvementRate?: number; // Percentage change over time
+  recentScores?: number[]; // Last 5 exam scores for trend analysis
+}
+
+// Bulk import interfaces
+export interface BulkImportQuestion {
+  subject: string;
+  level: StudentLevel;
+  type: QuestionType;
+  text: string;
+  examYear?: number;
+  contextText?: string;
+  source?: string;
+  options?: string[];
+  correctAnswer?: string; // Will be converted to correctIndex
+  modelAnswer?: string;
+}
+
+export interface ImportResult {
+  success: boolean;
+  importedCount: number;
+  failedCount: number;
+  errors: ImportError[];
+}
+
+export interface ImportError {
+  row: number;
+  field?: string;
+  message: string;
+  data?: any;
+}
+
+// Year exam data structure
+export interface YearExam {
+  year: number;
+  subjects: string[]; // Subjects available for this year
+  questionCount: number;
+  levels: StudentLevel[];
 }

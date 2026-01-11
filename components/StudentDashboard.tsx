@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
-import { StudentProfile } from '../types';
+import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
 import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked } from 'lucide-react';
 
@@ -12,7 +12,20 @@ interface StudentDashboardProps {
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, onStartExam, onStartChat, onLogout }) => {
-  const questions = getQuestions();
+  const [questions, setQuestions] = useState<Question[]>([]);
+
+  useEffect(() => {
+    const loadQuestions = async () => {
+      try {
+        const questionsData = await getQuestions();
+        setQuestions(questionsData);
+      } catch (error) {
+        console.error('Fout bij ophalen vragen:', error);
+        setQuestions([]);
+      }
+    };
+    loadQuestions();
+  }, []);
 
   // Group questions by subject
   const subjects = useMemo(() => {

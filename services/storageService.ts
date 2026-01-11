@@ -1,8 +1,12 @@
-import { Question, ExamResult, StudentProfile } from '../types';
+import { Question, ExamResult, StudentProfile, StudentLevel } from '../types';
+import { supabase, dbQuestions, dbResults, dbStudents } from './supabaseService';
 
 const QUESTIONS_KEY = 'ai_exam_questions';
 const RESULTS_KEY = 'ai_exam_results';
 const STUDENTS_KEY = 'ai_exam_students';
+
+// Helper om te checken of Supabase beschikbaar is
+const useDatabase = () => supabase !== null;
 
 const INITIAL_QUESTIONS: Question[] = [
   {
@@ -48,7 +52,17 @@ const INITIAL_QUESTIONS: Question[] = [
   }
 ];
 
-export const getQuestions = (): Question[] => {
+export const getQuestions = async (): Promise<Question[]> => {
+  if (useDatabase()) {
+    try {
+      return await dbQuestions.getAll();
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   const stored = localStorage.getItem(QUESTIONS_KEY);
   if (!stored) {
     try {
@@ -61,9 +75,20 @@ export const getQuestions = (): Question[] => {
   return JSON.parse(stored);
 };
 
-export const saveQuestion = (question: Question): void => {
+export const saveQuestion = async (question: Question): Promise<void> => {
+  if (useDatabase()) {
+    try {
+      await dbQuestions.save(question);
+      return;
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   try {
-    const questions = getQuestions();
+    const questions = await getQuestions();
     const index = questions.findIndex(q => q.id === question.id);
     
     if (index !== -1) {
@@ -83,20 +108,52 @@ export const saveQuestion = (question: Question): void => {
   }
 };
 
-export const deleteQuestion = (id: string): void => {
-  const questions = getQuestions();
+export const deleteQuestion = async (id: string): Promise<void> => {
+  if (useDatabase()) {
+    try {
+      await dbQuestions.delete(id);
+      return;
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
+  const questions = await getQuestions();
   const filtered = questions.filter(q => q.id !== id);
   localStorage.setItem(QUESTIONS_KEY, JSON.stringify(filtered));
 };
 
-export const getResults = (): ExamResult[] => {
+export const getResults = async (): Promise<ExamResult[]> => {
+  if (useDatabase()) {
+    try {
+      return await dbResults.getAll();
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   const stored = localStorage.getItem(RESULTS_KEY);
   return stored ? JSON.parse(stored) : [];
 };
 
-export const saveResult = (result: ExamResult): void => {
+export const saveResult = async (result: ExamResult): Promise<void> => {
+  if (useDatabase()) {
+    try {
+      await dbResults.save(result);
+      return;
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   try {
-    const results = getResults();
+    const results = await getResults();
     results.push(result);
     localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
   } catch (e) {
@@ -104,7 +161,18 @@ export const saveResult = (result: ExamResult): void => {
   }
 };
 
-export const saveStudentProfile = (profile: StudentProfile): void => {
+export const saveStudentProfile = async (profile: StudentProfile): Promise<void> => {
+  if (useDatabase()) {
+    try {
+      await dbStudents.save(profile);
+      return;
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   try {
     const stored = localStorage.getItem(STUDENTS_KEY);
     const students: StudentProfile[] = stored ? JSON.parse(stored) : [];
@@ -122,17 +190,91 @@ export const saveStudentProfile = (profile: StudentProfile): void => {
   }
 };
 
-export const getStudentProfile = (name: string): StudentProfile | undefined => {
+export const getStudentProfile = async (name: string): Promise<StudentProfile | undefined> => {
+  if (useDatabase()) {
+    try {
+      return await dbStudents.getByName(name) || undefined;
+    } catch (error) {
+      console.error('Database fout, gebruik localStorage fallback:', error);
+      // Fallback naar localStorage
+    }
+  }
+  
+  // localStorage fallback
   const stored = localStorage.getItem(STUDENTS_KEY);
   const students: StudentProfile[] = stored ? JSON.parse(stored) : [];
   return students.find(s => s.name.toLowerCase() === name.toLowerCase());
 };
 
 // Check if credentials match
-export const verifyStudentLogin = (name: string, password: string): boolean => {
-  const profile = getStudentProfile(name);
+export const verifyStudentLogin = async (name: string, password: string): Promise<boolean> => {
+  const profile = await getStudentProfile(name);
   if (!profile) return false;
-  
+
   // NOTE: In production, never compare plain text passwords. Use hashing (e.g., bcrypt).
+  // TODO: This function is deprecated - use authService.verifyStudentLogin instead
   return profile.password === password;
+};
+
+// ============================================================================
+// YEAR-BASED EXAM FUNCTIONS
+// ============================================================================
+
+// Get questions by year
+export const getQuestionsByYear = async (year: number, level?: StudentLevel): Promise<Question[]> => {
+  if (useDatabase()) {
+    try {
+      const allQuestions = await dbQuestions.getAll();
+      return allQuestions.filter(q =>
+        q.examYear === year &&
+        (!level || q.level === level)
+      );
+    } catch (error) {
+      console.error('Database fout:', error);
+    }
+  }
+
+  // localStorage fallback
+  const questions = await getQuestions();
+  return questions.filter(q =>
+    q.examYear === year &&
+    (!level || q.level === level)
+  );
+};
+
+// Get available exam years
+export const getAvailableYears = async (): Promise<number[]> => {
+  const questions = await getQuestions();
+  const years = questions
+    .map(q => q.examYear)
+    .filter((year): year is number => year !== undefined && year !== null);
+
+  return [...new Set(years)].sort((a, b) => b - a); // Descending order
+};
+
+// Get questions by year and subject
+export const getQuestionsByYearAndSubject = async (
+  year: number,
+  subject: string,
+  level: StudentLevel
+): Promise<Question[]> => {
+  const questions = await getQuestions();
+  return questions.filter(q =>
+    q.examYear === year &&
+    q.subject === subject &&
+    q.level === level
+  );
+};
+
+// Get subjects available for a specific year
+export const getSubjectsForYear = async (year: number, level?: StudentLevel): Promise<string[]> => {
+  const questions = await getQuestionsByYear(year, level);
+  const subjects = [...new Set(questions.map(q => q.subject))];
+  return subjects.sort();
+};
+
+// Get question count by year
+export const getQuestionCountByYear = async (year: number, level?: StudentLevel): Promise<number> => {
+  const questions = await getQuestionsByYear(year, level);
+  return questions.length;
 };

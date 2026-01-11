@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
+import { AdminStudentManagement } from './AdminStudentManagement';
+import { BulkImportQuestions } from './BulkImportQuestions';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Link, Upload, X, FileText, List, Type, Sparkles, Pencil, Search, Filter, LayoutGrid } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Link, Upload, X, FileText, List, Type, Sparkles, Pencil, Search, Filter, LayoutGrid, Users, FileUp } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 interface AdminDashboardProps {
   onBack: () => void;
+  adminUsername?: string;
 }
+
+type AdminTab = 'questions' | 'students' | 'import';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
@@ -55,12 +60,15 @@ const compressImage = (file: File): Promise<string> => {
   });
 };
 
-export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
+export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
+  const [activeTab, setActiveTab] = useState<AdminTab>('questions');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | 'ALL'>('ALL');
-  
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterYear, setFilterYear] = useState<number | 'ALL'>('ALL');
+
   // Form State
   const [questionType, setQuestionType] = useState<QuestionType>('MULTIPLE_CHOICE');
   const [questionLevel, setQuestionLevel] = useState<StudentLevel>('HAVO');
@@ -68,7 +76,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
   const [contextText, setContextText] = useState('');
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [customSubject, setCustomSubject] = useState('');
-  const [newQuestionImage, setNewQuestionImage] = useState(''); 
+  const [examYear, setExamYear] = useState<string>('');
+  const [newQuestionImage, setNewQuestionImage] = useState('');
   const [newQuestionSource, setNewQuestionSource] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
   const [correctIndex, setCorrectIndex] = useState(0);
@@ -81,8 +90,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     refreshQuestions();
   }, []);
 
-  const refreshQuestions = () => {
-    setQuestions(getQuestions());
+  const refreshQuestions = async () => {
+    try {
+      const questionsData = await getQuestions();
+      setQuestions(questionsData);
+    } catch (error) {
+      console.error('Fout bij ophalen vragen:', error);
+      setQuestions([]);
+    }
   };
 
   const processImage = async (file: File) => {
@@ -161,7 +176,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     resetForm();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const finalSubject = selectedSubject === 'Anders...' ? customSubject : selectedSubject;
 
@@ -194,8 +209,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     };
 
     try {
-      saveQuestion(newQuestion);
-      refreshQuestions();
+      await saveQuestion(newQuestion);
+      await refreshQuestions();
       handleCancel();
     } catch (error: any) {
       if (error.message === "OPSLAG_VOL") {
@@ -206,53 +221,131 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
     }
   };
 
-  const handleDelete = (id: string) => {
+  const handleDelete = async (id: string) => {
     if (confirm('Weet je zeker dat je deze vraag wilt verwijderen?')) {
-      deleteQuestion(id);
-      refreshQuestions();
+      try {
+        await deleteQuestion(id);
+        await refreshQuestions();
+      } catch (error) {
+        console.error('Fout bij verwijderen vraag:', error);
+        alert('Er ging iets mis bij het verwijderen.');
+      }
     }
   };
 
-  const filteredQuestions = filterSubject === 'ALL' 
+  const filteredQuestions = (filterSubject === 'ALL' 
     ? questions 
-    : questions.filter(q => q.subject === filterSubject);
+    : questions.filter(q => q.subject === filterSubject)
+  ).filter(q => 
+    searchQuery === '' || 
+    q.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    q.subject.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
       {/* Sidebar Navigation */}
       <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex z-10">
-         <div className="p-6 border-b border-slate-100 flex items-center gap-3">
-             <div className="bg-indigo-600 p-2 rounded-lg">
-                <LayoutGrid className="w-5 h-5 text-white" />
+         <div className="p-6 border-b border-slate-100">
+             <div className="flex items-center gap-3 mb-4">
+                <div className="bg-indigo-600 p-2 rounded-lg">
+                   <LayoutGrid className="w-5 h-5 text-white" />
+                </div>
+                <span className="font-bold text-slate-800">Beheer</span>
              </div>
-             <span className="font-bold text-slate-800">Beheer</span>
-         </div>
-         
-         <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
-            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 px-3">Filter op Vak</div>
-            <button 
-               onClick={() => setFilterSubject('ALL')}
-               className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${filterSubject === 'ALL' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-            >
-              Alle Vakken <span className="float-right text-xs opacity-50 bg-white px-1.5 py-0.5 rounded-full border">{questions.length}</span>
-            </button>
-            {SUBJECTS.map(subj => {
-               const count = questions.filter(q => q.subject === subj).length;
-               if (count === 0 && filterSubject !== subj) return null; // Hide empty subjects unless active
-               
-               return (
-                 <button 
-                   key={subj}
-                   onClick={() => setFilterSubject(subj)}
-                   className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${filterSubject === subj ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
-                 >
-                   {subj} <span className="float-right text-xs opacity-50 bg-white px-1.5 py-0.5 rounded-full border">{count}</span>
-                 </button>
-               )
-            })}
+
+             {/* Tab Navigation */}
+             <div className="space-y-1">
+                <button
+                  onClick={() => setActiveTab('questions')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'questions'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Vragen Beheer
+                </button>
+                <button
+                  onClick={() => setActiveTab('students')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'students'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Users className="w-4 h-4" />
+                  Studenten
+                </button>
+                <button
+                  onClick={() => setActiveTab('import')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'import'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileUp className="w-4 h-4" />
+                  Bulk Import
+                </button>
+             </div>
          </div>
 
-         <div className="p-4 border-t border-slate-100">
+         {activeTab === 'questions' && (
+         <div className="flex-1 overflow-y-auto p-4 space-y-1 custom-scrollbar">
+            <button 
+               onClick={() => { setFilterSubject('ALL'); setSearchQuery(''); }}
+               className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                 filterSubject === 'ALL' 
+                   ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' 
+                   : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+               }`}
+            >
+              <div className="flex items-center justify-between">
+                <span>Alle Vakken</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${
+                  filterSubject === 'ALL' 
+                    ? 'bg-indigo-100 text-indigo-700' 
+                    : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {questions.length}
+                </span>
+              </div>
+            </button>
+            <div className="mt-3 space-y-1">
+              {SUBJECTS.map(subj => {
+                 const count = questions.filter(q => q.subject === subj).length;
+                 if (count === 0 && filterSubject !== subj) return null; // Hide empty subjects unless active
+                 
+                 return (
+                   <button 
+                     key={subj}
+                     onClick={() => { setFilterSubject(subj); setSearchQuery(''); }}
+                     className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                       filterSubject === subj 
+                         ? 'bg-indigo-50 text-indigo-700 shadow-sm border border-indigo-100' 
+                         : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                     }`}
+                   >
+                     <div className="flex items-center justify-between">
+                       <span className="truncate">{subj}</span>
+                       <span className={`text-xs px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${
+                         filterSubject === subj 
+                           ? 'bg-indigo-100 text-indigo-700' 
+                           : 'bg-slate-100 text-slate-500'
+                       }`}>
+                         {count}
+                       </span>
+                     </div>
+                   </button>
+                 )
+              })}
+            </div>
+         </div>
+         )}
+
+         <div className="p-4 border-t border-slate-100 mt-auto">
             <Button variant="secondary" onClick={onBack} className="w-full justify-start text-slate-500">
                <ArrowLeft className="w-4 h-4 mr-2" />
                Afsluiten
@@ -262,21 +355,64 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
 
       {/* Main Content Area */}
       <main className="flex-1 flex flex-col h-full bg-[#f8fafc] overflow-hidden relative">
-        
+
+        {/* Render based on active tab */}
+        {activeTab === 'students' ? (
+          <div className="flex-1 overflow-y-auto p-6">
+            <AdminStudentManagement adminUsername={adminUsername} />
+          </div>
+        ) : activeTab === 'import' ? (
+          <div className="flex-1 overflow-y-auto p-6">
+            <BulkImportQuestions />
+          </div>
+        ) : (
+          <>
         {/* Top Header */}
-        <header className="bg-white border-b border-slate-200 h-16 flex items-center justify-between px-6 md:px-8 flex-shrink-0">
-           <h1 className="text-xl font-bold text-slate-800">
-             {isFormOpen 
-               ? (editingId ? 'Vraag Bewerken' : 'Nieuwe Vraag') 
-               : (filterSubject === 'ALL' ? 'Alle Vragen' : filterSubject)
-             }
-           </h1>
-           {!isFormOpen && (
+        <header className="bg-white border-b border-slate-200 flex-shrink-0">
+          <div className="h-16 flex items-center justify-between px-6 md:px-8">
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">
+                {isFormOpen
+                  ? (editingId ? 'Vraag Bewerken' : 'Nieuwe Vraag')
+                  : (filterSubject === 'ALL' ? 'Alle Vragen' : filterSubject)
+                }
+              </h1>
+              {!isFormOpen && (
+                <p className="text-sm text-slate-500 mt-0.5">
+                  {filteredQuestions.length} {filteredQuestions.length === 1 ? 'vraag' : 'vragen'}
+                  {filterSubject !== 'ALL' && ` in ${filterSubject}`}
+                </p>
+              )}
+            </div>
+            {!isFormOpen && (
               <Button onClick={() => { resetForm(); setIsFormOpen(true); }} size="sm" className="shadow-md shadow-indigo-100">
                 <Plus className="w-4 h-4 mr-2" />
                 Vraag Toevoegen
               </Button>
-           )}
+            )}
+          </div>
+          {!isFormOpen && (
+            <div className="px-6 md:px-8 pb-4">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  placeholder="Zoek in vragen..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white focus:border-indigo-500 outline-none text-sm"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Content Scroll Area */}
@@ -416,64 +552,109 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack }) => {
                 </form>
              </div>
            ) : (
-             /* LIST VIEW - TABLE STYLE */
-             <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                <table className="w-full text-left border-collapse">
-                   <thead>
-                      <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider font-semibold border-b border-slate-200">
-                         <th className="px-6 py-4 w-1/6">Vak</th>
-                         <th className="px-6 py-4 w-1/6">Niveau/Type</th>
-                         <th className="px-6 py-4 w-1/2">Vraag</th>
-                         <th className="px-6 py-4 text-right w-1/6">Acties</th>
-                      </tr>
-                   </thead>
-                   <tbody className="divide-y divide-slate-100">
-                      {filteredQuestions.length === 0 ? (
-                         <tr>
-                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                               Geen vragen gevonden in deze categorie.
-                            </td>
-                         </tr>
-                      ) : (
-                         filteredQuestions.map(q => (
-                            <tr key={q.id} className="hover:bg-slate-50/80 transition-colors group">
-                               <td className="px-6 py-4">
-                                  <span className="font-semibold text-slate-700 block">{q.subject}</span>
-                                  {q.source && <span className="text-xs text-slate-400 truncate max-w-[120px] block" title={q.source}>{q.source}</span>}
-                               </td>
-                               <td className="px-6 py-4">
-                                  <div className="flex flex-col gap-1 items-start">
-                                     <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">{q.level}</span>
-                                     <span className={`text-xs font-bold px-2 py-0.5 rounded border ${q.type === 'MULTIPLE_CHOICE' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                        {q.type === 'MULTIPLE_CHOICE' ? 'MC' : 'OPEN'}
-                                     </span>
-                                  </div>
-                               </td>
-                               <td className="px-6 py-4">
-                                  <p className="text-slate-800 line-clamp-2 font-medium">{q.text}</p>
-                                  <div className="flex gap-3 mt-1 text-xs text-slate-400">
-                                     {q.contextText && <span className="flex items-center"><FileText className="w-3 h-3 mr-1"/> Tekst</span>}
-                                     {q.imageUrl && <span className="flex items-center"><ImageIcon className="w-3 h-3 mr-1"/> Afb</span>}
-                                  </div>
-                               </td>
-                               <td className="px-6 py-4 text-right">
-                                  <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                     <button onClick={() => handleEdit(q)} className="p-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors" title="Bewerken">
-                                        <Pencil className="w-4 h-4" />
-                                     </button>
-                                     <button onClick={() => handleDelete(q.id)} className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" title="Verwijderen">
-                                        <Trash2 className="w-4 h-4" />
-                                     </button>
-                                  </div>
-                               </td>
-                            </tr>
-                         ))
-                      )}
-                   </tbody>
-                </table>
+             /* LIST VIEW - CARD STYLE */
+             <div className="space-y-4">
+               {filteredQuestions.length === 0 ? (
+                 <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-12 text-center">
+                   <div className="max-w-md mx-auto">
+                     <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                       <FileText className="w-8 h-8 text-slate-400" />
+                     </div>
+                     <h3 className="text-lg font-semibold text-slate-700 mb-2">
+                       {searchQuery ? 'Geen resultaten gevonden' : 'Geen vragen gevonden'}
+                     </h3>
+                     <p className="text-slate-500 text-sm mb-6">
+                       {searchQuery 
+                         ? `Geen vragen gevonden voor "${searchQuery}"`
+                         : filterSubject === 'ALL' 
+                           ? 'Voeg je eerste vraag toe om te beginnen.'
+                           : `Er zijn nog geen vragen voor ${filterSubject}.`
+                       }
+                     </p>
+                     {!searchQuery && (
+                       <Button onClick={() => { resetForm(); setIsFormOpen(true); }} size="sm">
+                         <Plus className="w-4 h-4 mr-2" />
+                         Eerste Vraag Toevoegen
+                       </Button>
+                     )}
+                   </div>
+                 </div>
+               ) : (
+                 <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+                   {filteredQuestions.map(q => (
+                     <div 
+                       key={q.id} 
+                       className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 hover:shadow-md hover:border-slate-300 transition-all group"
+                     >
+                       {/* Header met vak en badges */}
+                       <div className="flex items-start justify-between mb-3">
+                         <div className="flex-1 min-w-0">
+                           <h3 className="font-semibold text-slate-800 truncate mb-1">{q.subject}</h3>
+                           <div className="flex flex-wrap gap-2">
+                             <span className="text-xs font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                               {q.level}
+                             </span>
+                             <span className={`text-xs font-bold px-2 py-0.5 rounded border ${
+                               q.type === 'MULTIPLE_CHOICE' 
+                                 ? 'bg-indigo-50 text-indigo-700 border-indigo-100' 
+                                 : 'bg-orange-50 text-orange-700 border-orange-100'
+                             }`}>
+                               {q.type === 'MULTIPLE_CHOICE' ? 'Meerkeuze' : 'Open Vraag'}
+                             </span>
+                           </div>
+                         </div>
+                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity ml-2">
+                           <button 
+                             onClick={() => handleEdit(q)} 
+                             className="p-1.5 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors" 
+                             title="Bewerken"
+                           >
+                             <Pencil className="w-4 h-4" />
+                           </button>
+                           <button 
+                             onClick={() => handleDelete(q.id)} 
+                             className="p-1.5 text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors" 
+                             title="Verwijderen"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </button>
+                         </div>
+                       </div>
+
+                       {/* Vraag tekst */}
+                       <p className="text-slate-700 text-sm line-clamp-3 mb-3 leading-relaxed">
+                         {q.text}
+                       </p>
+
+                       {/* Metadata */}
+                       <div className="flex items-center gap-3 text-xs text-slate-400 pt-3 border-t border-slate-100">
+                         {q.contextText && (
+                           <span className="flex items-center gap-1">
+                             <FileText className="w-3 h-3" />
+                             Tekst
+                           </span>
+                         )}
+                         {q.imageUrl && (
+                           <span className="flex items-center gap-1">
+                             <ImageIcon className="w-3 h-3" />
+                             Afbeelding
+                           </span>
+                         )}
+                         {q.source && (
+                           <span className="truncate flex-1" title={q.source}>
+                             {q.source}
+                           </span>
+                         )}
+                       </div>
+                     </div>
+                   ))}
+                 </div>
+               )}
              </div>
            )}
         </div>
+          </>
+        )}
       </main>
     </div>
   );
