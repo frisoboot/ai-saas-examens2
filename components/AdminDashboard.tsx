@@ -2,9 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
 import { AdminStudentManagement } from './AdminStudentManagement';
-import { BulkImportQuestions } from './BulkImportQuestions';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Link, Upload, X, FileText, List, Type, Sparkles, Pencil, Search, Filter, LayoutGrid, Users, FileUp } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users } from 'lucide-react';
 import { Loader2 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -12,7 +11,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students' | 'import';
+type AdminTab = 'questions' | 'students';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
@@ -74,7 +73,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterYear, setFilterYear] = useState<number | 'ALL'>('ALL');
 
   // Form State
   const [questionType, setQuestionType] = useState<QuestionType>('MULTIPLE_CHOICE');
@@ -84,7 +82,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [customSubject, setCustomSubject] = useState('');
   const [examYear, setExamYear] = useState<string>('');
-  const [examType, setExamType] = useState<'practice' | 'official_exam'>('practice');
   const [newQuestionImage, setNewQuestionImage] = useState('');
   const [newQuestionSource, setNewQuestionSource] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
@@ -144,7 +141,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setSelectedSubject(SUBJECTS[0]);
     setCustomSubject('');
     setExamYear('');
-    setExamType('practice');
     setNewQuestionImage('');
     setNewQuestionSource('');
     setOptions(['', '', '', '']);
@@ -171,7 +167,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setNewQuestionImage(q.imageUrl || '');
     setNewQuestionSource(q.source || '');
     setExamYear(q.examYear ? q.examYear.toString() : '');
-    setExamType(q.examType || 'practice');
 
     if (q.type === 'MULTIPLE_CHOICE') {
       setOptions(q.options || ['', '', '', '']);
@@ -197,6 +192,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       return;
     }
 
+    if (!examYear) {
+      alert("Examenjaar is verplicht voor officiële eindexamens.");
+      return;
+    }
+
     if (questionType === 'MULTIPLE_CHOICE' && options.some(o => !o)) {
       alert("Vul alle antwoordopties in voor een meerkeuzevraag.");
       return;
@@ -217,7 +217,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       imageUrl: newQuestionImage || undefined,
       source: newQuestionSource || undefined,
       examYear: examYear ? parseInt(examYear) : undefined,
-      examType: examYear ? examType : undefined, // Only set examType if year is provided
+      examType: examYear ? 'official_exam' : undefined, // Always official_exam when year is provided
       ...(questionType === 'MULTIPLE_CHOICE' ? { options, correctIndex } : {}),
       ...(questionType === 'OPEN' ? { modelAnswer } : {})
     };
@@ -265,7 +265,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                 <div className="bg-indigo-600 p-2 rounded-lg">
                    <LayoutGrid className="w-5 h-5 text-white" />
                 </div>
-                <span className="font-bold text-slate-800">Beheer</span>
+                <div>
+                  <span className="font-bold text-slate-800 block">Beheer</span>
+                  <span className="text-xs text-slate-500">Eindexamens & Leerlingen</span>
+                </div>
              </div>
 
              {/* Tab Navigation */}
@@ -279,7 +282,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   }`}
                 >
                   <FileText className="w-4 h-4" />
-                  Vragen Beheer
+                  Eindexamenvragen
                 </button>
                 <button
                   onClick={() => setActiveTab('students')}
@@ -290,18 +293,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   }`}
                 >
                   <Users className="w-4 h-4" />
-                  Studenten
-                </button>
-                <button
-                  onClick={() => setActiveTab('import')}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === 'import'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <FileUp className="w-4 h-4" />
-                  Bulk Import
+                  Leerlingen
                 </button>
              </div>
          </div>
@@ -375,10 +367,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
           <div className="flex-1 overflow-y-auto p-6">
             <AdminStudentManagement adminUsername={adminUsername} />
           </div>
-        ) : activeTab === 'import' ? (
-          <div className="flex-1 overflow-y-auto p-6">
-            <BulkImportQuestions />
-          </div>
         ) : (
           <>
         {/* Top Header */}
@@ -436,7 +424,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
              /* FORM VIEW - WIDE LAYOUT */
              <div className="max-w-5xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 p-8 animate-fadeIn">
                 <div className="flex justify-between items-center mb-6">
-                  <p className="text-slate-500">Vul de gegevens in voor de nieuwe examenvraag.</p>
+                  <p className="text-slate-500">Vul de gegevens in voor een officiële eindexamenvraag met bronnen en afbeeldingen.</p>
                   <button onClick={handleCancel} className="p-2 hover:bg-slate-100 rounded-full text-slate-400 hover:text-slate-600 transition-colors">
                      <X className="w-5 h-5" />
                   </button>
@@ -479,11 +467,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                       </div>
                    </div>
 
-                   {/* Exam Year, Type and Source Row */}
-                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                   {/* Exam Year and Source Row */}
+                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                          <label className="text-sm font-semibold text-slate-700">
-                            Examenjaar <span className="font-normal text-slate-400 text-xs ml-1">(Optioneel)</span>
+                            Examenjaar <span className="text-red-500">*</span>
                          </label>
                          <input
                             type="number"
@@ -492,20 +480,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                             placeholder="bijv. 2024"
                             value={examYear}
                             onChange={e => setExamYear(e.target.value)}
+                            required
                             className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
                          />
-                      </div>
-                      <div className="space-y-2">
-                         <label className="text-sm font-semibold text-slate-700">Examentype</label>
-                         <select
-                            value={examType}
-                            onChange={(e) => setExamType(e.target.value as 'practice' | 'official_exam')}
-                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
-                            disabled={!examYear}
-                         >
-                            <option value="practice">Oefenexamen</option>
-                            <option value="official_exam">Officieel Examen</option>
-                         </select>
+                         <p className="text-xs text-slate-500 mt-1">Alleen officiële eindexamenvragen</p>
                       </div>
                       <div className="space-y-2">
                          <label className="text-sm font-semibold text-slate-700">
@@ -513,7 +491,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                          </label>
                          <input
                             type="text"
-                            placeholder="bijv. Examenblad 2024-I"
+                            placeholder="bijv. Examenblad 2024-I, Tijdvak 1"
                             value={newQuestionSource}
                             onChange={e => setNewQuestionSource(e.target.value)}
                             className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
@@ -683,7 +661,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                        </p>
 
                        {/* Metadata */}
-                       <div className="flex items-center gap-3 text-xs text-slate-400 pt-3 border-t border-slate-100">
+                       <div className="flex items-center gap-3 text-xs text-slate-400 pt-3 border-t border-slate-100 flex-wrap">
+                         {q.examYear && (
+                           <span className="flex items-center gap-1 font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                             {q.examYear}
+                           </span>
+                         )}
                          {q.contextText && (
                            <span className="flex items-center gap-1">
                              <FileText className="w-3 h-3" />

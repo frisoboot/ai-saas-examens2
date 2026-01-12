@@ -3,13 +3,15 @@ import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, BookOpen, Calendar } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
+import { AIGeneratorMenu } from './AIGeneratorMenu';
+import { getSubjectIcon } from '../utils/subjectIcons';
 
 interface SubjectOptionsProps {
   subject: string;
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartAIQuestions: () => void;
+  onStartAIQuestions: (count: number, topic?: string) => void;
   onStartExam: (year?: number) => void;
 }
 
@@ -23,6 +25,9 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
 }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
+  const [view, setView] = useState<'default' | 'ai-setup'>('default');
+  
+  const SubjectIcon = getSubjectIcon(subject);
 
   useEffect(() => {
     const loadYears = async () => {
@@ -45,6 +50,17 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
     loadYears();
   }, [student.level]);
 
+  if (view === 'ai-setup') {
+    return (
+      <AIGeneratorMenu
+        subject={subject}
+        studentLevel={student.level}
+        onBack={() => setView('default')}
+        onGenerate={onStartAIQuestions}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#f8fafc] p-6 md:p-10">
       <div className="max-w-4xl mx-auto">
@@ -61,7 +77,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
 
           <div className="flex items-center gap-4 mb-4">
             <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-lg shadow-indigo-200">
-              <BookOpen className="w-8 h-8" />
+              <SubjectIcon className="w-8 h-8" />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-slate-900">{subject}</h1>
@@ -100,24 +116,24 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
 
           {/* AI Gegenereerde Toetsen */}
           <div
-            onClick={onStartAIQuestions}
-            className="group bg-white rounded-2xl p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
+            onClick={() => setView('ai-setup')}
+            className="group bg-white rounded-2xl p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-blue-500/30 transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-start gap-6">
               <div className="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-600 group-hover:text-white transition-all duration-300 shadow-sm flex-shrink-0">
                 <Sparkles className="w-8 h-8" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Gegenereerde Toetsen</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Examen Generator</h3>
                 <p className="text-slate-600 mb-4">
-                  De AI genereert nieuwe vragen speciaal voor jou op {subject} niveau {student.level}. Elke keer unieke vragen om mee te oefenen.
+                  De AI genereert nieuwe {subject} eindexamenvragen op {student.level} niveau. Kies hoeveel vragen je wilt maken.
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
                     <Sparkles className="w-3 h-3" />
                     AI Powered
                   </span>
-                  <span className="text-xs text-slate-400">• Altijd nieuwe vragen</span>
+                  <span className="text-xs text-slate-400">• Altijd nieuwe vragen • Kies onderwerp</span>
                 </div>
               </div>
             </div>

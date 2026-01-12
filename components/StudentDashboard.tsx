@@ -4,12 +4,13 @@ import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
 import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
+import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
 interface StudentDashboardProps {
   student: StudentProfile;
   onStartExam: (subject: string, year?: number) => void;
   onStartChat: (subject: string) => void;
-  onStartAIQuestions: (subject: string) => void;
+  onStartAIQuestions: (subject: string, count: number, topic?: string) => void;
   onLogout: () => void;
 }
 
@@ -62,7 +63,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         student={student}
         onBack={() => setSelectedSubject(null)}
         onStartChat={() => onStartChat(selectedSubject)}
-        onStartAIQuestions={() => onStartAIQuestions(selectedSubject)}
+        onStartAIQuestions={(count, topic) => onStartAIQuestions(selectedSubject, count, topic)}
         onStartExam={(year) => onStartExam(selectedSubject, year)}
       />
     );
@@ -142,6 +143,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {ALL_SUBJECTS.map((subject) => {
                   const examCount = examCounts.get(subject) || 0;
+                  const Icon = getSubjectIcon(subject);
+                  const colorClass = getSubjectColor(subject);
+                  
                   return (
                     <div
                       key={subject}
@@ -149,8 +153,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 flex flex-col cursor-pointer"
                     >
                       <div className="flex justify-between items-start mb-6">
-                        <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                          <BookMarked className="w-7 h-7" />
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-opacity-100 transition-all duration-300 shadow-sm ${colorClass} bg-opacity-100`}>
+                          <Icon className="w-7 h-7" />
                         </div>
                         {examCount > 0 && (
                           <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">

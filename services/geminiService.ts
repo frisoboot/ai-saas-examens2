@@ -132,24 +132,103 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
 export const generateAIQuestions = async (
   subject: string,
   level: string,
-  count: number = 10
+  count: number = 10,
+  topic?: string
 ): Promise<Question[]> => {
+  // Define level-specific exam requirements
+  let levelInstructions = "";
+  let exampleTypes = "";
+
+  switch (level) {
+    case 'VMBO-TL':
+      levelInstructions = `
+      VMBO-TL EINDEXAMEN KENMERKEN:
+      - Taal: Helder, direct en concreet. Vermijd complexe zinnen.
+      - Vraagstelling: Praktisch gericht, herkenbaar uit het dagelijks leven
+      - Antwoorden: Duidelijk onderscheidbaar, geen verwarring
+      - Diepgang: Reproductie en begrip, beperkte analyse
+      - Focus op: Feiten, basisbegrippen, praktische toepassing
+      `;
+      exampleTypes = `
+      Voorbeeldvragen:
+      - Feitelijke kennisvragen ("In welk jaar...", "Wat is de hoofdstad van...")
+      - Herkenningsvragen met duidelijke context
+      - Eenvoudige oorzaak-gevolg relaties
+      `;
+      break;
+
+    case 'HAVO':
+      levelInstructions = `
+      HAVO EINDEXAMEN KENMERKEN:
+      - Taal: Correct Nederlands met juiste vakterminologie
+      - Vraagstelling: Mix van kennis en toepassing, vaak met praktijksituatie
+      - Antwoorden: Vereisen goed begrip en kunnen afleidingsantwoorden bevatten
+      - Diepgang: Reproductie, begrip én toepassing. Leerling moet verbanden leggen.
+      - Focus op: Concepten uitleggen, theorie toepassen, redeneerketen volgen
+      `;
+      exampleTypes = `
+      Voorbeeldvragen:
+      - Toepassingsvragen ("Wat gebeurt er als...", "Welk effect heeft...")
+      - Vraagstukken met korte context/casus
+      - Vragen die begrip van mechanismen testen
+      - Vergelijkingsvragen ("Wat is het verschil tussen...")
+      `;
+      break;
+
+    case 'VWO':
+      levelInstructions = `
+      VWO EINDEXAMEN KENMERKEN:
+      - Taal: Academisch, genuanceerd met correcte wetenschappelijke terminologie
+      - Vraagstelling: Complex, vereist diepgaand begrip en abstractievermogen
+      - Antwoorden: Vaak subtiele verschillen, vereist kritisch denken
+      - Diepgang: Alle niveaus: kennis, begrip, toepassing, analyse, synthese
+      - Focus op: Complexe verbanden, uitzonderingen, onderliggende principes, kritische analyse
+      `;
+      exampleTypes = `
+      Voorbeeldvragen:
+      - Analytische vragen ("Verklaar waarom...", "Analyseer de oorzaken van...")
+      - Multi-stap redeneringen
+      - Vragen die abstractievermogen vereisen
+      - Vraagstukken met onverwachte wendingen of uitzonderingen
+      - Vragen die dwarsverbanden tussen verschillende onderdelen vereisen
+      `;
+      break;
+
+    default:
+      levelInstructions = "Pas de vraagstelling aan aan het eindexamen niveau.";
+      exampleTypes = "";
+  }
+
   const prompt = `
-    Je bent een ervaren docent die examenvragen maakt voor ${subject} op ${level} niveau.
+    Je bent een ervaren examinator die officiële ${level} eindexamenvragen maakt voor het vak ${subject}.
+    ${topic ? `SPECIFIEK ONDERWERP: Focus ALLE vragen op het onderwerp: "${topic}".` : ''}
 
-    Maak PRECIES ${count} meerkeuzevragen (MULTIPLE_CHOICE) voor dit onderwerp.
-    De vragen moeten:
-    - Geschikt zijn voor ${level} niveau eindexamen
-    - Realistisch en relevant zijn voor de examenstof
+    ${levelInstructions}
+
+    ${exampleTypes}
+
+    VAKSPECIFIEKE EISEN VOOR ${subject}:
+    - Gebruik authentieke begrippen en situaties uit het vakgebied
+    - Zorg dat de vragen aansluiten bij de kerndoelen en eindtermen voor ${level}
+    - Maak vragen die typerend zijn voor ${subject} examens
+    ${topic ? `- Zorg dat alle vragen gaan over ${topic}` : ''}
+
+    OPDRACHT:
+    Maak PRECIES ${count} meerkeuzevragen die volledig voldoen aan ${level} eindexamen niveau.
+
+    Elke vraag moet:
     - 4 antwoordopties hebben (A, B, C, D)
-    - Een duidelijk juist antwoord hebben
+    - 1 duidelijk correct antwoord hebben
+    - 3 plausibele maar incorrecte afleidingsantwoorden (veelgemaakte fouten, dichtbij maar net niet goed)
+    - Realistisch zijn voor een echt eindexamen
 
-    BELANGRIJK: Geef je antwoord als JSON array met dit exacte format:
+    BELANGRIJK: Geef je antwoord als JSON array met dit EXACTE format:
     [
       {
         "text": "De vraag hier",
         "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
-        "correctIndex": 0
+        "correctIndex": 0,
+        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
       }
     ]
 
@@ -183,7 +262,9 @@ export const generateAIQuestions = async (
       text: q.text,
       options: q.options,
       correctIndex: q.correctIndex,
-      examType: 'ai_practice' as const,
+      contextText: q.contextText || undefined,
+      examType: 'practice' as const,
+      source: `AI-gegenereerd (${level} niveau)`,
     }));
 
     return questions;

@@ -117,18 +117,19 @@ const App: React.FC = () => {
     }
   };
 
-  const startAIQuestions = async (subject: string) => {
+  const startAIQuestions = async (subject: string, count: number = 10, topic?: string) => {
     if (!currentProfile) return;
 
-    try {
-      // Show loading message
-      const loadingAlert = alert;
+    // Show loading feedback
+    const loadingMessage = `AI genereert ${count} ${currentProfile.level} eindexamenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`;
+    console.log(loadingMessage);
 
-      // Generate AI questions using Gemini API
-      const aiQuestions = await generateAIQuestions(subject, currentProfile.level, 10);
+    try {
+      // Generate AI questions using Gemini API with level-specific prompts
+      const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
-          alert(`Kon geen AI-vragen genereren voor ${subject}. Probeer het later opnieuw.`);
+          alert(`❌ Kon geen AI-vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige Gemini API key hebt (VITE_GEMINI_API_KEY)\n- Je internetverbinding werkt`);
           return;
       }
 
@@ -142,9 +143,22 @@ const App: React.FC = () => {
         startTime: Date.now()
       });
       setView('EXAM');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Fout bij genereren AI-vragen:', error);
-      alert('Er ging iets mis bij het genereren van de AI-vragen. Controleer of je een Gemini API key hebt ingesteld.');
+
+      let errorMessage = '❌ Er ging iets mis bij het genereren van de AI-vragen.\n\n';
+
+      if (error.message?.includes('API key')) {
+        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld in je .env bestand:\nVITE_GEMINI_API_KEY=jouw-api-key';
+      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage += 'Controleer je internetverbinding en probeer het opnieuw.';
+      } else {
+        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
+      }
+
+      alert(errorMessage);
     }
   };
 
