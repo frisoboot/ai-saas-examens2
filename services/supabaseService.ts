@@ -142,7 +142,7 @@ export const dbQuestions = {
 
     if (error) {
       console.error('Fout bij opslaan vraag:', error);
-      throw error;
+      throw new Error(`Database fout: ${error.message}`);
     }
 
     // Converteer terug naar TypeScript format

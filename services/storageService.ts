@@ -80,9 +80,12 @@ export const saveQuestion = async (question: Question): Promise<void> => {
     try {
       await dbQuestions.save(question);
       return;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Database fout, gebruik localStorage fallback:', error);
-      // Fallback naar localStorage
+      if (error.message?.includes('Database fout')) {
+         throw error; // Re-throw specifieke database errors
+      }
+      // Anders fallback naar localStorage
     }
   }
   

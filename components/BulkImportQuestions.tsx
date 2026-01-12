@@ -58,9 +58,12 @@ export const BulkImportQuestions: React.FC = () => {
           setParsedQuestions([]);
           setImportResult(null);
         }, 5000);
+      } else if (result.failedCount > 0 && result.importedCount === 0) {
+        // Alles mislukt
+        setError('❌ Import volledig mislukt. Controleer de foutmeldingen hieronder.');
       }
-    } catch (err) {
-      setError('Fout bij importeren');
+    } catch (err: any) {
+      setError(`❌ Kritieke fout bij importeren: ${err.message || 'Onbekende fout'}`);
       console.error(err);
     } finally {
       setLoading(false);

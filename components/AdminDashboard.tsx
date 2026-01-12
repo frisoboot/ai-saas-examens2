@@ -227,10 +227,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       await refreshQuestions();
       handleCancel();
     } catch (error: any) {
+      console.error("Opslaan mislukt:", error);
       if (error.message === "OPSLAG_VOL") {
         alert("⚠️ Opslag is vol! Verwijder oude vragen of afbeeldingen.");
+      } else if (error.message?.includes("Database fout")) {
+        alert(`❌ Fout bij opslaan in de cloud database:\n${error.message}\n\nDe vraag is NIET opgeslagen.`);
       } else {
-        alert("Er ging iets mis bij het opslaan.");
+        alert("❌ Er ging iets mis bij het opslaan.\nControleer je internetverbinding.");
       }
     }
   };
