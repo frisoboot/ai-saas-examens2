@@ -98,7 +98,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
             </div>
           </div>
 
-          {/* AI Oefenvragen */}
+          {/* AI Gegenereerde Toetsen */}
           <div
             onClick={onStartAIQuestions}
             className="group bg-white rounded-2xl p-8 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
@@ -108,16 +108,16 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                 <Sparkles className="w-8 h-8" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Oefenvragen</h3>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Gegenereerde Toetsen</h3>
                 <p className="text-slate-600 mb-4">
-                  Oefen met AI-gegenereerde vragen afgestemd op jouw niveau. Simpele tekstvragen zonder plaatjes of bijlagen.
+                  De AI genereert nieuwe vragen speciaal voor jou op {subject} niveau {student.level}. Elke keer unieke vragen om mee te oefenen.
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
                     <Sparkles className="w-3 h-3" />
-                    Alleen tekst
+                    AI Powered
                   </span>
-                  <span className="text-xs text-slate-400">• Snel en eenvoudig oefenen</span>
+                  <span className="text-xs text-slate-400">• Altijd nieuwe vragen</span>
                 </div>
               </div>
             </div>
