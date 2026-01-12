@@ -84,6 +84,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [selectedSubject, setSelectedSubject] = useState(SUBJECTS[0]);
   const [customSubject, setCustomSubject] = useState('');
   const [examYear, setExamYear] = useState<string>('');
+  const [examType, setExamType] = useState<'practice' | 'official_exam'>('practice');
   const [newQuestionImage, setNewQuestionImage] = useState('');
   const [newQuestionSource, setNewQuestionSource] = useState('');
   const [options, setOptions] = useState(['', '', '', '']);
@@ -142,6 +143,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setContextText('');
     setSelectedSubject(SUBJECTS[0]);
     setCustomSubject('');
+    setExamYear('');
+    setExamType('practice');
     setNewQuestionImage('');
     setNewQuestionSource('');
     setOptions(['', '', '', '']);
@@ -167,7 +170,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     
     setNewQuestionImage(q.imageUrl || '');
     setNewQuestionSource(q.source || '');
-    
+    setExamYear(q.examYear ? q.examYear.toString() : '');
+    setExamType(q.examType || 'practice');
+
     if (q.type === 'MULTIPLE_CHOICE') {
       setOptions(q.options || ['', '', '', '']);
       setCorrectIndex(q.correctIndex || 0);
@@ -211,6 +216,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       contextText: contextText || undefined,
       imageUrl: newQuestionImage || undefined,
       source: newQuestionSource || undefined,
+      examYear: examYear ? parseInt(examYear) : undefined,
+      examType: examYear ? examType : undefined, // Only set examType if year is provided
       ...(questionType === 'MULTIPLE_CHOICE' ? { options, correctIndex } : {}),
       ...(questionType === 'OPEN' ? { modelAnswer } : {})
     };
@@ -469,6 +476,48 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                             <button type="button" onClick={() => setQuestionType('MULTIPLE_CHOICE')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${questionType === 'MULTIPLE_CHOICE' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>MC</button>
                             <button type="button" onClick={() => setQuestionType('OPEN')} className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${questionType === 'OPEN' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>OPEN</button>
                          </div>
+                      </div>
+                   </div>
+
+                   {/* Exam Year, Type and Source Row */}
+                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                         <label className="text-sm font-semibold text-slate-700">
+                            Examenjaar <span className="font-normal text-slate-400 text-xs ml-1">(Optioneel)</span>
+                         </label>
+                         <input
+                            type="number"
+                            min="2000"
+                            max="2100"
+                            placeholder="bijv. 2024"
+                            value={examYear}
+                            onChange={e => setExamYear(e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
+                         />
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-sm font-semibold text-slate-700">Examentype</label>
+                         <select
+                            value={examType}
+                            onChange={(e) => setExamType(e.target.value as 'practice' | 'official_exam')}
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
+                            disabled={!examYear}
+                         >
+                            <option value="practice">Oefenexamen</option>
+                            <option value="official_exam">Officieel Examen</option>
+                         </select>
+                      </div>
+                      <div className="space-y-2">
+                         <label className="text-sm font-semibold text-slate-700">
+                            Bron <span className="font-normal text-slate-400 text-xs ml-1">(Optioneel)</span>
+                         </label>
+                         <input
+                            type="text"
+                            placeholder="bijv. Examenblad 2024-I"
+                            value={newQuestionSource}
+                            onChange={e => setNewQuestionSource(e.target.value)}
+                            className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none"
+                         />
                       </div>
                    </div>
 

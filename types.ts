@@ -77,7 +77,7 @@ export interface ExamSession {
 
   // Year-based exam tracking
   examYear?: number;
-  examType: 'subject_practice' | 'year_exam';
+  examType: 'subject_practice' | 'year_exam' | 'ai_practice' | 'official_exam';
   startTime?: number; // Timestamp when exam started
 }
 

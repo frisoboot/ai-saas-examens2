@@ -78,17 +78,25 @@ const App: React.FC = () => {
     }
   };
 
-  const startExam = async (subject: string) => {
+  const startExam = async (subject: string, year?: number) => {
     if (!currentProfile) return;
 
     try {
       const allQuestions = await getQuestions();
-      const subjectQuestions = allQuestions.filter(q => 
+      let subjectQuestions = allQuestions.filter(q =>
           q.subject === subject && q.level === currentProfile.level
       );
-      
+
+      // Filter by year if specified
+      if (year !== undefined) {
+        subjectQuestions = subjectQuestions.filter(q => q.examYear === year);
+      }
+
       if (subjectQuestions.length === 0) {
-          alert(`Er zijn nog geen vragen voor ${subject} op ${currentProfile.level} niveau.`);
+          const message = year
+            ? `Er zijn nog geen vragen voor ${subject} uit ${year} op ${currentProfile.level} niveau.`
+            : `Er zijn nog geen vragen voor ${subject} op ${currentProfile.level} niveau.`;
+          alert(message);
           return;
       }
 
@@ -98,13 +106,47 @@ const App: React.FC = () => {
         questions: subjectQuestions,
         currentQuestionIndex: 0,
         answers: {},
-        examType: 'subject_practice',
+        examType: year ? 'official_exam' : 'subject_practice',
         startTime: Date.now()
       });
       setView('EXAM');
     } catch (error) {
       console.error('Fout bij ophalen vragen:', error);
       alert('Er ging iets mis bij het ophalen van de vragen.');
+    }
+  };
+
+  const startAIQuestions = async (subject: string) => {
+    if (!currentProfile) return;
+
+    try {
+      const allQuestions = await getQuestions();
+      // Filter for questions without images (AI generated questions)
+      const aiQuestions = allQuestions.filter(q =>
+          q.subject === subject &&
+          q.level === currentProfile.level &&
+          !q.imageUrl && // No images
+          !q.contextText // No context text (optional - can be removed if you want context in AI questions)
+      );
+
+      if (aiQuestions.length === 0) {
+          alert(`Er zijn nog geen AI-vragen beschikbaar voor ${subject}. Probeer de eindexamen oefeningen.`);
+          return;
+      }
+
+      setCurrentExamSession({
+        studentName: currentProfile.name,
+        subject,
+        questions: aiQuestions,
+        currentQuestionIndex: 0,
+        answers: {},
+        examType: 'ai_practice',
+        startTime: Date.now()
+      });
+      setView('EXAM');
+    } catch (error) {
+      console.error('Fout bij ophalen AI-vragen:', error);
+      alert('Er ging iets mis bij het ophalen van de AI-vragen.');
     }
   };
 
@@ -286,16 +328,17 @@ const App: React.FC = () => {
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
         return (
-          <StudentDashboard 
+          <StudentDashboard
             student={currentProfile}
-            onStartExam={startExam} 
+            onStartExam={startExam}
             onStartChat={startChat}
+            onStartAIQuestions={startAIQuestions}
             onLogout={() => {
               setStudentName('');
               setStudentPassword('');
               setCurrentProfile(null);
               setView('LANDING');
-            }} 
+            }}
           />
         );
 

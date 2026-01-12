@@ -3,16 +3,25 @@ import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
 import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked } from 'lucide-react';
+import { SubjectOptions } from './SubjectOptions';
 
 interface StudentDashboardProps {
   student: StudentProfile;
-  onStartExam: (subject: string) => void;
+  onStartExam: (subject: string, year?: number) => void;
   onStartChat: (subject: string) => void;
+  onStartAIQuestions: (subject: string) => void;
   onLogout: () => void;
 }
 
-export const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, onStartExam, onStartChat, onLogout }) => {
+export const StudentDashboard: React.FC<StudentDashboardProps> = ({
+  student,
+  onStartExam,
+  onStartChat,
+  onStartAIQuestions,
+  onLogout
+}) => {
   const [questions, setQuestions] = useState<Question[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -27,14 +36,30 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, onS
     loadQuestions();
   }, []);
 
-  // Group questions by subject
+  // Group questions by subject, filtered by student level
   const subjects = useMemo(() => {
     const map = new Map<string, number>();
-    questions.forEach(q => {
-      map.set(q.subject, (map.get(q.subject) || 0) + 1);
-    });
+    questions
+      .filter(q => q.level === student.level) // Filter by student level
+      .forEach(q => {
+        map.set(q.subject, (map.get(q.subject) || 0) + 1);
+      });
     return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
-  }, [questions]);
+  }, [questions, student.level]);
+
+  // If a subject is selected, show the options screen
+  if (selectedSubject) {
+    return (
+      <SubjectOptions
+        subject={selectedSubject}
+        student={student}
+        onBack={() => setSelectedSubject(null)}
+        onStartChat={() => onStartChat(selectedSubject)}
+        onStartAIQuestions={() => onStartAIQuestions(selectedSubject)}
+        onStartExam={(year) => onStartExam(selectedSubject, year)}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
@@ -103,8 +128,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, onS
         <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12">
            <div className="max-w-7xl mx-auto">
               <header className="mb-10">
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">Examen Vakken</h1>
-                <p className="text-slate-500 text-lg">Kies een vak om te oefenen of vraag de AI-expert om hulp.</p>
+                <h1 className="text-3xl font-bold text-slate-900 mb-2">Jouw Vakken - {student.level}</h1>
+                <p className="text-slate-500 text-lg">Kies een vak om te starten met leren, oefenen of chatten met de AI-docent.</p>
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
@@ -114,45 +139,38 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ student, onS
                       <BookOpen className="w-8 h-8 text-slate-400" />
                     </div>
                     <h3 className="text-lg font-medium text-slate-900">Nog geen examens beschikbaar</h3>
-                    <p className="text-slate-500 mt-1">Vraag je docent om vragen toe te voegen voor jouw niveau.</p>
+                    <p className="text-slate-500 mt-1">Vraag je docent om vragen toe te voegen voor {student.level}.</p>
                   </div>
                 ) : (
                   subjects.map(([subject, count]) => (
-                    <div 
-                      key={subject} 
-                      className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 flex flex-col"
+                    <div
+                      key={subject}
+                      onClick={() => setSelectedSubject(subject)}
+                      className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 flex flex-col cursor-pointer"
                     >
                       <div className="flex justify-between items-start mb-6">
                         <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
-                            <BookMarked className="w-7 h-7" />
+                          <BookMarked className="w-7 h-7" />
                         </div>
                         <span className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-100">
                           {count} {count === 1 ? 'Vraag' : 'Vragen'}
                         </span>
                       </div>
-                      
-                      <div className="flex-1 mb-8">
+
+                      <div className="flex-1 mb-6">
                         <h3 className="text-xl font-bold text-slate-900 mb-1">{subject}</h3>
-                        <p className="text-slate-400 text-sm">VMBO-TL • HAVO • VWO</p>
+                        <p className="text-slate-400 text-sm">{student.level} niveau</p>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-3">
-                        <Button 
-                          variant="secondary" 
-                          className="w-full justify-center border-slate-200 hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700"
-                          onClick={() => onStartChat(subject)}
-                        >
-                          <MessageCircle className="w-4 h-4 mr-2" />
-                          Expert
-                        </Button>
-                        <Button 
-                          variant="primary" 
-                          className="w-full justify-center shadow-md shadow-indigo-100 hover:shadow-lg hover:shadow-indigo-200"
-                          onClick={() => onStartExam(subject)}
-                        >
-                          <Sparkles className="w-4 h-4 mr-2" />
-                          Start
-                        </Button>
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <MessageCircle className="w-4 h-4" />
+                        <span>Chat</span>
+                        <span className="text-slate-300">•</span>
+                        <Sparkles className="w-4 h-4" />
+                        <span>Oefenen</span>
+                        <span className="text-slate-300">•</span>
+                        <BookOpen className="w-4 h-4" />
+                        <span>Examens</span>
                       </div>
                     </div>
                   ))
