@@ -9,7 +9,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials niet gevonden. Gebruik localStorage als fallback.');
 }
 
-export const supabase = supabaseUrl && supabaseAnonKey 
+export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
@@ -18,6 +18,67 @@ const TABLES = {
   QUESTIONS: 'questions',
   RESULTS: 'exam_results',
   STUDENTS: 'student_profiles'
+};
+
+// ============================================================================
+// DATA TRANSFORMATION HELPERS
+// Converteer tussen snake_case (database) en camelCase (TypeScript)
+// ============================================================================
+
+interface DbQuestion {
+  id: string;
+  type: 'MULTIPLE_CHOICE' | 'OPEN';
+  subject: string;
+  level: 'VMBO-TL' | 'HAVO' | 'VWO';
+  text: string;
+  context_text?: string;
+  image_url?: string;
+  source?: string;
+  options?: string[];
+  correct_index?: number;
+  model_answer?: string;
+  exam_year?: number;
+  exam_type?: 'practice' | 'official_exam';
+  created_at?: string;
+  updated_at?: string;
+}
+
+// Converteer database object (snake_case) naar TypeScript object (camelCase)
+const dbToQuestion = (dbQuestion: DbQuestion): Question => {
+  return {
+    id: dbQuestion.id,
+    type: dbQuestion.type,
+    subject: dbQuestion.subject,
+    level: dbQuestion.level,
+    text: dbQuestion.text,
+    contextText: dbQuestion.context_text,
+    imageUrl: dbQuestion.image_url,
+    source: dbQuestion.source,
+    options: dbQuestion.options,
+    correctIndex: dbQuestion.correct_index,
+    modelAnswer: dbQuestion.model_answer,
+    examYear: dbQuestion.exam_year,
+    examType: dbQuestion.exam_type
+  };
+};
+
+// Converteer TypeScript object (camelCase) naar database object (snake_case)
+const questionToDb = (question: Question): DbQuestion => {
+  return {
+    id: question.id,
+    type: question.type,
+    subject: question.subject,
+    level: question.level,
+    text: question.text,
+    context_text: question.contextText,
+    image_url: question.imageUrl,
+    source: question.source,
+    options: question.options,
+    correct_index: question.correctIndex,
+    model_answer: question.modelAnswer,
+    exam_year: question.examYear,
+    exam_type: question.examType
+  };
 };
 
 // Vragen operaties
@@ -38,7 +99,8 @@ export const dbQuestions = {
       throw error;
     }
 
-    return data || [];
+    // Converteer database records naar TypeScript objects
+    return (data || []).map(dbToQuestion);
   },
 
   // Haal één vraag op
@@ -59,7 +121,8 @@ export const dbQuestions = {
       throw error;
     }
 
-    return data;
+    // Converteer database record naar TypeScript object
+    return data ? dbToQuestion(data) : null;
   },
 
   // Sla een vraag op (create of update)
@@ -68,9 +131,12 @@ export const dbQuestions = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
+    // Converteer TypeScript object naar database format
+    const dbQuestion = questionToDb(question);
+
     const { data, error } = await supabase
       .from(TABLES.QUESTIONS)
-      .upsert(question, { onConflict: 'id' })
+      .upsert(dbQuestion, { onConflict: 'id' })
       .select()
       .single();
 
@@ -79,7 +145,8 @@ export const dbQuestions = {
       throw error;
     }
 
-    return data;
+    // Converteer terug naar TypeScript format
+    return dbToQuestion(data);
   },
 
   // Verwijder een vraag
@@ -116,7 +183,8 @@ export const dbQuestions = {
       throw error;
     }
 
-    return data || [];
+    // Converteer database records naar TypeScript objects
+    return (data || []).map(dbToQuestion);
   }
 };
 
