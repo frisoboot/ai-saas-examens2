@@ -117,6 +117,7 @@ export interface BulkImportQuestion {
   options?: string[];
   correctAnswer?: string; // Will be converted to correctIndex
   modelAnswer?: string;
+  imageUrl?: string; // Base64 string
 }
 
 export interface ImportResult {

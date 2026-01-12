@@ -88,6 +88,7 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     examYear: q.examYear,
     examType: q.examYear ? 'official_exam' : 'practice',
     contextText: q.contextText,
+    imageUrl: q.imageUrl,
     source: q.source
   };
 

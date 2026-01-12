@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
 import { AdminStudentManagement } from './AdminStudentManagement';
+import { BulkImportQuestions } from './BulkImportQuestions';
 import { Button } from './Button';
 import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users } from 'lucide-react';
+import { compressImage } from '../utils/imageUtils';
 import { Loader2 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -11,60 +13,13 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students';
+type AdminTab = 'questions' | 'students' | 'import';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
   'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
   'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
 ];
-
-// Helper to compress images
-const compressImage = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-
-        // Fix: Add null check for canvas context
-        if (!ctx) {
-          reject(new Error('Kon canvas context niet verkrijgen'));
-          return;
-        }
-
-        ctx.drawImage(img, 0, 0, width, height);
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
-        resolve(dataUrl);
-      };
-      img.onerror = (error) => reject(error);
-    };
-    reader.onerror = (error) => reject(error);
-  });
-};
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('questions');
@@ -298,6 +253,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <Users className="w-4 h-4" />
                   Leerlingen
                 </button>
+                <button
+                  onClick={() => setActiveTab('import')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'import'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Upload className="w-4 h-4" />
+                  Examen Uploaden
+                </button>
              </div>
          </div>
 
@@ -370,6 +336,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
           <div className="flex-1 overflow-y-auto p-6">
             <AdminStudentManagement adminUsername={adminUsername} />
           </div>
+        ) : activeTab === 'import' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <BulkImportQuestions />
+           </div>
         ) : (
           <>
         {/* Top Header */}

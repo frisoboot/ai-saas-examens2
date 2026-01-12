@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { BulkImportQuestion, ImportResult } from '../types';
+import React, { useState, useRef } from 'react';
+import { BulkImportQuestion, ImportResult, QuestionType, StudentLevel } from '../types';
 import { parseCSV, parseJSON, bulkImportQuestions, generateCSVTemplate, validateFileType, readFileAsText } from '../services/importService';
+import { compressImage } from '../utils/imageUtils';
 import { Button } from './Button';
-import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Pencil, Trash2, Save, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 
 export const BulkImportQuestions: React.FC = () => {
   const [fileType, setFileType] = useState<'csv' | 'json'>('csv');
@@ -11,6 +12,11 @@ export const BulkImportQuestions: React.FC = () => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Editing State
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState<BulkImportQuestion | null>(null);
+  const [isCompressing, setIsCompressing] = useState(false);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -81,13 +87,77 @@ export const BulkImportQuestions: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
+  // Editing Functions
+  const startEditing = (index: number) => {
+    setEditingIndex(index);
+    setEditForm({ ...parsedQuestions[index] });
+  };
+
+  const cancelEditing = () => {
+    setEditingIndex(null);
+    setEditForm(null);
+    setIsCompressing(false);
+  };
+
+  const saveEditing = () => {
+    if (editingIndex !== null && editForm) {
+      const newQuestions = [...parsedQuestions];
+      newQuestions[editingIndex] = editForm;
+      setParsedQuestions(newQuestions);
+      cancelEditing();
+    }
+  };
+
+  const removeQuestion = (index: number) => {
+    if (confirm('Weet je zeker dat je deze vraag uit de import wilt verwijderen?')) {
+      const newQuestions = [...parsedQuestions];
+      newQuestions.splice(index, 1);
+      setParsedQuestions(newQuestions);
+      if (editingIndex === index) cancelEditing();
+    }
+  };
+
+  const handleImageDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    if (!editForm) return;
+
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      await processImage(file);
+    }
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await processImage(file);
+    }
+  };
+
+  const processImage = async (file: File) => {
+    setIsCompressing(true);
+    try {
+      const compressedBase64 = await compressImage(file);
+      setEditForm(prev => prev ? { ...prev, imageUrl: compressedBase64 } : null);
+    } catch (err) {
+      console.error("Fout bij comprimeren:", err);
+      alert("Kon afbeelding niet verwerken.");
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  const removeImage = () => {
+    setEditForm(prev => prev ? { ...prev, imageUrl: undefined } : null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Bulk Import Vragen</h2>
-          <p className="text-slate-500 text-sm mt-1">Upload meerdere vragen tegelijk via CSV of JSON</p>
+          <h2 className="text-2xl font-bold text-slate-900">Examen Uploaden & Bewerken</h2>
+          <p className="text-slate-500 text-sm mt-1">Stap 1: Upload CSV/JSON. Stap 2: Voeg afbeeldingen en bronnen toe.</p>
         </div>
         <Button
           onClick={handleDownloadTemplate}
@@ -164,12 +234,12 @@ export const BulkImportQuestions: React.FC = () => {
         </div>
       )}
 
-      {/* Preview */}
+      {/* Preview & Edit Area */}
       {parsedQuestions.length > 0 && !importResult && (
         <div className="bg-white border border-slate-200 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-bold text-slate-900">
-              Preview ({parsedQuestions.length} vragen)
+              Review & Verrijk ({parsedQuestions.length} vragen)
             </h3>
             <Button
               onClick={handleImport}
@@ -177,44 +247,124 @@ export const BulkImportQuestions: React.FC = () => {
               variant="primary"
               className="flex items-center gap-2"
             >
-              {loading ? 'Importeren...' : 'Importeer Vragen'}
+              {loading ? 'Importeren...' : 'Importeer Alles'}
             </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 border-b border-slate-200">
-                <tr>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">#</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">Vak</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">Niveau</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">Type</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">Vraag</th>
-                  <th className="px-3 py-2 text-left text-xs font-bold text-slate-500 uppercase">Jaar</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {parsedQuestions.slice(0, 10).map((q, idx) => (
-                  <tr key={idx} className="hover:bg-slate-50">
-                    <td className="px-3 py-2 text-slate-500">{idx + 1}</td>
-                    <td className="px-3 py-2 font-medium">{q.subject}</td>
-                    <td className="px-3 py-2">
-                      <span className="px-2 py-1 rounded text-xs bg-indigo-100 text-indigo-700">
-                        {q.level}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-slate-600">{q.type}</td>
-                    <td className="px-3 py-2 text-slate-600 max-w-md truncate">{q.text}</td>
-                    <td className="px-3 py-2 text-slate-600">{q.examYear || '-'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {parsedQuestions.length > 10 && (
-              <div className="p-3 text-center text-sm text-slate-500 border-t border-slate-200">
-                En nog {parsedQuestions.length - 10} vragen meer...
-              </div>
-            )}
+          <div className="space-y-4">
+             {parsedQuestions.map((q, idx) => {
+               const isEditing = editingIndex === idx;
+
+               if (isEditing && editForm) {
+                 return (
+                   <div key={idx} className="border-2 border-indigo-500 rounded-xl p-4 bg-indigo-50/50 shadow-sm animate-fadeIn">
+                      <div className="flex justify-between items-start mb-4">
+                         <h4 className="font-bold text-indigo-900">Vraag {idx + 1} Bewerken</h4>
+                         <button onClick={cancelEditing} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5"/></button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                         <div className="space-y-4">
+                            <div>
+                               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Vraag</label>
+                               <textarea
+                                 value={editForm.text}
+                                 onChange={e => setEditForm({...editForm, text: e.target.value})}
+                                 className="w-full p-3 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                                 rows={3}
+                               />
+                            </div>
+                            <div>
+                               <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Brontekst (Grote bron)</label>
+                               <textarea
+                                 value={editForm.contextText || ''}
+                                 onChange={e => setEditForm({...editForm, contextText: e.target.value})}
+                                 className="w-full p-3 border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                                 rows={5}
+                                 placeholder="Plak hier lange teksten..."
+                               />
+                            </div>
+                         </div>
+
+                         <div className="space-y-4">
+                             <div>
+                                <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Afbeelding (Sleep hierheen)</label>
+                                <div 
+                                   onDragOver={(e) => e.preventDefault()}
+                                   onDrop={handleImageDrop}
+                                   className={`border-2 border-dashed rounded-lg h-48 flex flex-col items-center justify-center text-center transition-all ${
+                                      editForm.imageUrl ? 'border-indigo-300 bg-white' : 'border-indigo-200 bg-white hover:border-indigo-400'
+                                   }`}
+                                >
+                                   {editForm.imageUrl ? (
+                                      <div className="relative w-full h-full p-2">
+                                         <img src={editForm.imageUrl} className="w-full h-full object-contain" />
+                                         <button 
+                                            onClick={removeImage}
+                                            className="absolute top-2 right-2 bg-red-100 text-red-600 p-1.5 rounded-full hover:bg-red-200"
+                                         >
+                                            <Trash2 className="w-4 h-4" />
+                                         </button>
+                                      </div>
+                                   ) : (
+                                      <div className="p-4">
+                                         {isCompressing ? (
+                                            <div className="flex flex-col items-center text-indigo-600">
+                                               <Loader2 className="w-8 h-8 animate-spin mb-2" />
+                                               <span className="text-xs">Verwerken...</span>
+                                            </div>
+                                         ) : (
+                                            <>
+                                               <ImageIcon className="w-8 h-8 text-indigo-300 mx-auto mb-2" />
+                                               <p className="text-sm text-indigo-900 font-medium">Sleep afbeelding hierheen</p>
+                                               <p className="text-xs text-indigo-500 mb-3">of</p>
+                                               <label className="cursor-pointer px-3 py-1.5 bg-indigo-100 text-indigo-700 rounded text-xs font-bold hover:bg-indigo-200">
+                                                  Kies Bestand
+                                                  <input type="file" accept="image/*" className="hidden" onChange={handleImageSelect} />
+                                               </label>
+                                            </>
+                                         )}
+                                      </div>
+                                   )}
+                                </div>
+                             </div>
+
+                             <div className="flex justify-end gap-2 pt-2">
+                                <Button variant="secondary" onClick={cancelEditing} size="sm">Annuleren</Button>
+                                <Button onClick={saveEditing} size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white"><Save className="w-4 h-4 mr-2"/> Opslaan</Button>
+                             </div>
+                         </div>
+                      </div>
+                   </div>
+                 );
+               }
+
+               return (
+                 <div key={idx} className="flex items-start gap-4 p-4 border border-slate-200 rounded-lg hover:border-indigo-300 hover:shadow-sm transition-all bg-white group">
+                    <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold flex-shrink-0">
+                       {idx + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                       <div className="flex items-center gap-2 mb-1">
+                          <span className="font-bold text-slate-700">{q.subject}</span>
+                          <span className="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-500">{q.level}</span>
+                          <span className="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-500">{q.type}</span>
+                          {q.imageUrl && <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Afbeelding</span>}
+                          {q.contextText && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded flex items-center gap-1"><FileText className="w-3 h-3"/> Brontekst</span>}
+                       </div>
+                       <p className="text-sm text-slate-600 line-clamp-2">{q.text}</p>
+                    </div>
+                    <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                       <button onClick={() => startEditing(idx)} className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg" title="Bewerken & Media Toevoegen">
+                          <Pencil className="w-4 h-4" />
+                       </button>
+                       <button onClick={() => removeQuestion(idx)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg" title="Verwijderen">
+                          <Trash2 className="w-4 h-4" />
+                       </button>
+                    </div>
+                 </div>
+               );
+             })}
           </div>
         </div>
       )}
