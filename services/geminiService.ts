@@ -127,3 +127,68 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
     }
   });
 };
+
+// Generate AI practice questions
+export const generateAIQuestions = async (
+  subject: string,
+  level: string,
+  count: number = 10
+): Promise<Question[]> => {
+  const prompt = `
+    Je bent een ervaren docent die examenvragen maakt voor ${subject} op ${level} niveau.
+
+    Maak PRECIES ${count} meerkeuzevragen (MULTIPLE_CHOICE) voor dit onderwerp.
+    De vragen moeten:
+    - Geschikt zijn voor ${level} niveau eindexamen
+    - Realistisch en relevant zijn voor de examenstof
+    - 4 antwoordopties hebben (A, B, C, D)
+    - Een duidelijk juist antwoord hebben
+
+    BELANGRIJK: Geef je antwoord als JSON array met dit exacte format:
+    [
+      {
+        "text": "De vraag hier",
+        "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
+        "correctIndex": 0
+      }
+    ]
+
+    Geef ALLEEN de JSON array terug, geen extra tekst ervoor of erna.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+
+    const responseText = response.text || '';
+
+    // Extract JSON from response (sometimes AI adds markdown code blocks)
+    let jsonText = responseText.trim();
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+    }
+
+    const questionsData = JSON.parse(jsonText);
+
+    // Convert to Question format
+    const questions: Question[] = questionsData.map((q: any, index: number) => ({
+      id: `ai-${Date.now()}-${index}`,
+      type: 'MULTIPLE_CHOICE' as const,
+      level: level as any,
+      subject: subject,
+      text: q.text,
+      options: q.options,
+      correctIndex: q.correctIndex,
+      examType: 'ai_practice' as const,
+    }));
+
+    return questions;
+  } catch (error) {
+    console.error("Fout bij genereren AI vragen:", error);
+    throw new Error("Kon geen AI vragen genereren. Probeer het later opnieuw.");
+  }
+};

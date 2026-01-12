@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser } from './types';
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
+import { generateAIQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
@@ -120,17 +121,14 @@ const App: React.FC = () => {
     if (!currentProfile) return;
 
     try {
-      const allQuestions = await getQuestions();
-      // Filter for questions without images (AI generated questions)
-      const aiQuestions = allQuestions.filter(q =>
-          q.subject === subject &&
-          q.level === currentProfile.level &&
-          !q.imageUrl && // No images
-          !q.contextText // No context text (optional - can be removed if you want context in AI questions)
-      );
+      // Show loading message
+      const loadingAlert = alert;
+
+      // Generate AI questions using Gemini API
+      const aiQuestions = await generateAIQuestions(subject, currentProfile.level, 10);
 
       if (aiQuestions.length === 0) {
-          alert(`Er zijn nog geen AI-vragen beschikbaar voor ${subject}. Probeer de eindexamen oefeningen.`);
+          alert(`Kon geen AI-vragen genereren voor ${subject}. Probeer het later opnieuw.`);
           return;
       }
 
@@ -145,8 +143,8 @@ const App: React.FC = () => {
       });
       setView('EXAM');
     } catch (error) {
-      console.error('Fout bij ophalen AI-vragen:', error);
-      alert('Er ging iets mis bij het ophalen van de AI-vragen.');
+      console.error('Fout bij genereren AI-vragen:', error);
+      alert('Er ging iets mis bij het genereren van de AI-vragen. Controleer of je een Gemini API key hebt ingesteld.');
     }
   };
 

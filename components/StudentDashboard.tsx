@@ -13,6 +13,13 @@ interface StudentDashboardProps {
   onLogout: () => void;
 }
 
+// All available subjects - always shown to students
+const ALL_SUBJECTS = [
+  'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
+  'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
+  'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
+];
+
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   student,
   onStartExam,
@@ -36,15 +43,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     loadQuestions();
   }, []);
 
-  // Group questions by subject, filtered by student level
-  const subjects = useMemo(() => {
+  // Get exam question counts per subject (for display only)
+  const examCounts = useMemo(() => {
     const map = new Map<string, number>();
     questions
-      .filter(q => q.level === student.level) // Filter by student level
+      .filter(q => q.level === student.level && q.examYear) // Only count exam questions
       .forEach(q => {
         map.set(q.subject, (map.get(q.subject) || 0) + 1);
       });
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    return map;
   }, [questions, student.level]);
 
   // If a subject is selected, show the options screen
@@ -133,16 +140,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {subjects.length === 0 ? (
-                  <div className="col-span-full bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
-                      <BookOpen className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-900">Nog geen examens beschikbaar</h3>
-                    <p className="text-slate-500 mt-1">Vraag je docent om vragen toe te voegen voor {student.level}.</p>
-                  </div>
-                ) : (
-                  subjects.map(([subject, count]) => (
+                {ALL_SUBJECTS.map((subject) => {
+                  const examCount = examCounts.get(subject) || 0;
+                  return (
                     <div
                       key={subject}
                       onClick={() => setSelectedSubject(subject)}
@@ -152,9 +152,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-300 shadow-sm">
                           <BookMarked className="w-7 h-7" />
                         </div>
-                        <span className="bg-slate-50 text-slate-600 text-xs font-bold px-3 py-1.5 rounded-full border border-slate-100">
-                          {count} {count === 1 ? 'Vraag' : 'Vragen'}
-                        </span>
+                        {examCount > 0 && (
+                          <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
+                            {examCount} {examCount === 1 ? 'Examen' : 'Examens'}
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex-1 mb-6">
@@ -167,14 +169,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                         <span>Chat</span>
                         <span className="text-slate-300">•</span>
                         <Sparkles className="w-4 h-4" />
-                        <span>Oefenen</span>
-                        <span className="text-slate-300">•</span>
-                        <BookOpen className="w-4 h-4" />
-                        <span>Examens</span>
+                        <span>AI Toetsen</span>
+                        {examCount > 0 && (
+                          <>
+                            <span className="text-slate-300">•</span>
+                            <BookOpen className="w-4 h-4" />
+                            <span>Examens</span>
+                          </>
+                        )}
                       </div>
                     </div>
-                  ))
-                )}
+                  );
+                })}
               </div>
            </div>
         </div>
