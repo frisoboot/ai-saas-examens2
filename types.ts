@@ -66,7 +66,7 @@ export interface StudentProfile {
   isActive?: boolean;
 }
 
-export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD';
+export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'AI_QUESTIONS' | 'PROGRESS_DASHBOARD';
 
 export interface ExamSession {
   studentName: string;

@@ -6,6 +6,7 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
+import { AIQuestionGenerator } from './components/AIQuestionGenerator';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2 } from 'lucide-react';
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
+  const [aiQuestionSubject, setAiQuestionSubject] = useState<string | null>(null);
   const [loginError, setLoginError] = useState('');
 
   const handleStudentAuth = async (e: React.FormEvent) => {
@@ -116,38 +118,9 @@ const App: React.FC = () => {
     }
   };
 
-  const startAIQuestions = async (subject: string) => {
-    if (!currentProfile) return;
-
-    try {
-      const allQuestions = await getQuestions();
-      // Filter for questions without images (AI generated questions)
-      const aiQuestions = allQuestions.filter(q =>
-          q.subject === subject &&
-          q.level === currentProfile.level &&
-          !q.imageUrl && // No images
-          !q.contextText // No context text (optional - can be removed if you want context in AI questions)
-      );
-
-      if (aiQuestions.length === 0) {
-          alert(`Er zijn nog geen AI-vragen beschikbaar voor ${subject}. Probeer de eindexamen oefeningen.`);
-          return;
-      }
-
-      setCurrentExamSession({
-        studentName: currentProfile.name,
-        subject,
-        questions: aiQuestions,
-        currentQuestionIndex: 0,
-        answers: {},
-        examType: 'ai_practice',
-        startTime: Date.now()
-      });
-      setView('EXAM');
-    } catch (error) {
-      console.error('Fout bij ophalen AI-vragen:', error);
-      alert('Er ging iets mis bij het ophalen van de AI-vragen.');
-    }
+  const startAIQuestions = (subject: string) => {
+    setAiQuestionSubject(subject);
+    setView('AI_QUESTIONS');
   };
 
   const startChat = (subject: string) => {
@@ -354,8 +327,18 @@ const App: React.FC = () => {
       case 'SUBJECT_CHAT':
         if (!currentProfile || !chatSubject) return null;
         return (
-          <SubjectChat 
+          <SubjectChat
             subject={chatSubject}
+            student={currentProfile}
+            onBack={() => setView('STUDENT_DASHBOARD')}
+          />
+        );
+
+      case 'AI_QUESTIONS':
+        if (!currentProfile || !aiQuestionSubject) return null;
+        return (
+          <AIQuestionGenerator
+            subject={aiQuestionSubject}
             student={currentProfile}
             onBack={() => setView('STUDENT_DASHBOARD')}
           />

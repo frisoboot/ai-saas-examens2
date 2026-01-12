@@ -110,14 +110,15 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 mb-2">AI Oefenvragen</h3>
                 <p className="text-slate-600 mb-4">
-                  Oefen met AI-gegenereerde vragen afgestemd op jouw niveau. Simpele tekstvragen zonder plaatjes of bijlagen.
+                  Word overhoord door AI! De AI genereert ter plekke nieuwe vragen op basis van de examenstof voor {subject}.
+                  Elke vraag is uniek en afgestemd op jouw {student.level} niveau.
                 </p>
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1.5 bg-blue-50 text-blue-700 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
                     <Sparkles className="w-3 h-3" />
-                    Alleen tekst
+                    AI Gegenereerd
                   </span>
-                  <span className="text-xs text-slate-400">• Snel en eenvoudig oefenen</span>
+                  <span className="text-xs text-slate-400">• Direct feedback</span>
                 </div>
               </div>
             </div>

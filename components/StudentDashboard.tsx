@@ -5,6 +5,26 @@ import { Button } from './Button';
 import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 
+// Standaard vakken die altijd beschikbaar zijn
+const ALL_SUBJECTS = [
+  'Aardrijkskunde',
+  'Bedrijfseconomie',
+  'Biologie',
+  'Duits',
+  'Economie',
+  'Engels',
+  'Frans',
+  'Geschiedenis',
+  'Kunst Algemeen',
+  'Maatschappijwetenschappen',
+  'Natuurkunde',
+  'Nederlands',
+  'Scheikunde',
+  'Wiskunde A',
+  'Wiskunde B',
+  'Wiskunde C'
+];
+
 interface StudentDashboardProps {
   student: StudentProfile;
   onStartExam: (subject: string, year?: number) => void;
@@ -36,15 +56,22 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     loadQuestions();
   }, []);
 
-  // Group questions by subject, filtered by student level
+  // Show all subjects with question counts
   const subjects = useMemo(() => {
-    const map = new Map<string, number>();
+    const questionCounts = new Map<string, number>();
+
+    // Count questions per subject for this level
     questions
-      .filter(q => q.level === student.level) // Filter by student level
+      .filter(q => q.level === student.level)
       .forEach(q => {
-        map.set(q.subject, (map.get(q.subject) || 0) + 1);
+        questionCounts.set(q.subject, (questionCounts.get(q.subject) || 0) + 1);
       });
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+
+    // Return all subjects with their counts (0 if no questions)
+    return ALL_SUBJECTS.map(subject => [
+      subject,
+      questionCounts.get(subject) || 0
+    ] as [string, number]);
   }, [questions, student.level]);
 
   // If a subject is selected, show the options screen
@@ -133,16 +160,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {subjects.length === 0 ? (
-                  <div className="col-span-full bg-white rounded-3xl border border-dashed border-slate-300 p-12 text-center">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-slate-50 mb-4">
-                      <BookOpen className="w-8 h-8 text-slate-400" />
-                    </div>
-                    <h3 className="text-lg font-medium text-slate-900">Nog geen examens beschikbaar</h3>
-                    <p className="text-slate-500 mt-1">Vraag je docent om vragen toe te voegen voor {student.level}.</p>
-                  </div>
-                ) : (
-                  subjects.map(([subject, count]) => (
+                {subjects.map(([subject, count]) => (
                     <div
                       key={subject}
                       onClick={() => setSelectedSubject(subject)}
@@ -174,7 +192,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                       </div>
                     </div>
                   ))
-                )}
+                }
               </div>
            </div>
         </div>
