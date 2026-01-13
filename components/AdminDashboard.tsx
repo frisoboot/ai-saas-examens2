@@ -5,7 +5,7 @@ import { AdminStudentManagement } from './AdminStudentManagement';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { Button } from './Button';
 import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users } from 'lucide-react';
-import { compressImage } from '../utils/imageUtils';
+import { imageStorage } from '../services/imageStorageService';
 import { Loader2 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -43,6 +43,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [correctIndex, setCorrectIndex] = useState(0);
   const [modelAnswer, setModelAnswer] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -61,12 +62,20 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   };
 
   const processImage = async (file: File) => {
+    // Voor nu: toon preview met base64
+    // De daadwerkelijke upload naar Supabase Storage gebeurt bij het opslaan
     setIsCompressing(true);
     try {
-      const compressedBase64 = await compressImage(file);
-      setNewQuestionImage(compressedBase64);
+      // Maak een lokale preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        setNewQuestionImage(result); // Preview in de UI
+      };
+      reader.readAsDataURL(file);
+      setUploadedFile(file); // Bewaar het bestand voor later
     } catch (err) {
-      console.error("Fout bij comprimeren:", err);
+      console.error("Fout bij verwerken afbeelding:", err);
       alert("Kon afbeelding niet verwerken.");
     } finally {
       setIsCompressing(false);
@@ -102,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setCorrectIndex(0);
     setModelAnswer('');
     setIsCompressing(false);
+    setUploadedFile(null);
   };
 
   const handleEdit = (q: Question) => {
@@ -162,34 +172,53 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       return;
     }
 
-    const newQuestion: Question = {
-      id: editingId || Date.now().toString(),
-      type: questionType,
-      level: questionLevel,
-      text: newQuestionText,
-      subject: finalSubject,
-      contextText: contextText || undefined,
-      imageUrl: newQuestionImage || undefined,
-      source: newQuestionSource || undefined,
-      examYear: examYear ? parseInt(examYear) : undefined,
-      examType: examYear ? 'official_exam' : undefined, // Always official_exam when year is provided
-      ...(questionType === 'MULTIPLE_CHOICE' ? { options, correctIndex } : {}),
-      ...(questionType === 'OPEN' ? { modelAnswer } : {})
-    };
+    setIsCompressing(true);
+    let finalImageUrl = newQuestionImage;
 
     try {
+      // Als er een nieuw bestand is geüpload, upload naar Supabase Storage
+      if (uploadedFile) {
+        const questionId = editingId || Date.now().toString();
+        finalImageUrl = await imageStorage.uploadImage(uploadedFile, questionId);
+        console.log('Afbeelding geüpload naar Supabase Storage:', finalImageUrl);
+      } else if (newQuestionImage && imageStorage.isBase64Image(newQuestionImage)) {
+        // Als het een base64 image is (oude data of preview), converteer naar storage
+        const questionId = editingId || Date.now().toString();
+        finalImageUrl = await imageStorage.migrateBase64ToStorage(newQuestionImage, questionId);
+        console.log('Base64 afbeelding gemigreerd naar Supabase Storage:', finalImageUrl);
+      }
+
+      const newQuestion: Question = {
+        id: editingId || Date.now().toString(),
+        type: questionType,
+        level: questionLevel,
+        text: newQuestionText,
+        subject: finalSubject,
+        contextText: contextText || undefined,
+        imageUrl: finalImageUrl || undefined,
+        source: newQuestionSource || undefined,
+        examYear: examYear ? parseInt(examYear) : undefined,
+        examType: examYear ? 'official_exam' : undefined,
+        ...(questionType === 'MULTIPLE_CHOICE' ? { options, correctIndex } : {}),
+        ...(questionType === 'OPEN' ? { modelAnswer } : {})
+      };
+
       await saveQuestion(newQuestion);
       await refreshQuestions();
       handleCancel();
     } catch (error: any) {
       console.error("Opslaan mislukt:", error);
-      if (error.message === "OPSLAG_VOL") {
+      if (error.message?.includes("Storage bucket")) {
+        alert(`⚠️ Supabase Storage nog niet geconfigureerd!\n\n${error.message}`);
+      } else if (error.message === "OPSLAG_VOL") {
         alert("⚠️ Opslag is vol! Verwijder oude vragen of afbeeldingen.");
       } else if (error.message?.includes("Database fout")) {
         alert(`❌ Fout bij opslaan in de cloud database:\n${error.message}\n\nDe vraag is NIET opgeslagen.`);
       } else {
         alert("❌ Er ging iets mis bij het opslaan.\nControleer je internetverbinding.");
       }
+    } finally {
+      setIsCompressing(false);
     }
   };
 
