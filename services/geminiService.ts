@@ -273,3 +273,102 @@ export const generateAIQuestions = async (
     throw new Error("Kon geen AI vragen genereren. Probeer het later opnieuw.");
   }
 };
+
+// Generate exam summary with feedback and tips
+export const generateExamSummary = async (
+  questions: Question[],
+  answers: Record<string, number | string>,
+  score: number,
+  totalQuestions: number,
+  studentName: string,
+  subject: string
+): Promise<{
+  overall: string;
+  strengths: string[];
+  improvements: string[];
+  studyTips: string[];
+}> => {
+  // Analyze answers
+  const correctQuestions: string[] = [];
+  const incorrectQuestions: string[] = [];
+
+  questions.forEach((q, idx) => {
+    if (q.type === 'MULTIPLE_CHOICE') {
+      if (answers[q.id] === q.correctIndex) {
+        correctQuestions.push(`Vraag ${idx + 1}: ${q.text.substring(0, 50)}...`);
+      } else {
+        incorrectQuestions.push(`Vraag ${idx + 1}: ${q.text.substring(0, 50)}...`);
+      }
+    }
+  });
+
+  const percentage = Math.round((score / totalQuestions) * 100);
+
+  const prompt = `
+    Je bent een ervaren ${subject} docent die een examen heeft nagekeken van ${studentName}.
+
+    EXAMEN RESULTAAT:
+    - Vak: ${subject}
+    - Score: ${score}/${totalQuestions} (${percentage}%)
+    - Aantal vragen: ${totalQuestions}
+
+    GOED BEANTWOORD (${correctQuestions.length}):
+    ${correctQuestions.slice(0, 5).join('\n') || 'Geen'}
+
+    FOUT BEANTWOORD (${incorrectQuestions.length}):
+    ${incorrectQuestions.slice(0, 5).join('\n') || 'Geen'}
+
+    OPDRACHT:
+    Maak een constructieve en bemoedigende samenvatting van het examen.
+    Geef je antwoord als JSON met dit EXACTE format:
+
+    {
+      "overall": "1-2 zinnen algemene feedback over de prestatie",
+      "strengths": ["punt 1", "punt 2"],
+      "improvements": ["verbeterpunt 1", "verbeterpunt 2", "verbeterpunt 3"],
+      "studyTips": ["concrete tip 1", "concrete tip 2", "concrete tip 3"]
+    }
+
+    TONE:
+    - Positief en bemoedigend, ook bij lage scores
+    - Specifiek en actionable (geen vage adviezen)
+    - Motiverend om verder te oefenen
+
+    Geef ALLEEN de JSON terug, geen extra tekst.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+
+    const responseText = response.text || '';
+    let jsonText = responseText.trim();
+
+    // Remove markdown code blocks if present
+    if (jsonText.startsWith('```json')) {
+      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+    }
+
+    const summary = JSON.parse(jsonText);
+
+    return {
+      overall: summary.overall || "Goed geprobeerd!",
+      strengths: summary.strengths || [],
+      improvements: summary.improvements || [],
+      studyTips: summary.studyTips || []
+    };
+  } catch (error) {
+    console.error("Fout bij genereren examen samenvatting:", error);
+    // Fallback summary
+    return {
+      overall: `Je hebt ${score} van de ${totalQuestions} vragen goed beantwoord (${percentage}%). Blijf oefenen!`,
+      strengths: percentage >= 60 ? ["Je hebt de basis onder de knie"] : ["Je hebt je best gedaan"],
+      improvements: percentage < 60 ? ["Bestudeer de theorie nog eens", "Maak meer oefenexamens"] : ["Let goed op details"],
+      studyTips: ["Herhaal de stof regelmatig", "Maak aantekeningen", "Oefen met verschillende vraagtypen"]
+    };
+  }
+};

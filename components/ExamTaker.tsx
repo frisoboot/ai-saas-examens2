@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Question, ExamSession, ExamResult } from '../types';
 import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
-import { getExplanation } from '../services/geminiService';
+import { getExplanation, generateExamSummary } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, XCircle, ArrowRight, Home, BrainCircuit, FileText, ChevronRight, X } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Home, BrainCircuit, FileText, ChevronRight, X, Lightbulb, Target, TrendingUp } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ExamTakerProps {
@@ -12,15 +12,24 @@ interface ExamTakerProps {
   onFinish: () => void;
 }
 
+interface ExamSummary {
+  overall: string;
+  strengths: string[];
+  improvements: string[];
+  studyTips: string[];
+}
+
 export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, onFinish }) => {
   const [session, setSession] = useState(initialSession);
   const [isFinished, setIsFinished] = useState(false);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [openAnswerInput, setOpenAnswerInput] = useState('');
-  
+
   // Review state
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
   const [loadingExplanation, setLoadingExplanation] = useState<string | null>(null);
+  const [examSummary, setExamSummary] = useState<ExamSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   const currentQuestion = session.questions[activeQuestionIdx];
   const isLastQuestion = activeQuestionIdx === session.questions.length - 1;
@@ -91,6 +100,24 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
       // Update student progress
       await updateProgressAfterExam(result);
+
+      // Generate AI summary automatically
+      setLoadingSummary(true);
+      try {
+        const summary = await generateExamSummary(
+          session.questions,
+          finalAnswers,
+          correctCount,
+          session.questions.length,
+          session.studentName,
+          session.subject
+        );
+        setExamSummary(summary);
+      } catch (error) {
+        console.error('Fout bij genereren samenvatting:', error);
+      } finally {
+        setLoadingSummary(false);
+      }
     } catch (error) {
       console.error('Fout bij opslaan resultaat:', error);
     }
@@ -144,6 +171,89 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 Terug naar Dashboard
             </Button>
           </div>
+
+          {/* AI Summary Section */}
+          {loadingSummary ? (
+            <div className="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-indigo-100">
+              <div className="flex items-center justify-center gap-3 text-indigo-600">
+                <BrainCircuit className="w-6 h-6 animate-pulse" />
+                <p className="text-lg">AI analyseert je resultaten...</p>
+              </div>
+            </div>
+          ) : examSummary && (
+            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm p-8 mb-8 border border-indigo-100">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-indigo-600 rounded-xl">
+                  <BrainCircuit className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-slate-900">AI Feedback</h3>
+                  <p className="text-sm text-slate-600">Persoonlijke analyse van je prestatie</p>
+                </div>
+              </div>
+
+              {/* Overall feedback */}
+              <div className="bg-white rounded-xl p-5 mb-4 border border-indigo-100">
+                <p className="text-slate-700 leading-relaxed">{examSummary.overall}</p>
+              </div>
+
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                {/* Strengths */}
+                {examSummary.strengths.length > 0 && (
+                  <div className="bg-white rounded-xl p-5 border border-green-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                      <h4 className="font-semibold text-slate-900">Sterke Punten</h4>
+                    </div>
+                    <ul className="space-y-2">
+                      {examSummary.strengths.map((strength, idx) => (
+                        <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+                          <span className="text-green-500 mt-0.5">•</span>
+                          <span>{strength}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Improvements */}
+                {examSummary.improvements.length > 0 && (
+                  <div className="bg-white rounded-xl p-5 border border-orange-100">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Target className="w-5 h-5 text-orange-600" />
+                      <h4 className="font-semibold text-slate-900">Verbeterpunten</h4>
+                    </div>
+                    <ul className="space-y-2">
+                      {examSummary.improvements.map((improvement, idx) => (
+                        <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+                          <span className="text-orange-500 mt-0.5">•</span>
+                          <span>{improvement}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* Study Tips */}
+              {examSummary.studyTips.length > 0 && (
+                <div className="bg-white rounded-xl p-5 border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Lightbulb className="w-5 h-5 text-blue-600" />
+                    <h4 className="font-semibold text-slate-900">Studietips</h4>
+                  </div>
+                  <ul className="space-y-2">
+                    {examSummary.studyTips.map((tip, idx) => (
+                      <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
+                        <span className="text-blue-500 mt-0.5">{idx + 1}.</span>
+                        <span>{tip}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-6">
             {session.questions.map((q, idx) => {
