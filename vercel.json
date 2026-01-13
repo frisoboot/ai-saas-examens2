@@ -3,11 +3,5 @@
     "api/**/*.ts": {
       "runtime": "@vercel/node@3.2.31"
     }
-  },
-  "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "SUPABASE_SERVICE_ROLE_KEY": "@supabase_service_role_key",
-    "VITE_GEMINI_API_KEY": "@gemini_api_key"
   }
 }

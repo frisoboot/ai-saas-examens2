@@ -1,62 +1,169 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# 🎓 AI Examentrainer
 
-# Run and deploy your AI Studio app
+Een intelligente examentrainer gebouwd met React, Supabase en Google Gemini AI. Studenten kunnen oefenen met meerkeuzevragen en open vragen, met AI-powered feedback.
 
-This contains everything you need to run your app locally.
+## ✨ Features
 
-View your app in AI Studio: https://ai.studio/apps/drive/1DHs0WDPrH3n9Z6Soe3sJ1WeWn890QR6b
+- 🤖 **AI-powered vraag generatie** met Google Gemini
+- 📝 **Twee vraag types**: Meerkeuze en open vragen
+- 👥 **Student management**: Admin kan studenten aanmaken en beheren
+- 🔐 **Veilige authenticatie** met Supabase Auth + RLS
+- 📊 **Progress tracking**: Studenten kunnen hun voortgang volgen
+- 📦 **Bulk import**: Importeer vragen via CSV of tekst
+- 🎯 **Adaptief leren**: Focus op struggle points
 
-## Run Locally
+## 🚀 Quick Start
 
-**Prerequisites:**  Node.js
+### Prerequisites
 
-1. Install dependencies:
+- Node.js 18+ geïnstalleerd
+- Een Supabase account (gratis)
+- Een Google Gemini API key (gratis tier beschikbaar)
+
+### 1. Clone en Install
+
+```bash
+git clone https://github.com/frisoboot/ai-saas-examens2.git
+cd ai-saas-examen
+npm install
+```
+
+### 2. Environment Variables
+
+Kopieer `.env.example` naar `.env.local`:
+
+```bash
+cp .env.example .env.local
+```
+
+Vul je credentials in:
+
+```env
+VITE_SUPABASE_URL=https://jouw-project.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJ...
+VITE_GEMINI_API_KEY=AIza...
+VITE_ALLOW_DEV_FALLBACK=true
+
+# Optioneel voor lokaal development:
+VITE_SUPABASE_SERVICE_ROLE_KEY=eyJ...
+```
+
+### 3. Database Setup
+
+Volg de stappen in [`docs/SUPABASE_AUTH_SETUP.md`](docs/SUPABASE_AUTH_SETUP.md):
+
+1. Voer `database/supabase-auth-rls-migration.sql` uit in Supabase SQL Editor
+2. Maak een admin user aan:
    ```bash
-   npm install
+   npx tsx scripts/create-admin-user.ts
    ```
 
-2. Configureer environment variabelen in `.env.local`:
-   ```bash
-   GEMINI_API_KEY=je_gemini_api_key_hier
-   VITE_SUPABASE_URL=je_supabase_project_url
-   VITE_SUPABASE_ANON_KEY=je_supabase_anon_key
-   ```
+### 4. Start Development Server
 
-3. **Database Setup (Supabase):**
-   
-   a. Maak een gratis account aan op [Supabase](https://supabase.com)
-   
-   b. Maak een nieuw project aan
-   
-   c. Ga naar de SQL Editor in je Supabase dashboard
-   
-   d. Voer het SQL script uit uit `supabase-schema.sql` om de database tabellen aan te maken
-   
-   e. Kopieer je Project URL en anon/public key naar `.env.local`
-   
-   **Let op:** Als je geen Supabase configureert, gebruikt de app automatisch localStorage als fallback.
+```bash
+npm run dev
+```
 
-4. Run the app:
-   ```bash
-   npm run dev
-   ```
+Open [http://localhost:3001](http://localhost:3001) en login als admin:
+- Username: `admin`
+- Password: `admin123`
 
-## Database Setup
+## 📖 Documentation
 
-De app gebruikt Supabase (PostgreSQL) voor het opslaan van vragen, resultaten en student profielen. Dit maakt het mogelijk om grote hoeveelheden vragen op te slaan zonder localStorage limieten.
+- **[Supabase Setup Guide](docs/SUPABASE_AUTH_SETUP.md)** - Database configuratie en RLS policies
+- **[Vercel Deployment Guide](docs/VERCEL_DEPLOYMENT.md)** - Production deployment instructies
 
-### Supabase Setup Stappen:
+## 🏗️ Project Structure
 
-1. Ga naar [supabase.com](https://supabase.com) en maak een gratis account
-2. Klik op "New Project"
-3. Kies een naam en wachtwoord voor je database
-4. Wacht tot het project is aangemaakt
-5. Ga naar Settings > API om je credentials te vinden:
-   - **Project URL** → `VITE_SUPABASE_URL`
-   - **anon public key** → `VITE_SUPABASE_ANON_KEY`
-6. Ga naar SQL Editor en voer `supabase-schema.sql` uit
-7. Voeg de credentials toe aan je `.env.local` bestand
+```
+ai-saas-examen/
+├── api/                          # Vercel serverless functions
+│   ├── create-student.ts        # Veilige student creation
+│   └── reset-password.ts        # Veilige password reset
+├── components/                   # React components
+├── database/                     # SQL migraties en schema
+│   ├── supabase-schema.sql
+│   ├── supabase-migrations.sql
+│   └── supabase-auth-rls-migration.sql
+├── docs/                        # Documentatie
+├── scripts/                     # Helper scripts
+│   └── create-admin-user.ts
+├── services/                    # Business logic
+│   ├── apiService.ts           # API client
+│   ├── authService.ts          # Authenticatie
+│   └── supabaseService.ts      # Database client
+├── utils/                       # Helper functies
+├── App.tsx                      # Main app component
+└── types.ts                     # TypeScript types
+```
 
-De app werkt ook zonder Supabase (gebruikt localStorage), maar voor grote hoeveelheden vragen is een database aanbevolen.
+## 🔐 Security
+
+Dit project implementeert veilige authenticatie met:
+
+- ✅ Supabase Auth met JWT tokens
+- ✅ Row Level Security (RLS) policies
+- ✅ Role-based access control (admin vs student)
+- ✅ Service role key blijft op server (via API endpoints)
+- ✅ Geen secrets in browser
+
+Zie [`docs/SUPABASE_AUTH_SETUP.md`](docs/SUPABASE_AUTH_SETUP.md) voor details.
+
+## 🚢 Deployment
+
+Deploy naar Vercel:
+
+1. Push naar GitHub
+2. Importeer project in [Vercel](https://vercel.com)
+3. Voeg environment variables toe (zie [`docs/VERCEL_DEPLOYMENT.md`](docs/VERCEL_DEPLOYMENT.md))
+4. Deploy!
+
+**Belangrijk:** In productie moet je `SUPABASE_SERVICE_ROLE_KEY` zonder `VITE_` prefix gebruiken, zodat de key op de server blijft.
+
+## 📝 Admin Gebruik
+
+Als admin kun je:
+- ✅ Studenten aanmaken met naam, level en struggle points
+- ✅ Vragen importeren (CSV of bulk tekst)
+- ✅ Vragen genereren met AI
+- ✅ Student progress bekijken
+- ✅ Wachtwoorden resetten
+
+## 👨‍🎓 Student Gebruik
+
+Als student kun je:
+- ✅ Examens maken op je niveau
+- ✅ AI feedback krijgen op open antwoorden
+- ✅ Je voortgang bijhouden
+- ✅ Focus op je struggle points
+
+## 🛠️ Development
+
+### Build voor productie
+
+```bash
+npm run build
+```
+
+### Preview productie build
+
+```bash
+npm run preview
+```
+
+## 📄 License
+
+MIT License - zie LICENSE file voor details.
+
+## 🙏 Credits
+
+Gebouwd met:
+- [React](https://react.dev/) - UI framework
+- [Vite](https://vitejs.dev/) - Build tool
+- [Supabase](https://supabase.com/) - Backend & auth
+- [Google Gemini](https://ai.google.dev/) - AI model
+- [Lucide React](https://lucide.dev/) - Icons
+
+---
+
+**Made with ❤️ by Friso Boot**
