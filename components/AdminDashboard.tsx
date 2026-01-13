@@ -3,8 +3,9 @@ import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
 import { AdminStudentManagement } from './AdminStudentManagement';
 import { BulkImportQuestions } from './BulkImportQuestions';
+import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { Loader2 } from 'lucide-react';
 
@@ -13,7 +14,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students' | 'import';
+type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
@@ -22,7 +23,7 @@ const SUBJECTS = [
 ];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
-  const [activeTab, setActiveTab] = useState<AdminTab>('questions');
+  const [activeTab, setActiveTab] = useState<AdminTab>('exam-builder');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -261,6 +262,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
              {/* Tab Navigation */}
              <div className="space-y-1">
                 <button
+                  onClick={() => setActiveTab('exam-builder')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'exam-builder'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Examen Toevoegen
+                </button>
+                <button
                   onClick={() => setActiveTab('questions')}
                   className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
                     activeTab === 'questions'
@@ -269,7 +281,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   }`}
                 >
                   <FileText className="w-4 h-4" />
-                  Eindexamenvragen
+                  Alle Vragen
                 </button>
                 <button
                   onClick={() => setActiveTab('students')}
@@ -291,7 +303,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   }`}
                 >
                   <Upload className="w-4 h-4" />
-                  Examen Uploaden
+                  CSV/JSON Import
                 </button>
              </div>
          </div>
@@ -361,7 +373,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       <main className="flex-1 flex flex-col h-full bg-[#f8fafc] overflow-hidden relative">
 
         {/* Render based on active tab */}
-        {activeTab === 'students' ? (
+        {activeTab === 'exam-builder' ? (
+          <div className="flex-1 overflow-y-auto">
+            <ExamBuilder onBack={() => setActiveTab('questions')} />
+          </div>
+        ) : activeTab === 'students' ? (
           <div className="flex-1 overflow-y-auto p-6">
             <AdminStudentManagement adminUsername={adminUsername} />
           </div>
