@@ -91,6 +91,27 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       return;
     }
 
+    // Validate exam metadata
+    if (!examMeta.subject) {
+      alert('Selecteer een vak');
+      return;
+    }
+
+    if (!examMeta.year || isNaN(examMeta.year) || examMeta.year < 2000 || examMeta.year > 2030) {
+      alert('Vul een geldig jaar in (2000-2030)');
+      return;
+    }
+
+    if (!examMeta.tijdvak || isNaN(examMeta.tijdvak)) {
+      alert('Selecteer een tijdvak');
+      return;
+    }
+
+    if (!examMeta.level) {
+      alert('Selecteer een niveau');
+      return;
+    }
+
     setSaving(true);
     setSavedCount(0);
 
@@ -221,10 +242,16 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <input
                   type="number"
                   value={examMeta.year}
-                  onChange={(e) => setExamMeta({ ...examMeta, year: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const year = parseInt(e.target.value);
+                    if (!isNaN(year)) {
+                      setExamMeta({ ...examMeta, year });
+                    }
+                  }}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                   min="2000"
                   max="2030"
+                  placeholder="Bijv. 2024"
                 />
               </div>
 
@@ -234,7 +261,12 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </label>
                 <select
                   value={examMeta.tijdvak}
-                  onChange={(e) => setExamMeta({ ...examMeta, tijdvak: parseInt(e.target.value) })}
+                  onChange={(e) => {
+                    const tijdvak = parseInt(e.target.value);
+                    if (!isNaN(tijdvak)) {
+                      setExamMeta({ ...examMeta, tijdvak });
+                    }
+                  }}
                   className="w-full p-2 border border-gray-300 rounded-lg"
                 >
                   <option value={1}>Tijdvak 1</option>
