@@ -8,7 +8,11 @@
  * Of kopieer de code en plak in browser console op je website
  */
 
+import { config } from 'dotenv';
 import { createClient } from '@supabase/supabase-js';
+
+// Laad .env.local bestand
+config({ path: '.env.local' });
 
 const SUPABASE_URL = process.env.VITE_SUPABASE_URL || '';
 const SERVICE_ROLE_KEY = process.env.VITE_SUPABASE_SERVICE_ROLE_KEY || '';

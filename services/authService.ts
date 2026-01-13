@@ -1,5 +1,6 @@
 import { StudentProfile, AdminUser, StudentLevel } from '../types';
 import { supabase, supabaseAdmin } from './supabaseService';
+import { apiCreateStudent, apiResetPassword } from './apiService';
 
 // ============================================================================
 // SUPABASE AUTH INTEGRATIE
@@ -163,7 +164,7 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
   }
 };
 
-// Admin creates student account - gebruikt supabaseAdmin om RLS te bypassen
+// Admin creates student account - gebruikt API (veilig!) of fallback
 export const createStudentAccount = async (
   adminUsername: string,
   name: string,
@@ -179,70 +180,86 @@ export const createStudentAccount = async (
       return { success: false, error: 'Student met deze naam bestaat al' };
     }
 
-    if (!supabaseAdmin) {
-      // LocalStorage fallback
-      const stored = localStorage.getItem('ai_exam_students');
-      const students: StudentProfile[] = stored ? JSON.parse(stored) : [];
-      students.push({
-        name,
-        password, // Plain text voor fallback
-        level,
-        strugglePoints,
-        email,
-        createdByAdmin: adminUsername,
-        isActive: true
+    // ====================================================================
+    // PRODUCTIE: Gebruik veilige API endpoint (aanbevolen!)
+    // ====================================================================
+    if (supabase && !supabaseAdmin) {
+      // In productie: gebruik API (supabaseAdmin is niet beschikbaar)
+      return await apiCreateStudent(adminUsername, name, password, level, strugglePoints, email);
+    }
+
+    // ====================================================================
+    // DEVELOPMENT: Gebruik supabaseAdmin direct (alleen voor development!)
+    // ====================================================================
+    if (supabaseAdmin) {
+      console.warn('⚠️  Using supabaseAdmin directly - only use in development!');
+
+      const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
+
+      // Stap 1: Maak Supabase Auth user aan met admin client
+      const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+        email: authEmail,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          role: 'student',
+          name: name,
+          level: level,
+          created_by: adminUsername
+        }
       });
-      localStorage.setItem('ai_exam_students', JSON.stringify(students));
+
+      if (authError) {
+        console.error('Error creating auth user:', authError);
+        return { success: false, error: `Auth error: ${authError.message}` };
+      }
+
+      console.log('Auth user created:', authData.user.id);
+
+      // Stap 2: Maak student profiel in database
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .from('student_profiles')
+        .insert({
+          name: name,
+          level: level,
+          struggle_points: strugglePoints,
+          email: email || authEmail,
+          created_by_admin: adminUsername,
+          is_active: true,
+          auth_user_id: authData.user.id
+        })
+        .select()
+        .single();
+
+      if (profileError) {
+        console.error('Error creating student profile:', profileError);
+        // Rollback: verwijder auth user
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+        return { success: false, error: `Database error: ${profileError.message}` };
+      }
+
+      console.log('Student profile created:', profileData);
       return { success: true };
     }
 
-    // Gebruik name@student.local als email voor Supabase Auth
-    const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
-
-    // Stap 1: Maak Supabase Auth user aan met admin client
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-      email: authEmail,
-      password: password,
-      email_confirm: true, // Auto-confirm email
-      user_metadata: {
-        role: 'student',
-        name: name,
-        level: level,
-        created_by: adminUsername
-      }
+    // ====================================================================
+    // FALLBACK: LocalStorage (alleen als Supabase niet beschikbaar is)
+    // ====================================================================
+    console.warn('⚠️  Using localStorage fallback');
+    const stored = localStorage.getItem('ai_exam_students');
+    const students: StudentProfile[] = stored ? JSON.parse(stored) : [];
+    students.push({
+      name,
+      password,
+      level,
+      strugglePoints,
+      email,
+      createdByAdmin: adminUsername,
+      isActive: true
     });
-
-    if (authError) {
-      console.error('Error creating auth user:', authError);
-      return { success: false, error: `Auth error: ${authError.message}` };
-    }
-
-    console.log('Auth user created:', authData.user.id);
-
-    // Stap 2: Maak student profiel in database
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('student_profiles')
-      .insert({
-        name: name,
-        level: level,
-        struggle_points: strugglePoints,
-        email: email || authEmail,
-        created_by_admin: adminUsername,
-        is_active: true,
-        auth_user_id: authData.user.id // Link naar Supabase Auth user
-      })
-      .select()
-      .single();
-
-    if (profileError) {
-      console.error('Error creating student profile:', profileError);
-      // Rollback: verwijder auth user
-      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      return { success: false, error: `Database error: ${profileError.message}` };
-    }
-
-    console.log('Student profile created:', profileData);
+    localStorage.setItem('ai_exam_students', JSON.stringify(students));
     return { success: true };
+
   } catch (error) {
     console.error('Full error creating student:', error);
 
@@ -337,39 +354,56 @@ export const activateStudent = async (name: string): Promise<{ success: boolean;
   return updateStudent(name, { isActive: true });
 };
 
-// Reset student password - gebruikt supabaseAdmin
+// Reset student password - gebruikt API (veilig!) of fallback
 export const resetStudentPassword = async (
   name: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    if (!supabaseAdmin) {
-      return { success: false, error: 'Admin client niet beschikbaar' };
+    // ====================================================================
+    // PRODUCTIE: Gebruik veilige API endpoint (aanbevolen!)
+    // ====================================================================
+    if (supabase && !supabaseAdmin) {
+      // In productie: gebruik API (supabaseAdmin is niet beschikbaar)
+      return await apiResetPassword(name, newPassword);
     }
 
-    // Haal student profiel op om auth_user_id te krijgen
-    const { data: profileData, error: profileError } = await supabaseAdmin
-      .from('student_profiles')
-      .select('auth_user_id')
-      .eq('name', name)
-      .single();
+    // ====================================================================
+    // DEVELOPMENT: Gebruik supabaseAdmin direct (alleen voor development!)
+    // ====================================================================
+    if (supabaseAdmin) {
+      console.warn('⚠️  Using supabaseAdmin directly for password reset - only use in development!');
 
-    if (profileError || !profileData?.auth_user_id) {
-      return { success: false, error: 'Student niet gevonden' };
+      // Haal student profiel op om auth_user_id te krijgen
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .from('student_profiles')
+        .select('auth_user_id')
+        .eq('name', name)
+        .single();
+
+      if (profileError || !profileData?.auth_user_id) {
+        return { success: false, error: 'Student niet gevonden' };
+      }
+
+      // Update wachtwoord via admin API
+      const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+        profileData.auth_user_id,
+        { password: newPassword }
+      );
+
+      if (updateError) {
+        console.error('Error resetting password:', updateError);
+        return { success: false, error: updateError.message };
+      }
+
+      return { success: true };
     }
 
-    // Update wachtwoord via admin API
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      profileData.auth_user_id,
-      { password: newPassword }
-    );
+    // ====================================================================
+    // FALLBACK: LocalStorage (niet bruikbaar in productie)
+    // ====================================================================
+    return { success: false, error: 'Admin client niet beschikbaar' };
 
-    if (updateError) {
-      console.error('Error resetting password:', updateError);
-      return { success: false, error: updateError.message };
-    }
-
-    return { success: true };
   } catch (error) {
     console.error('Error resetting password:', error);
     return { success: false, error: 'Er ging iets mis bij het resetten van het wachtwoord' };
