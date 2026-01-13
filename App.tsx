@@ -7,11 +7,12 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
+import { LandingPage } from './components/LandingPage';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2 } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('LANDING');
+  const [view, setView] = useState<ViewState>('HOME');
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -169,6 +170,20 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (view) {
+      case 'HOME':
+        return (
+          <LandingPage
+            onAdminLogin={() => {
+              setShowAdminLogin(true);
+              setView('LANDING');
+            }}
+            onStudentLogin={() => {
+              setShowAdminLogin(false);
+              setView('LANDING');
+            }}
+          />
+        );
+
       case 'LANDING':
         return (
           <div className="min-h-screen flex bg-white">
@@ -214,7 +229,16 @@ const App: React.FC = () => {
             {/* Right Side - Login Form */}
             <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50">
               <div className="w-full max-w-md space-y-8">
-                
+
+                {/* Back button */}
+                <button
+                  onClick={() => setView('HOME')}
+                  className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors mb-4"
+                >
+                  <ArrowRight className="w-4 h-4 rotate-180" />
+                  <span className="text-sm font-medium">Terug naar home</span>
+                </button>
+
                 <div className="lg:hidden text-center mb-8">
                   <div className="bg-indigo-600 p-3 rounded-xl inline-block mb-4 text-white shadow-lg shadow-indigo-200">
                     <GraduationCap className="w-8 h-8" />
@@ -335,7 +359,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={() => setView('HOME')} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
