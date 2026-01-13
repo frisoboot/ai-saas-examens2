@@ -150,13 +150,48 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
       return null;
     }
 
+    // Check subscription status
+    const now = new Date();
+    const expiresAt = profileData.subscription_expires_at
+      ? new Date(profileData.subscription_expires_at)
+      : null;
+
+    const hasValidSubscription =
+      profileData.subscription_status === 'trial' ||
+      profileData.subscription_status === 'active';
+
+    const isNotExpired = expiresAt && expiresAt > now;
+
+    // If subscription expired or inactive, return profile with flag
+    if (profileData.created_by_admin) {
+      // Students created by admin don't need subscription (special case: schools)
+      console.log('Student created by admin, skipping subscription check');
+    } else if (!hasValidSubscription || !isNotExpired) {
+      console.error('Student subscription expired or inactive');
+      return {
+        name: profileData.name,
+        level: profileData.level,
+        strugglePoints: profileData.struggle_points,
+        email: profileData.email,
+        createdByAdmin: profileData.created_by_admin,
+        isActive: profileData.is_active,
+        subscriptionStatus: profileData.subscription_status,
+        subscriptionExpiresAt: profileData.subscription_expires_at,
+        subscriptionExpired: true // Flag for UI
+      } as any;
+    }
+
     return {
       name: profileData.name,
       level: profileData.level,
       strugglePoints: profileData.struggle_points,
       email: profileData.email,
       createdByAdmin: profileData.created_by_admin,
-      isActive: profileData.is_active
+      isActive: profileData.is_active,
+      subscriptionStatus: profileData.subscription_status,
+      subscriptionExpiresAt: profileData.subscription_expires_at,
+      mollieCustomerId: profileData.mollie_customer_id,
+      mollieSubscriptionId: profileData.mollie_subscription_id
     };
   } catch (error) {
     console.error('Error verifying student login:', error);

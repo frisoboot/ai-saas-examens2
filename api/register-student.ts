@@ -1,0 +1,198 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
+import { createMollieClient } from '@mollie/api-client';
+
+const supabaseUrl = process.env.VITE_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+
+const mollieClient = createMollieClient({ apiKey: process.env.MOLLIE_API_KEY! });
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log('Register student endpoint called');
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { name, email, password, level, returnUrl } = req.body;
+
+  // Validation
+  if (!name || !email || !password || !level) {
+    return res.status(400).json({ error: 'Ontbrekende velden' });
+  }
+
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 karakters zijn' });
+  }
+
+  if (!['VMBO-TL', 'HAVO', 'VWO'].includes(level)) {
+    return res.status(400).json({ error: 'Ongeldig niveau' });
+  }
+
+  try {
+    console.log('Checking if student exists:', name);
+
+    // Check if student already exists (by name or email)
+    const { data: existingByName } = await supabaseAdmin
+      .from('student_profiles')
+      .select('name')
+      .eq('name', name)
+      .maybeSingle();
+
+    if (existingByName) {
+      return res.status(400).json({ error: 'Een account met deze naam bestaat al' });
+    }
+
+    // Check by email
+    const { data: existingByEmail } = await supabaseAdmin
+      .from('student_profiles')
+      .select('email')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (existingByEmail) {
+      return res.status(400).json({ error: 'Dit email adres is al in gebruik' });
+    }
+
+    console.log('Creating Supabase Auth user...');
+
+    // Step 1: Create Supabase Auth user
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: email,
+      password: password,
+      email_confirm: true, // Auto-confirm email
+      user_metadata: {
+        role: 'student',
+        name: name,
+        level: level
+      }
+    });
+
+    if (authError) {
+      console.error('Auth error:', authError);
+      return res.status(500).json({ error: `Auth fout: ${authError.message}` });
+    }
+
+    console.log('Auth user created:', authData.user.id);
+
+    // Step 2: Create student profile (with inactive subscription initially)
+    const { error: profileError } = await supabaseAdmin
+      .from('student_profiles')
+      .insert({
+        name: name,
+        level: level,
+        struggle_points: '', // Empty initially
+        email: email,
+        is_active: true,
+        auth_user_id: authData.user.id,
+        subscription_status: 'inactive', // Will be updated by webhook to 'trial'
+        created_by_admin: null // Self-registered (not created by admin)
+      });
+
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      // Rollback: delete auth user
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      return res.status(500).json({ error: `Database fout: ${profileError.message}` });
+    }
+
+    console.log('Student profile created, creating Mollie customer...');
+
+    // Step 3: Create Mollie customer
+    const customer = await mollieClient.customers.create({
+      name: name,
+      email: email,
+      metadata: {
+        studentName: name,
+        level: level,
+        authUserId: authData.user.id
+      }
+    });
+
+    console.log('Mollie customer created:', customer.id);
+
+    // Step 4: Create first payment (iDEAL mandate for trial)
+    const webhookUrl = `${req.headers.origin || 'https://' + req.headers.host}/api/mollie-webhook`;
+    console.log('Creating Mollie payment with webhook:', webhookUrl);
+
+    const payment = await mollieClient.payments.create({
+      amount: {
+        currency: 'EUR',
+        value: '0.01' // Small amount to create mandate (€0.01)
+      },
+      description: 'AI Examen Trainer - Start 7 Dagen Trial',
+      redirectUrl: returnUrl,
+      webhookUrl: webhookUrl,
+      customerId: customer.id,
+      sequenceType: 'first', // Creates reusable mandate
+      methods: ['ideal'], // Only iDEAL
+      metadata: {
+        type: 'trial_start',
+        studentName: name
+      }
+    });
+
+    console.log('Mollie payment created:', payment.id);
+
+    // Step 5: Create subscription (starts after 7 days)
+    const trialDays = 7;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + trialDays);
+
+    console.log('Creating Mollie subscription starting at:', startDate.toISOString().split('T')[0]);
+
+    const subscription = await mollieClient.customerSubscriptions.create({
+      customerId: customer.id,
+      amount: {
+        currency: 'EUR',
+        value: '12.50'
+      },
+      interval: '1 month',
+      description: 'AI Examen Trainer Abonnement',
+      webhookUrl: webhookUrl,
+      startDate: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+      metadata: {
+        type: 'subscription_payment',
+        studentName: name,
+        level: level
+      }
+    });
+
+    console.log('Mollie subscription created:', subscription.id);
+
+    // Step 6: Update profile with Mollie IDs
+    await supabaseAdmin
+      .from('student_profiles')
+      .update({
+        mollie_customer_id: customer.id,
+        mollie_subscription_id: subscription.id
+      })
+      .eq('name', name);
+
+    console.log('Profile updated with Mollie IDs');
+
+    // Return checkout URL
+    const checkoutUrl = payment.getCheckoutUrl();
+    console.log('Registration complete, returning checkout URL:', checkoutUrl);
+
+    return res.status(200).json({
+      success: true,
+      checkoutUrl: checkoutUrl,
+      customerId: customer.id,
+      subscriptionId: subscription.id
+    });
+
+  } catch (error: any) {
+    console.error('Registration error:', error);
+
+    // Try to provide more specific error messages
+    if (error.message?.includes('customer')) {
+      return res.status(500).json({ error: 'Fout bij aanmaken Mollie account. Probeer het opnieuw.' });
+    } else if (error.message?.includes('payment')) {
+      return res.status(500).json({ error: 'Fout bij koppelen betaalmethode. Probeer het opnieuw.' });
+    }
+
+    return res.status(500).json({ error: error.message || 'Registratie mislukt. Probeer het opnieuw.' });
+  }
+}

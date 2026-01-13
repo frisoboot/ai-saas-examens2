@@ -8,6 +8,9 @@ import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { LandingPage } from './components/LandingPage';
+import { StudentRegistration } from './components/StudentRegistration';
+import { PaymentSuccess } from './components/PaymentSuccess';
+import { SubscriptionExpired } from './components/SubscriptionExpired';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2 } from 'lucide-react';
 
@@ -41,10 +44,18 @@ const App: React.FC = () => {
     try {
       const profile = await verifyStudentLogin(studentName, studentPassword);
       if (profile) {
+        // Check for subscription expiration
+        if ((profile as any).subscriptionExpired) {
+          setCurrentProfile(profile);
+          setView('SUBSCRIPTION_EXPIRED');
+          return;
+        }
+
         if (profile.isActive === false) {
           setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
           return;
         }
+
         setCurrentProfile(profile);
         setView('STUDENT_DASHBOARD');
       } else {
@@ -181,6 +192,7 @@ const App: React.FC = () => {
               setShowAdminLogin(false);
               setView('LANDING');
             }}
+            onRegister={() => setView('REGISTRATION')}
           />
         );
 
@@ -390,10 +402,42 @@ const App: React.FC = () => {
       case 'SUBJECT_CHAT':
         if (!currentProfile || !chatSubject) return null;
         return (
-          <SubjectChat 
+          <SubjectChat
             subject={chatSubject}
             student={currentProfile}
             onBack={() => setView('STUDENT_DASHBOARD')}
+          />
+        );
+
+      case 'REGISTRATION':
+        return (
+          <StudentRegistration
+            onBack={() => setView('HOME')}
+          />
+        );
+
+      case 'PAYMENT_SUCCESS':
+        return (
+          <PaymentSuccess
+            onContinue={() => setView('LANDING')}
+          />
+        );
+
+      case 'SUBSCRIPTION_EXPIRED':
+        if (!currentProfile) return null;
+        return (
+          <SubscriptionExpired
+            studentName={currentProfile.name}
+            onRenew={() => {
+              // Redirect to renewal page (could be Mollie customer portal or new registration)
+              alert('Verlengen functionaliteit komt binnenkort. Neem contact op met support.');
+            }}
+            onLogout={() => {
+              setStudentName('');
+              setStudentPassword('');
+              setCurrentProfile(null);
+              setView('LANDING');
+            }}
           />
         );
 

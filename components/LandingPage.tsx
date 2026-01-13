@@ -4,9 +4,10 @@ import { Button } from './Button';
 interface LandingPageProps {
   onAdminLogin: () => void;
   onStudentLogin: () => void;
+  onRegister?: () => void;
 }
 
-export function LandingPage({ onAdminLogin, onStudentLogin }: LandingPageProps) {
+export function LandingPage({ onAdminLogin, onStudentLogin, onRegister }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section */}
@@ -26,22 +27,38 @@ export function LandingPage({ onAdminLogin, onStudentLogin }: LandingPageProps) 
             Oefen slim met AI-powered feedback voor VMBO, HAVO en VWO examens
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-            <Button
-              onClick={onStudentLogin}
-              variant="primary"
-              className="text-lg px-8 py-4 bg-blue-600 hover:bg-blue-700"
-            >
-              Student Login
-              <ArrowRight className="ml-2 w-5 h-5" />
-            </Button>
-            <Button
-              onClick={onAdminLogin}
-              variant="secondary"
-              className="text-lg px-8 py-4"
-            >
-              Admin Login
-            </Button>
+          <div className="flex flex-col items-center gap-6 mb-12">
+            {/* Primary CTA - Registration */}
+            <div className="flex flex-col items-center gap-3">
+              <Button
+                onClick={onRegister || (() => window.location.href = '/register')}
+                variant="primary"
+                className="text-lg px-10 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-xl shadow-blue-200 hover:shadow-2xl hover:shadow-blue-300 transform hover:scale-105 transition-all duration-200"
+              >
+                Start Gratis Trial (7 dagen)
+                <ArrowRight className="ml-2 w-5 h-5" />
+              </Button>
+              <p className="text-sm text-gray-500">
+                Daarna €12,50/maand · Opzeggen wanneer je wilt · Betaal met iDEAL
+              </p>
+            </div>
+
+            {/* Secondary Links */}
+            <div className="flex flex-col sm:flex-row gap-4 items-center text-sm">
+              <button
+                onClick={onStudentLogin}
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors underline"
+              >
+                Al een account? Inloggen
+              </button>
+              <span className="hidden sm:inline text-gray-300">|</span>
+              <button
+                onClick={onAdminLogin}
+                className="text-gray-600 hover:text-blue-600 font-medium transition-colors"
+              >
+                Docent? Admin login
+              </button>
+            </div>
           </div>
         </div>
 
@@ -80,18 +97,18 @@ export function LandingPage({ onAdminLogin, onStudentLogin }: LandingPageProps) 
           <div className="grid md:grid-cols-3 gap-8">
             <StepCard
               number="1"
-              title="Login als Student"
-              description="Log in met je naam en wachtwoord die je van je docent hebt ontvangen"
+              title="Start Gratis Trial"
+              description="Registreer je account en betaal veilig met iDEAL. Gratis voor 7 dagen!"
             />
             <StepCard
               number="2"
               title="Kies een Examen"
-              description="Selecteer het vak en onderwerp waar je mee wilt oefenen"
+              description="Selecteer het vak en onderwerp waar je mee wilt oefenen op jouw niveau"
             />
             <StepCard
               number="3"
               title="Oefen en Leer"
-              description="Maak vragen en krijg direct AI-feedback om te verbeteren"
+              description="Maak vragen en krijg direct AI-feedback om je examencijfers te verbeteren"
             />
           </div>
         </div>
