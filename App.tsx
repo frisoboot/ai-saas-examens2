@@ -12,7 +12,7 @@ import { StudentRegistration } from './components/StudentRegistration';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { SubscriptionExpired } from './components/SubscriptionExpired';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2 } from 'lucide-react';
+import { GraduationCap, UserCog, ArrowRight, Lock, LogIn, CheckCircle2, ArrowLeft, Brain, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('HOME');
@@ -198,81 +198,46 @@ const App: React.FC = () => {
 
       case 'LANDING':
         return (
-          <div className="min-h-screen flex bg-white">
-            {/* Left Side - Branding & Info */}
-            <div className="hidden lg:flex lg:w-1/2 bg-indigo-600 relative overflow-hidden flex-col justify-between p-12 text-white">
-              <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2073&auto=format&fit=crop')] bg-cover bg-center opacity-20 mix-blend-overlay"></div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-900/40 to-transparent"></div>
-              
-              <div className="relative z-10">
-                <div className="bg-white/10 backdrop-blur-md p-3 rounded-2xl w-fit mb-6">
-                  <GraduationCap className="w-8 h-8 text-white" />
-                </div>
-                <h1 className="text-5xl font-bold leading-tight mb-4">De slimste manier om te slagen.</h1>
-                <p className="text-indigo-100 text-xl max-w-md">Oefen met AI-gegenereerde vragen en krijg direct feedback op jouw niveau.</p>
-              </div>
-
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold">Gepersonaliseerd</h3>
-                    <p className="text-indigo-200 text-sm">Op maat gemaakt voor VMBO, HAVO en VWO.</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
-                    <UserCog className="w-5 h-5" />
-                  </div>
-                   <div>
-                    <h3 className="font-bold">AI Feedback</h3>
-                    <p className="text-indigo-200 text-sm">Direct uitleg bij open vragen.</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative z-10 text-xs text-indigo-300">
-                © {new Date().getFullYear()} AI Examentrainer
-              </div>
+          <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
+            {/* Background Elements */}
+            <div className="absolute inset-0 z-0">
+               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl opacity-60"></div>
+               <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
             </div>
 
-            {/* Right Side - Login Form */}
-            <div className="w-full lg:w-1/2 flex items-center justify-center p-8 bg-slate-50">
-              <div className="w-full max-w-md space-y-8">
+            <div className="w-full max-w-[440px] relative z-10">
+              
+              <div className="text-center mb-10">
+                <div className="flex justify-center mb-6">
+                   <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform duration-300 border-2 border-white/20">
+                     <GraduationCap className="w-8 h-8 text-white" />
+                   </div>
+                </div>
+                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+                  {showAdminLogin ? 'Admin Portal' : 'Welkom terug'}
+                </h2>
+                <p className="text-gray-500 mt-3 text-lg">
+                  {showAdminLogin ? 'Beheer het platform' : 'Log in om verder te gaan'}
+                </p>
+              </div>
 
-                {/* Back button */}
-                <button
-                  onClick={() => setView('HOME')}
-                  className="flex items-center gap-2 text-slate-600 hover:text-indigo-600 transition-colors mb-4"
+              <div className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
+                <button 
+                  onClick={() => setView('HOME')} 
+                  className="group flex items-center text-sm font-medium text-gray-400 hover:text-gray-900 transition-colors mb-8"
                 >
-                  <ArrowRight className="w-4 h-4 rotate-180" />
-                  <span className="text-sm font-medium">Terug naar home</span>
+                  <ArrowLeft className="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform" />
+                  Terug naar home
                 </button>
 
-                <div className="lg:hidden text-center mb-8">
-                  <div className="bg-indigo-600 p-3 rounded-xl inline-block mb-4 text-white shadow-lg shadow-indigo-200">
-                    <GraduationCap className="w-8 h-8" />
-                  </div>
-                  <h1 className="text-2xl font-bold text-slate-900">AI Examentrainer</h1>
-                </div>
-
-                <div className="bg-white rounded-2xl shadow-xl shadow-slate-200/60 p-8 border border-slate-100">
-                  {!showAdminLogin ? (
-                    <>
-                      <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900">Student Login</h2>
-                        <p className="text-slate-500 text-sm mt-2">Log in met je account</p>
-                      </div>
-
-                      <form onSubmit={handleStudentAuth} className="space-y-5">
+                {!showAdminLogin ? (
+                  <form onSubmit={handleStudentAuth} className="space-y-6">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Gebruikersnaam</label>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Gebruikersnaam</label>
                       <input
                         type="text"
                         required
-                        className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
                         placeholder="Je naam..."
                         value={studentName}
                         onChange={(e) => setStudentName(e.target.value)}
@@ -280,92 +245,105 @@ const App: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Wachtwoord</label>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
                       <input
                         type="password"
                         required
-                        className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
+                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
                         placeholder="Je wachtwoord..."
                         value={studentPassword}
                         onChange={(e) => setStudentPassword(e.target.value)}
                       />
                     </div>
 
-                        {loginError && (
-                          <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center">
-                            <Lock className="w-4 h-4 mr-2 flex-shrink-0" />
-                            {loginError}
-                          </div>
-                        )}
-
-                        <Button type="submit" className="w-full justify-center h-12 text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all" size="lg">
-                          Inloggen
-                          <ArrowRight className="w-5 h-5 ml-2" />
-                        </Button>
-                      </form>
-                    </>
-                  ) : (
-                    <>
-                      <div className="text-center mb-6">
-                        <h2 className="text-2xl font-bold text-slate-900">Admin Login</h2>
-                        <p className="text-slate-500 text-sm mt-2">Inloggen als docent</p>
+                    {loginError && (
+                      <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
+                        <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <span>{loginError}</span>
                       </div>
+                    )}
 
-                      <form onSubmit={handleAdminLogin} className="space-y-5">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Gebruikersnaam</label>
-                          <input
-                            type="text"
-                            required
-                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
-                            placeholder="Admin gebruikersnaam"
-                            value={adminUsername}
-                            onChange={(e) => setAdminUsername(e.target.value)}
-                          />
-                        </div>
+                    <Button type="submit" className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5" size="lg">
+                      Inloggen
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleAdminLogin} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Admin Gebruikersnaam</label>
+                      <input
+                        type="text"
+                        required
+                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                        placeholder="Gebruikersnaam"
+                        value={adminUsername}
+                        onChange={(e) => setAdminUsername(e.target.value)}
+                      />
+                    </div>
 
-                        <div>
-                          <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5 ml-1">Wachtwoord</label>
-                          <input
-                            type="password"
-                            required
-                            className="block w-full px-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50/50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all outline-none"
-                            placeholder="Admin wachtwoord"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                          />
-                        </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
+                      <input
+                        type="password"
+                        required
+                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                        placeholder="Wachtwoord"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                      />
+                    </div>
 
-                        {loginError && (
-                          <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-center">
-                            <Lock className="w-4 h-4 mr-2 flex-shrink-0" />
-                            {loginError}
-                          </div>
-                        )}
+                    {loginError && (
+                      <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
+                        <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <span>{loginError}</span>
+                      </div>
+                    )}
 
-                        <Button type="submit" className="w-full justify-center h-12 text-base shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transition-all" size="lg">
-                          Admin Inloggen
-                          <ArrowRight className="w-5 h-5 ml-2" />
-                        </Button>
-                      </form>
-                    </>
-                  )}
-                </div>
-
-                {/* Footer Toggle Link */}
-                <div className="text-center">
+                    <Button type="submit" className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5" size="lg">
+                      Admin Inloggen
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </Button>
+                  </form>
+                )}
+                
+                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
                   <button
                     onClick={() => {
                       setShowAdminLogin(!showAdminLogin);
                       setLoginError('');
                     }}
-                    className="text-xs font-semibold text-slate-400 hover:text-indigo-600 inline-flex items-center transition-colors px-4 py-2 rounded-lg hover:bg-slate-100"
+                    className="text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 mx-auto"
                   >
-                    <UserCog className="w-3 h-3 mr-2" />
-                    {showAdminLogin ? 'Terug naar student login' : 'Docenten portaal'}
+                    {showAdminLogin ? (
+                      <>
+                        <UserCog className="w-4 h-4" />
+                        Terug naar student login
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" />
+                        Docenten portaal
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
+              
+              {!showAdminLogin && (
+                <div className="text-center mt-8">
+                  <p className="text-gray-500">
+                    Nog geen account?{' '}
+                    <button 
+                      onClick={() => setView('REGISTRATION')}
+                      className="text-blue-600 font-bold hover:text-blue-700 transition-colors hover:underline"
+                    >
+                      Maak gratis aan
+                    </button>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         );
@@ -429,7 +407,7 @@ const App: React.FC = () => {
           <SubscriptionExpired
             studentName={currentProfile.name}
             onRenew={() => {
-              // Redirect to renewal page (could be Mollie customer portal or new registration)
+              // Redirect to renewal page
               alert('Verlengen functionaliteit komt binnenkort. Neem contact op met support.');
             }}
             onLogout={() => {
@@ -447,7 +425,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="font-sans antialiased text-slate-900 bg-[#f8fafc]">
+    <div className="font-sans antialiased text-gray-900 bg-white">
       {renderContent()}
     </div>
   );

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { StudentLevel } from '../types';
+import { Button } from './Button';
+import { ArrowLeft, CheckCircle2, ShieldCheck, Loader2 } from 'lucide-react';
 
 interface StudentRegistrationProps {
   onBack: () => void;
@@ -45,7 +47,6 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({ onBack
     setLoading(true);
 
     try {
-      // Call API to create student + Mollie subscription
       const response = await fetch('/api/register-student', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -64,7 +65,6 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({ onBack
         throw new Error(data.error || 'Registratie mislukt');
       }
 
-      // Redirect to Mollie checkout
       if (data.checkoutUrl) {
         window.location.href = data.checkoutUrl;
       } else {
@@ -78,142 +78,171 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({ onBack
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-lg p-8 max-w-md w-full">
-        <button onClick={onBack} className="text-gray-600 hover:text-gray-800 mb-4 flex items-center">
-          <span className="mr-2">←</span> Terug
-        </button>
-
-        <h2 className="text-3xl font-bold text-gray-800 mb-2">Start je gratis trial</h2>
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-          <p className="text-blue-800 font-semibold">7 dagen gratis</p>
-          <p className="text-blue-600 text-sm">Daarna €12,50/maand · Opzeggen wanneer je wilt</p>
+    <div className="min-h-screen bg-[#F5F5F7] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-[480px]">
+        
+        {/* Header */}
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-6">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg"></div>
+          </div>
+          <h2 className="text-[32px] font-bold tracking-tight text-gray-900 mb-2">
+            Maak je account aan
+          </h2>
+          <p className="text-[17px] text-gray-500">
+            Start je 7 dagen gratis trial vandaag.
+          </p>
         </div>
 
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
-            {error}
-          </div>
-        )}
+        {/* Card */}
+        <div className="bg-white px-6 py-10 shadow-[0_4px_24px_rgba(0,0,0,0.04)] sm:rounded-[24px] sm:px-10 border border-gray-100">
+          
+          <button 
+            onClick={onBack} 
+            className="group flex items-center text-sm font-medium text-gray-400 hover:text-gray-900 transition-colors mb-8"
+          >
+            <ArrowLeft className="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform" />
+            Terug
+          </button>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Voor- en achternaam *
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Jan de Vries"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email *
-            </label>
-            <input
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="jan@example.com"
-              required
-              disabled={loading}
-            />
-            <p className="text-xs text-gray-500 mt-1">Je gebruikt dit email adres om in te loggen</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Wachtwoord *
-            </label>
-            <input
-              type="password"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Minimaal 8 karakters"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Bevestig wachtwoord *
-            </label>
-            <input
-              type="password"
-              value={formData.confirmPassword}
-              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="Herhaal je wachtwoord"
-              required
-              disabled={loading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Schoolniveau *
-            </label>
-            <select
-              value={formData.level}
-              onChange={(e) => setFormData({ ...formData, level: e.target.value as StudentLevel })}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              disabled={loading}
-            >
-              <option value="VMBO-TL">VMBO-TL</option>
-              <option value="HAVO">HAVO</option>
-              <option value="VWO">VWO</option>
-            </select>
-          </div>
-
-          <div className="border-t pt-4">
-            <div className="flex items-start">
-              <input
-                type="checkbox"
-                checked={formData.acceptTerms}
-                onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
-                className="mt-1 mr-2"
-                required
-                disabled={loading}
-                id="terms"
-              />
-              <label htmlFor="terms" className="text-sm text-gray-600">
-                Ik ga akkoord met de algemene voorwaarden en privacyverklaring.
-                Na 7 dagen gratis trial begint automatische betaling van €12,50 per maand via iDEAL.
-              </label>
+          {/* Trial Info */}
+          <div className="bg-blue-50/50 rounded-2xl p-5 mb-8 border border-blue-100/50">
+            <div className="flex items-start gap-3">
+              <CheckCircle2 className="w-5 h-5 text-blue-600 mt-0.5" />
+              <div>
+                <h3 className="text-[15px] font-semibold text-gray-900">7 dagen volledig gratis</h3>
+                <p className="text-[14px] text-gray-500 mt-1 leading-relaxed">
+                  Je zit nergens aan vast. Na de trial €12,50/maand. Opzeggen kan op elk moment met één klik.
+                </p>
+              </div>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? (
-              <span className="flex items-center justify-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Bezig met aanmelden...
-              </span>
-            ) : (
-              'Start gratis trial →'
-            )}
-          </button>
+          {error && (
+            <div className="bg-red-50 text-red-600 px-4 py-3 rounded-xl text-[14px] mb-6 border border-red-100 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4" />
+              {error}
+            </div>
+          )}
 
-          <p className="text-xs text-center text-gray-500 mt-4">
-            Je wordt doorgestuurd naar een beveiligde Mollie betaalpagina om je betaalmethode te koppelen
-          </p>
-        </form>
+          <form className="space-y-5" onSubmit={handleSubmit}>
+            <div>
+              <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
+                Naam
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="block w-full rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
+                placeholder="Jan de Vries"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
+                Email
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="block w-full rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
+                placeholder="naam@school.nl"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
+                  Wachtwoord
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.password}
+                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                  className="block w-full rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
+                  placeholder="8+ tekens"
+                />
+              </div>
+              <div>
+                <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
+                  Bevestig
+                </label>
+                <input
+                  type="password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  className="block w-full rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
+                  placeholder="Herhaal"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
+                Niveau
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.level}
+                  onChange={(e) => setFormData({ ...formData, level: e.target.value as StudentLevel })}
+                  className="block w-full appearance-none rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
+                >
+                  <option value="VMBO-TL">VMBO-TL</option>
+                  <option value="HAVO">HAVO</option>
+                  <option value="VWO">VWO</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-gray-500">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-start pt-2">
+              <input
+                id="terms"
+                name="terms"
+                type="checkbox"
+                required
+                checked={formData.acceptTerms}
+                onChange={(e) => setFormData({ ...formData, acceptTerms: e.target.checked })}
+                className="h-4 w-4 mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <label htmlFor="terms" className="ml-3 block text-[13px] text-gray-500 leading-relaxed">
+                Ik ga akkoord met de <a href="#" className="text-blue-600 hover:text-blue-500">voorwaarden</a>. 
+                Ik begrijp dat na de gratis periode het abonnement automatisch doorloopt (€12,50/mnd).
+              </label>
+            </div>
+
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              className="w-full justify-center text-[16px] font-semibold py-4"
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Momentje...
+                </>
+              ) : (
+                'Start Gratis Trial'
+              )}
+            </Button>
+          </form>
+        </div>
+        
+        <p className="text-center text-[13px] text-gray-400 mt-8">
+          Veilig betalen via Mollie. Gegevens worden versleuteld opgeslagen.
+        </p>
       </div>
     </div>
   );
