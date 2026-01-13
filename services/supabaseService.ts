@@ -4,13 +4,26 @@ import { Question, ExamResult, StudentProfile } from '../types';
 // Supabase configuratie - deze waarden moeten in .env.local staan
 const supabaseUrl = (import.meta.env?.VITE_SUPABASE_URL as string) || '';
 const supabaseAnonKey = (import.meta.env?.VITE_SUPABASE_ANON_KEY as string) || '';
+const supabaseServiceRoleKey = (import.meta.env?.VITE_SUPABASE_SERVICE_ROLE_KEY as string) || '';
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials niet gevonden. Gebruik localStorage als fallback.');
 }
 
+// Public client - gebruikt door studenten en voor login
 export const supabase = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey)
+  : null;
+
+// Admin client - gebruikt service role key om RLS te bypassen
+// ALLEEN gebruiken voor admin operaties (studenten aanmaken, etc.)
+export const supabaseAdmin = supabaseUrl && supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    })
   : null;
 
 // Database tabellen namen
