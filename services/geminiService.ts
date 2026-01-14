@@ -189,9 +189,43 @@ export const generateAIQuestions = async (
 
 ${examRequirements}
 
-VAKINHOUD ${subject} (${level}):
+VAKINHOUD ${subject} voor ${level}:
 Behandel onderwerpen uit: ${curriculumHints}
 ${topic ? `FOCUS: Alle vragen moeten gaan over "${topic}" binnen dit vak` : 'Varieer over verschillende examenstofonderdelen'}
+
+BELANGRIJK - NIVEAU-SPECIFIEKE STOFBEHANDELING voor ${level}:
+
+${level === 'VMBO-TL' ? `
+VMBO-TL: Selecteer ALLEEN de MEEST BASALE en PRAKTISCHE onderwerpen:
+- Wiskunde: Simpele grafieken lezen, basale statistiek (gemiddelde), eenvoudige percentages
+- Biologie: Zichtbare celstructuren, basisvoeding, eenvoudige ecosystemen
+- Scheikunde: Herkenbare stoffen, simpele scheidingsmethoden, pH met voorbeelden
+- Natuurkunde: Alledaagse krachten, eenvoudige stroomkringen, herkenbare energie
+- Talen: Korte teksten, basale grammatica, praktische communicatie
+- Geschiedenis: Hoofdlijnen tijdvakken, bekende gebeurtenissen, herkenbare bronnen
+Gebruik GEEN complexe formules, abstracte theorie of multi-stap redeneringen!` : ''}
+
+${level === 'HAVO' ? `
+HAVO: Behandel STANDAARD examenstof met TOEPASSINGEN:
+- Wiskunde: Functies analyseren, kansberekeningen, afgeleide toepassen
+- Biologie: DNA-structuur, basale genetica, eenvoudige ecologie, lichaamssystemen
+- Scheikunde: Reactievergelijkingen, mol-berekeningen, zuur-base, eenvoudige organische chemie
+- Natuurkunde: Bewegingsvergelijkingen, energieomzettingen, Wet van Ohm, simpele golven
+- Talen: Langere teksten analyseren, gevorderde grammatica, argumenteren
+- Geschiedenis: Oorzaken & gevolgen, bronvergelijking, tijdvak-verbanden
+Gebruik standaard formules en 2-3 stappen redenering.` : ''}
+
+${level === 'VWO' ? `
+VWO: Behandel ALLE complexe stof met DIEPGANG en ABSTRACTIE:
+- Wiskunde: Integralen, vectorruimten, complexe modellen, bewijsvoering
+- Biologie: Genregulatie, evolutionaire mechanismen, biochemische cycli, epigenetica
+- Scheikunde: Evenwichtsreacties, thermodynamica, complexe syntheses, reactiemechanismen
+- Natuurkunde: Relativiteit, quantummechanica, complexe trillingen, veldentheorie
+- Talen: Literaire analyse, complexe argumentatie, nuances, wetenschappelijke teksten
+- Geschiedenis: Historiografie, interpretaties, lange termijn processen, interdisciplinair
+Gebruik complexe formules, multi-stap redeneringen en abstracte concepten!` : ''}
+
+Kies de JUISTE DIEPGANG voor ${level} binnen ${subject}!
 
 VRAAGKWALITEIT:
 - Gebruik realistische examensituaties en authentieke data
