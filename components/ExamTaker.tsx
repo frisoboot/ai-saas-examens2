@@ -31,6 +31,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [examSummary, setExamSummary] = useState<ExamSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
+  // Prevent multiple calls to finishExam
+  const isFinishingRef = React.useRef(false);
+
   const currentQuestion = session.questions[activeQuestionIdx];
   const isLastQuestion = activeQuestionIdx === session.questions.length - 1;
   const progress = ((activeQuestionIdx + 1) / session.questions.length) * 100;
@@ -64,6 +67,12 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   };
 
   const finishExam = async () => {
+    // Prevent multiple calls
+    if (isFinishingRef.current) {
+      return;
+    }
+    isFinishingRef.current = true;
+
     let finalAnswers = { ...session.answers };
     if (currentQuestion.type === 'OPEN') {
       finalAnswers[currentQuestion.id] = openAnswerInput;
@@ -73,7 +82,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     session.questions.forEach(q => {
       if (q.type === 'MULTIPLE_CHOICE') {
         if (finalAnswers[q.id] === q.correctIndex) correctCount++;
-      } 
+      }
     });
 
     // Calculate duration in seconds
@@ -101,22 +110,24 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       // Update student progress
       await updateProgressAfterExam(result);
 
-      // Generate AI summary automatically
-      setLoadingSummary(true);
-      try {
-        const summary = await generateExamSummary(
-          session.questions,
-          finalAnswers,
-          correctCount,
-          session.questions.length,
-          session.studentName,
-          session.subject
-        );
-        setExamSummary(summary);
-      } catch (error) {
-        console.error('Fout bij genereren samenvatting:', error);
-      } finally {
-        setLoadingSummary(false);
+      // Generate AI summary automatically (only once)
+      if (!examSummary && !loadingSummary) {
+        setLoadingSummary(true);
+        try {
+          const summary = await generateExamSummary(
+            session.questions,
+            finalAnswers,
+            correctCount,
+            session.questions.length,
+            session.studentName,
+            session.subject
+          );
+          setExamSummary(summary);
+        } catch (error) {
+          console.error('Fout bij genereren samenvatting:', error);
+        } finally {
+          setLoadingSummary(false);
+        }
       }
     } catch (error) {
       console.error('Fout bij opslaan resultaat:', error);
