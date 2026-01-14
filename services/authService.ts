@@ -11,24 +11,45 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
   console.log('verifyAdminLogin called for user:', username);
 
+  // ============================================================================
+  // SECURITY: Development fallback met environment variabelen
+  // ============================================================================
   if (!supabase) {
-    // Fallback: hardcoded admin check (DEVELOPMENT ONLY)
-    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
-      console.log('Using development fallback admin login');
-      if (username === 'admin' && password === 'admin123') {
-        console.log('Fallback admin login SUCCESS');
+    // Fallback alleen in development met environment variabelen
+    if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
+      console.warn('⚠️  Using development fallback admin login - NOT FOR PRODUCTION!');
+
+      // Haal admin credentials uit environment variabelen
+      const envAdminUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
+      const envAdminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+      // SECURITY: Weiger zwakke wachtwoorden
+      if (!envAdminPassword || envAdminPassword === 'your-super-strong-admin-password-here') {
+        console.error('❌ VITE_ADMIN_PASSWORD niet ingesteld in .env bestand!');
+        console.error('   Zie .env.example voor instructies');
+        return null;
+      }
+
+      if (envAdminPassword.length < 12) {
+        console.error('❌ Admin wachtwoord is te kort! Minimaal 12 karakters vereist.');
+        return null;
+      }
+
+      if (username === envAdminUsername && password === envAdminPassword) {
+        console.log('✅ Fallback admin login SUCCESS');
         return {
           id: 'admin-001',
-          username: 'admin',
+          username: envAdminUsername,
           passwordHash: '',
           email: undefined,
           lastLogin: new Date().toISOString()
         };
       }
-      console.log('Fallback admin login FAILED - wrong credentials');
+
+      console.log('❌ Fallback admin login FAILED - wrong credentials');
       return null;
     } else {
-      console.error('Database unavailable and fallback disabled in production');
+      console.error('❌ Database unavailable and fallback disabled in production');
       return null;
     }
   }
@@ -70,16 +91,32 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
       lastLogin: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Error verifying admin login:', error);
+    console.error('❌ Error verifying admin login:', error);
 
-    // Fallback if database fails (DEVELOPMENT ONLY)
-    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
-      console.log('Database login failed, trying development fallback...');
-      if (username === 'admin' && password === 'admin123') {
-        console.log('Fallback admin login SUCCESS');
+    // SECURITY: Fallback if database fails (DEVELOPMENT ONLY)
+    if (import.meta.env.DEV && import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
+      console.warn('⚠️  Database login failed, trying development fallback...');
+
+      // Haal admin credentials uit environment variabelen
+      const envAdminUsername = import.meta.env.VITE_ADMIN_USERNAME || 'admin';
+      const envAdminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+
+      // SECURITY: Weiger zwakke wachtwoorden
+      if (!envAdminPassword || envAdminPassword === 'your-super-strong-admin-password-here') {
+        console.error('❌ VITE_ADMIN_PASSWORD niet ingesteld in .env bestand!');
+        return null;
+      }
+
+      if (envAdminPassword.length < 12) {
+        console.error('❌ Admin wachtwoord is te kort! Minimaal 12 karakters vereist.');
+        return null;
+      }
+
+      if (username === envAdminUsername && password === envAdminPassword) {
+        console.log('✅ Fallback admin login SUCCESS');
         return {
           id: 'admin-001',
-          username: 'admin',
+          username: envAdminUsername,
           passwordHash: '',
           email: undefined,
           lastLogin: new Date().toISOString()
