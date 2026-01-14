@@ -214,20 +214,35 @@ export const generateAIQuestions = async (
     ${topic ? `- Zorg dat alle vragen gaan over ${topic}` : ''}
 
     OPDRACHT:
-    Maak PRECIES ${count} meerkeuzevragen die volledig voldoen aan ${level} eindexamen niveau.
+    Maak PRECIES ${count} vragen die volledig voldoen aan ${level} eindexamen niveau.
 
-    Elke vraag moet:
+    VRAAGTYPE MIX:
+    - Maak ongeveer 70% MEERKEUZEVRAGEN en 30% OPEN VRAGEN
+    - Varieer de vraagtypen door het examen heen voor een realistisch eindexamen
+
+    Voor MEERKEUZEVRAGEN:
     - 4 antwoordopties hebben (A, B, C, D)
     - 1 duidelijk correct antwoord hebben
     - 3 plausibele maar incorrecte afleidingsantwoorden (veelgemaakte fouten, dichtbij maar net niet goed)
-    - Realistisch zijn voor een echt eindexamen
+
+    Voor OPEN VRAGEN:
+    - Vraag die een uitgebreid antwoord vereist (2-4 zinnen)
+    - Geef een duidelijk modelantwoord
+    - Geschikt voor dieper begrip en analyse
 
     BELANGRIJK: Geef je antwoord als JSON array met dit EXACTE format:
     [
       {
+        "type": "MULTIPLE_CHOICE",
         "text": "De vraag hier",
         "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
         "correctIndex": 0,
+        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
+      },
+      {
+        "type": "OPEN",
+        "text": "De open vraag hier",
+        "modelAnswer": "Het modelantwoord hier (2-4 zinnen)",
         "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
       }
     ]
@@ -254,18 +269,34 @@ export const generateAIQuestions = async (
     const questionsData = JSON.parse(jsonText);
 
     // Convert to Question format
-    const questions: Question[] = questionsData.map((q: any, index: number) => ({
-      id: `ai-${Date.now()}-${index}`,
-      type: 'MULTIPLE_CHOICE' as const,
-      level: level as any,
-      subject: subject,
-      text: q.text,
-      options: q.options,
-      correctIndex: q.correctIndex,
-      contextText: q.contextText || undefined,
-      examType: 'practice' as const,
-      source: `AI-gegenereerd (${level} niveau)`,
-    }));
+    const questions: Question[] = questionsData.map((q: any, index: number) => {
+      const baseQuestion = {
+        id: `ai-${Date.now()}-${index}`,
+        type: q.type || 'MULTIPLE_CHOICE' as const,
+        level: level as any,
+        subject: subject,
+        text: q.text,
+        contextText: q.contextText || undefined,
+        examType: 'practice' as const,
+        source: `AI-gegenereerd (${level} niveau)`,
+      };
+
+      // Add type-specific properties
+      if (q.type === 'OPEN') {
+        return {
+          ...baseQuestion,
+          type: 'OPEN' as const,
+          modelAnswer: q.modelAnswer || '',
+        };
+      } else {
+        return {
+          ...baseQuestion,
+          type: 'MULTIPLE_CHOICE' as const,
+          options: q.options,
+          correctIndex: q.correctIndex,
+        };
+      }
+    });
 
     return questions;
   } catch (error) {
