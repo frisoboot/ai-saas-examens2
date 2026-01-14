@@ -154,41 +154,56 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // --- SUBMITTING LOADING SCREEN ---
   if (isSubmitting && !isFinished) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
-        <div className="text-center">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Animated background blobs */}
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-400/30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-400/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
+        </div>
+
+        <div className="text-center relative z-10">
           {/* Animated circles background */}
-          <div className="relative mb-8">
+          <div className="relative mb-10">
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-32 h-32 rounded-full border-4 border-white/20 animate-ping" />
+              <div className="w-40 h-40 rounded-full border-4 border-white/10 animate-ping" />
             </div>
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-24 h-24 rounded-full border-4 border-white/30 animate-pulse" />
+              <div className="w-32 h-32 rounded-full border-4 border-white/20 animate-pulse" style={{ animationDelay: '0.5s' }} />
             </div>
-            <div className="relative w-20 h-20 mx-auto bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl">
-              <BrainCircuit className="w-10 h-10 text-white animate-pulse" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-4 border-white/30 animate-pulse" style={{ animationDelay: '1s' }} />
+            </div>
+            <div className="relative w-24 h-24 mx-auto bg-white/20 backdrop-blur-xl rounded-3xl flex items-center justify-center shadow-2xl shadow-black/20 border border-white/30">
+              <BrainCircuit className="w-12 h-12 text-white animate-pulse" />
             </div>
           </div>
 
           {/* Loading text */}
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 drop-shadow-lg">
             Toets wordt verwerkt...
           </h2>
-          <p className="text-white/80 text-lg mb-8 max-w-md mx-auto">
+          <p className="text-white/90 text-lg md:text-xl mb-10 max-w-md mx-auto drop-shadow">
             Je antwoorden worden opgeslagen en geanalyseerd door de AI
           </p>
 
           {/* Progress indicators */}
-          <div className="flex items-center justify-center gap-2 mb-8">
-            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          <div className="flex items-center justify-center gap-3 mb-10">
+            <div className="w-4 h-4 bg-white rounded-full animate-bounce shadow-lg" style={{ animationDelay: '0ms' }} />
+            <div className="w-4 h-4 bg-white rounded-full animate-bounce shadow-lg" style={{ animationDelay: '150ms' }} />
+            <div className="w-4 h-4 bg-white rounded-full animate-bounce shadow-lg" style={{ animationDelay: '300ms' }} />
           </div>
 
           {/* Info card */}
-          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-auto border border-white/20">
-            <div className="flex items-center gap-3 text-white/90 text-sm">
-              <CheckCircle className="w-5 h-5 flex-shrink-0" />
-              <span>{session.questions.length} vragen beantwoord</span>
+          <div className="bg-white/15 backdrop-blur-xl rounded-3xl p-8 max-w-md mx-auto border border-white/30 shadow-2xl">
+            <div className="flex items-center gap-4 text-white text-base">
+              <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="w-6 h-6" />
+              </div>
+              <div className="text-left">
+                <div className="font-bold text-lg mb-1">{session.questions.length} vragen</div>
+                <div className="text-white/80 text-sm">Succesvol beantwoord</div>
+              </div>
             </div>
           </div>
         </div>
@@ -204,50 +219,82 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 py-8 md:py-12 px-4">
-        <div className="max-w-5xl mx-auto">
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 py-8 md:py-12 px-4 relative overflow-hidden">
+        {/* Animated background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 -left-20 w-96 h-96 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-0 -right-20 w-96 h-96 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+        </div>
+
+        <div className="max-w-5xl mx-auto relative z-10">
           {/* Results Header */}
-          <div className="bg-gradient-to-br from-white via-white to-indigo-50/50 rounded-3xl shadow-2xl shadow-indigo-200/50 p-6 md:p-10 mb-8 border border-indigo-100">
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-4 shadow-lg shadow-indigo-300/50">
-                <CheckCircle className="w-4 h-4" />
-                Toets Voltooid
+          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-200/50 p-8 md:p-12 mb-8 border border-white/60">
+            <div className="text-center mb-10">
+              <div className="relative inline-block mb-6">
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-lg opacity-50 animate-pulse" />
+                <div className="relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg">
+                  <CheckCircle className="w-5 h-5" />
+                  Toets Voltooid
+                </div>
               </div>
-              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Geweldig gedaan!</h2>
-              <p className="text-slate-600 max-w-xl mx-auto">
+              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent mb-4">
+                Geweldig gedaan!
+              </h2>
+              <p className="text-slate-700 text-lg max-w-2xl mx-auto leading-relaxed">
                 Je toets is afgerond. Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
               </p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4 mb-8">
+            <div className="grid md:grid-cols-3 gap-5 mb-10">
                {totalMc > 0 && (
-                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100 text-center">
-                    <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Meerkeuze Score</div>
-                    <div className="text-5xl font-bold text-indigo-600 mb-1">
-                      {mcScore}<span className="text-2xl text-indigo-300">/</span>{totalMc}
-                    </div>
-                    <div className="text-sm font-semibold text-indigo-700">{percentage}% correct</div>
+                 <div className="relative group">
+                   <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                   <div className="relative bg-gradient-to-br from-indigo-50 via-purple-50/80 to-pink-50/50 rounded-2xl p-8 border-2 border-indigo-200 text-center shadow-lg hover:shadow-xl transition-all">
+                      <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
+                        <Target className="w-3.5 h-3.5" />
+                        Meerkeuze Score
+                      </div>
+                      <div className="text-6xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
+                        {mcScore}<span className="text-3xl opacity-50">/</span>{totalMc}
+                      </div>
+                      <div className="text-base font-bold text-indigo-700">{percentage}% correct</div>
+                   </div>
                  </div>
                )}
                {openCount > 0 && (
-                 <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-100 text-center">
-                    <div className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-2">Open Vragen</div>
-                    <div className="text-5xl font-bold text-orange-500 mb-1">{openCount}</div>
-                    <div className="text-sm font-semibold text-orange-700">Beantwoord</div>
+                 <div className="relative group">
+                   <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                   <div className="relative bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-8 border-2 border-orange-200 text-center shadow-lg hover:shadow-xl transition-all">
+                      <div className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
+                        <FileText className="w-3.5 h-3.5" />
+                        Open Vragen
+                      </div>
+                      <div className="text-6xl font-bold bg-gradient-to-br from-orange-500 to-amber-500 bg-clip-text text-transparent mb-2">{openCount}</div>
+                      <div className="text-base font-bold text-orange-700">Beantwoord</div>
+                   </div>
                  </div>
                )}
-               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 text-center">
-                  <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">Totaal Vragen</div>
-                  <div className="text-5xl font-bold text-green-600 mb-1">{session.questions.length}</div>
-                  <div className="text-sm font-semibold text-green-700">Gemaakt</div>
+               <div className="relative group">
+                 <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
+                 <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-8 border-2 border-green-200 text-center shadow-lg hover:shadow-xl transition-all">
+                    <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
+                      <TrendingUp className="w-3.5 h-3.5" />
+                      Totaal Vragen
+                    </div>
+                    <div className="text-6xl font-bold bg-gradient-to-br from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">{session.questions.length}</div>
+                    <div className="text-base font-bold text-green-700">Gemaakt</div>
+                 </div>
                </div>
             </div>
 
             <div className="text-center">
-              <Button onClick={onFinish} variant="secondary" className="shadow-lg">
-                  <Home className="w-4 h-4 mr-2"/>
-                  Terug naar Dashboard
-              </Button>
+              <div className="relative inline-block">
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl blur-md opacity-30" />
+                <Button onClick={onFinish} variant="secondary" className="relative shadow-xl hover:shadow-2xl transition-all hover:scale-105 px-8 py-3 font-bold">
+                    <Home className="w-5 h-5 mr-2"/>
+                    Terug naar Dashboard
+                </Button>
+              </div>
             </div>
           </div>
 
