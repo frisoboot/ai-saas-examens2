@@ -9,7 +9,7 @@ Dit document bevat kritieke beveiligingsinformatie voor het AI Examens Platform,
 
 ### Stap 1: Stel een STERK admin wachtwoord in
 
-Het admin wachtwoord wordt **NIET** hardcoded in de code. In plaats daarvan moet je het instellen via environment variabelen.
+Het admin wachtwoord wordt **NIET** hardcoded in de code en wordt **NOOIT** naar de browser gestuurd. Het blijft veilig op de server via een API endpoint.
 
 #### Voor Development (lokaal):
 
@@ -20,9 +20,14 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code. In plaats daarvan moet
 
 2. Open `.env` en stel een **STERK** wachtwoord in:
    ```bash
-   VITE_ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
-   VITE_ADMIN_USERNAME=admin
+   # LET OP: GEEN "VITE_" prefix! Dit houdt het wachtwoord server-side.
+   ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
+   ADMIN_USERNAME=admin
    ```
+
+   > 🔒 **WAAROM GEEN VITE_ PREFIX?**
+   > Variabelen met `VITE_` prefix worden geëxpositeerd naar de browser.
+   > Door GEEN `VITE_` prefix te gebruiken, blijft het wachtwoord veilig op de server!
 
 3. **Wachtwoord eisen**:
    - ✅ Minimaal 16 karakters (systeem vereist minimaal 12)
@@ -50,16 +55,22 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code. In plaats daarvan moet
 
 1. **NOOIT** commit je `.env` bestand naar Git!
 2. Stel environment variabelen in via je hosting platform:
-   - Vercel: Project Settings → Environment Variables
-   - Netlify: Site Settings → Environment Variables
-   - Andere: Zie documentatie van je host
+   - **Vercel**: Project Settings → Environment Variables
+   - **Netlify**: Site Settings → Build & Deploy → Environment
+   - **Andere**: Zie documentatie van je host
 
 3. Productie environment variabelen:
    ```bash
-   VITE_ADMIN_PASSWORD=zeer-sterk-productie-wachtwoord
-   VITE_ADMIN_USERNAME=admin
+   # ⚠️ BELANGRIJK: GEEN "VITE_" prefix voor admin credentials!
+   # Dit houdt het wachtwoord server-side (alleen beschikbaar in /api endpoints)
+   ADMIN_PASSWORD=zeer-sterk-productie-wachtwoord
+   ADMIN_USERNAME=admin
+
+   # Frontend variabelen (WEL met VITE_ prefix):
    VITE_ALLOW_DEV_FALLBACK=false  # ⚠️ VERPLICHT in productie!
    ```
+
+4. **Vercel specifiek**: Wanneer je `ADMIN_PASSWORD` toevoegt, zal Vercel GEEN waarschuwing geven omdat het GEEN `VITE_` prefix heeft en dus veilig server-side blijft! ✅
 
 ---
 
@@ -68,11 +79,14 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code. In plaats daarvan moet
 ### 1. Admin Authenticatie
 
 #### ✅ Geïmplementeerd:
+- ✅ **Server-side API endpoint** (`/api/admin-login`) - wachtwoord blijft op server!
+- ✅ **Geen VITE_ prefix** - voorkomt exposure naar browser
 - ✅ Wachtwoorden via environment variabelen (niet hardcoded)
 - ✅ Minimale wachtwoordlengte check (12 karakters)
-- ✅ Development fallback alleen in DEV mode
 - ✅ Supabase Auth integratie met role-based access
+- ✅ Fallback naar veilige API als Supabase faalt
 - ✅ Warning bij zwakke wachtwoorden
+- ✅ Timing attack prevention (constant-time response)
 
 #### 🔄 Aanbevolen voor de toekomst:
 - ⚠️ Rate limiting (max 5 login pogingen per 15 min)
@@ -121,11 +135,14 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code. In plaats daarvan moet
 - [ ] `.env` staat in `.gitignore`
 - [ ] Geen hardcoded credentials in de code
 - [ ] `VITE_ALLOW_DEV_FALLBACK=false` in productie
+- [ ] **`ADMIN_PASSWORD` ingesteld ZONDER `VITE_` prefix** ⚠️ KRITIEK
+- [ ] **`ADMIN_USERNAME` ingesteld ZONDER `VITE_` prefix**
 - [ ] Sterk admin wachtwoord ingesteld (min. 16 chars)
 - [ ] HTTPS geconfigureerd
 - [ ] Supabase RLS policies actief
 - [ ] Service role key NIET in productie frontend
 - [ ] API keys voor productie (niet test keys)
+- [ ] `/api/admin-login` endpoint werkt correct
 
 ### Regelmatig controleren:
 
@@ -173,6 +190,13 @@ Voor het rapporteren van security vulnerabilities:
 ---
 
 ## 📝 Changelog
+
+### v1.1.0 (2026-01-14) - SECURITY FIX
+- ✅ **KRITIEKE FIX**: Wachtwoord NIET meer geëxpositeerd naar browser
+- ✅ Toegevoegd: Server-side API endpoint `/api/admin-login`
+- ✅ Gewijzigd: `VITE_ADMIN_PASSWORD` → `ADMIN_PASSWORD` (server-side only)
+- ✅ Toegevoegd: Timing attack prevention in API
+- ✅ Verbeterd: Fallback nu via veilige API i.p.v. client-side check
 
 ### v1.0.0 (2026-01-14)
 - ✅ Verwijderd: Hardcoded admin wachtwoord 'admin123'

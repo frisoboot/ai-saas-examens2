@@ -45,9 +45,10 @@ VITE_GEMINI_API_KEY=AIza...
 VITE_ALLOW_DEV_FALLBACK=true
 
 # ⚠️ VERPLICHT: Stel een STERK admin wachtwoord in!
-# Zie SECURITY.md voor instructies
-VITE_ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
-VITE_ADMIN_USERNAME=admin
+# LET OP: GEEN "VITE_" prefix = server-side only (veilig!)
+# Zie SECURITY.md voor volledige instructies
+ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
+ADMIN_USERNAME=admin
 
 # Optioneel voor lokaal development:
 VITE_SUPABASE_SERVICE_ROLE_KEY=eyJ...
@@ -109,24 +110,31 @@ ai-saas-examen/
 
 Dit project implementeert enterprise-grade beveiliging met:
 
+- ✅ **Server-side admin auth API** - wachtwoord blijft op server!
 - ✅ **Supabase Auth** met JWT tokens
 - ✅ **Row Level Security (RLS)** policies
 - ✅ **Role-based access control** (admin vs student)
 - ✅ **Environment-based credentials** (geen hardcoded wachtwoorden!)
 - ✅ **Service role key** blijft op server (via API endpoints)
 - ✅ **Wachtwoord validatie** (min. 12 karakters)
-- ✅ **Development fallback security** (alleen in DEV mode)
-- ✅ **Geen secrets in browser**
+- ✅ **Timing attack prevention** in admin login
+- ✅ **Geen secrets in browser** (geen VITE_ prefix voor admin credentials)
 
 > 🚨 **VERPLICHT**: Lees [`SECURITY.md`](SECURITY.md) voordat je het platform gebruikt!
 > Dit bevat kritieke informatie over admin wachtwoorden en beveiligingsbest practices.
 
 **Quick security checklist:**
 - [ ] Lees [`SECURITY.md`](SECURITY.md)
-- [ ] Stel een sterk admin wachtwoord in (min. 16 karakters)
+- [ ] Stel `ADMIN_PASSWORD` in (ZONDER `VITE_` prefix!) ⚠️ KRITIEK
+- [ ] Gebruik een sterk wachtwoord (min. 16 karakters)
 - [ ] Zet `VITE_ALLOW_DEV_FALLBACK=false` in productie
 - [ ] Commit NOOIT je `.env` bestand
 - [ ] Review de [Supabase Setup Guide](docs/SUPABASE_AUTH_SETUP.md)
+
+**Waarom GEEN `VITE_` prefix?**
+- Variabelen met `VITE_` prefix worden geëxpositeerd naar de browser
+- `ADMIN_PASSWORD` (zonder prefix) blijft veilig op de server
+- Vercel/Netlify geven GEEN warning voor server-side variabelen ✅
 
 ## 🚢 Deployment
 
