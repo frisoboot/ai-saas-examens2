@@ -44,6 +44,12 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 VITE_GEMINI_API_KEY=AIza...
 VITE_ALLOW_DEV_FALLBACK=true
 
+# ⚠️ VERPLICHT: Stel een STERK admin wachtwoord in!
+# LET OP: GEEN "VITE_" prefix = server-side only (veilig!)
+# Zie SECURITY.md voor volledige instructies
+ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
+ADMIN_USERNAME=admin
+
 # Optioneel voor lokaal development:
 VITE_SUPABASE_SERVICE_ROLE_KEY=eyJ...
 ```
@@ -65,11 +71,14 @@ npm run dev
 ```
 
 Open [http://localhost:3001](http://localhost:3001) en login als admin:
-- Username: `admin`
-- Password: `admin123`
+- Username: De username die je hebt ingesteld (standaard: `admin`)
+- Password: Het sterke wachtwoord uit je `.env.local` bestand
+
+> ⚠️ **BELANGRIJK**: Gebruik NOOIT het wachtwoord uit oude documentatie. Zie [`SECURITY.md`](SECURITY.md) voor veilig wachtwoordbeheer.
 
 ## 📖 Documentation
 
+- **[🔒 Security Guide](SECURITY.md)** - **VERPLICHTE LEZING**: Admin wachtwoorden en beveiliging
 - **[Supabase Setup Guide](docs/SUPABASE_AUTH_SETUP.md)** - Database configuratie en RLS policies
 - **[Vercel Deployment Guide](docs/VERCEL_DEPLOYMENT.md)** - Production deployment instructies
 
@@ -99,15 +108,33 @@ ai-saas-examen/
 
 ## 🔐 Security
 
-Dit project implementeert veilige authenticatie met:
+Dit project implementeert enterprise-grade beveiliging met:
 
-- ✅ Supabase Auth met JWT tokens
-- ✅ Row Level Security (RLS) policies
-- ✅ Role-based access control (admin vs student)
-- ✅ Service role key blijft op server (via API endpoints)
-- ✅ Geen secrets in browser
+- ✅ **Server-side admin auth API** - wachtwoord blijft op server!
+- ✅ **Supabase Auth** met JWT tokens
+- ✅ **Row Level Security (RLS)** policies
+- ✅ **Role-based access control** (admin vs student)
+- ✅ **Environment-based credentials** (geen hardcoded wachtwoorden!)
+- ✅ **Service role key** blijft op server (via API endpoints)
+- ✅ **Wachtwoord validatie** (min. 12 karakters)
+- ✅ **Timing attack prevention** in admin login
+- ✅ **Geen secrets in browser** (geen VITE_ prefix voor admin credentials)
 
-Zie [`docs/SUPABASE_AUTH_SETUP.md`](docs/SUPABASE_AUTH_SETUP.md) voor details.
+> 🚨 **VERPLICHT**: Lees [`SECURITY.md`](SECURITY.md) voordat je het platform gebruikt!
+> Dit bevat kritieke informatie over admin wachtwoorden en beveiligingsbest practices.
+
+**Quick security checklist:**
+- [ ] Lees [`SECURITY.md`](SECURITY.md)
+- [ ] Stel `ADMIN_PASSWORD` in (ZONDER `VITE_` prefix!) ⚠️ KRITIEK
+- [ ] Gebruik een sterk wachtwoord (min. 16 karakters)
+- [ ] Zet `VITE_ALLOW_DEV_FALLBACK=false` in productie
+- [ ] Commit NOOIT je `.env` bestand
+- [ ] Review de [Supabase Setup Guide](docs/SUPABASE_AUTH_SETUP.md)
+
+**Waarom GEEN `VITE_` prefix?**
+- Variabelen met `VITE_` prefix worden geëxpositeerd naar de browser
+- `ADMIN_PASSWORD` (zonder prefix) blijft veilig op de server
+- Vercel/Netlify geven GEEN warning voor server-side variabelen ✅
 
 ## 🚢 Deployment
 

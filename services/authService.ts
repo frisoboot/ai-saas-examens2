@@ -11,26 +11,13 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
   console.log('verifyAdminLogin called for user:', username);
 
+  // ============================================================================
+  // SECURITY: Probeer eerst Supabase Auth, fallback naar API
+  // ============================================================================
   if (!supabase) {
-    // Fallback: hardcoded admin check (DEVELOPMENT ONLY)
-    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
-      console.log('Using development fallback admin login');
-      if (username === 'admin' && password === 'admin123') {
-        console.log('Fallback admin login SUCCESS');
-        return {
-          id: 'admin-001',
-          username: 'admin',
-          passwordHash: '',
-          email: undefined,
-          lastLogin: new Date().toISOString()
-        };
-      }
-      console.log('Fallback admin login FAILED - wrong credentials');
-      return null;
-    } else {
-      console.error('Database unavailable and fallback disabled in production');
-      return null;
-    }
+    // Als Supabase niet beschikbaar is, gebruik de veilige server-side API
+    console.warn('⚠️  Supabase niet beschikbaar, gebruik server-side API fallback');
+    return await verifyAdminLoginViaAPI(username, password);
   }
 
   try {
@@ -70,26 +57,55 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
       lastLogin: new Date().toISOString()
     };
   } catch (error) {
-    console.error('Error verifying admin login:', error);
+    console.error('❌ Error verifying admin login via Supabase:', error);
 
-    // Fallback if database fails (DEVELOPMENT ONLY)
-    if (import.meta.env.DEV || import.meta.env.VITE_ALLOW_DEV_FALLBACK === 'true') {
-      console.log('Database login failed, trying development fallback...');
-      if (username === 'admin' && password === 'admin123') {
-        console.log('Fallback admin login SUCCESS');
-        return {
-          id: 'admin-001',
-          username: 'admin',
-          passwordHash: '',
-          email: undefined,
-          lastLogin: new Date().toISOString()
-        };
-      }
-    }
-
-    return null;
+    // SECURITY: Fallback naar server-side API als Supabase faalt
+    console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
+    return await verifyAdminLoginViaAPI(username, password);
   }
 };
+
+// ============================================================================
+// SECURITY: Server-side API admin login (wachtwoord blijft op server!)
+// ============================================================================
+async function verifyAdminLoginViaAPI(username: string, password: string): Promise<AdminUser | null> {
+  try {
+    // Bepaal de API URL (local dev of productie)
+    const apiUrl = import.meta.env.DEV
+      ? 'http://localhost:3001/api/admin-login'
+      : '/api/admin-login';
+
+    console.log('🔐 Verifying admin via server-side API...');
+
+    const response = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ username, password }),
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.admin) {
+      console.log('✅ Admin login SUCCESS via server-side API');
+      return {
+        id: data.admin.id,
+        username: data.admin.username,
+        passwordHash: '',
+        email: data.admin.email,
+        lastLogin: data.admin.lastLogin
+      };
+    }
+
+    console.log('❌ Admin login FAILED via API:', data.error);
+    return null;
+
+  } catch (error) {
+    console.error('❌ Error calling admin-login API:', error);
+    return null;
+  }
+}
 
 // Student authentication met Supabase Auth
 export const verifyStudentLogin = async (name: string, password: string): Promise<StudentProfile | null> => {
