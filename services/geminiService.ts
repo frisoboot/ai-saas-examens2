@@ -135,29 +135,77 @@ export const generateAIQuestions = async (
   count: number = 10,
   topic?: string
 ): Promise<Question[]> => {
-  // Compact level-specific instructions
-  const levelGuide = level === 'VMBO-TL'
-    ? 'eenvoudige taal, praktijkgericht, basis begrippen'
-    : level === 'HAVO'
-    ? 'correcte vakterminologie, toepassing, verbanden leggen'
-    : 'academisch niveau, complexe analyse, abstractievermogen';
+  // Detailed level-specific exam requirements
+  const levelRequirements: Record<string, string> = {
+    'VMBO-TL': `VMBO-TL EINDEXAMEN EISEN:
+- Begrijpelijk Nederlands, korte zinnen, dagelijks taalgebruik
+- Focus op reproductie en basisbegrip (kennen & kunnen)
+- Praktische vragen met herkenbare situaties
+- Duidelijke antwoordopties zonder verwarring
+- Feiten, definities, eenvoudige concepten
+- Stappenplannen en procedures`,
 
-  // Optimized shorter prompt for faster generation
-  const prompt = `Maak ${count} ${level} eindexamenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}.
+    'HAVO': `HAVO EINDEXAMEN EISEN:
+- Correcte vakterminologie en wetenschappelijke begrippen
+- Focus op begrip en toepassing (begrijpen & toepassen)
+- Vragen vereisen redeneren en verbanden leggen
+- Analyse van praktijksituaties en casussen
+- Oorzaak-gevolg relaties en processen
+- Vergelijken, uitleggen, verklaren`,
 
-NIVEAU: ${levelGuide}
+    'VWO': `VWO EINDEXAMEN EISEN:
+- Academisch taalgebruik en complexe terminologie
+- Focus op analyse en synthese (analyseren & evalueren)
+- Hogere-orde denkvragen en abstractievermogen
+- Kritisch beoordelen en argumenteren
+- Complexe verbanden en interdisciplinaire vragen
+- Theorie toepassen in nieuwe contexten`
+  };
 
-FORMAT (JSON array, geen extra tekst):
+  // Subject-specific curriculum guidance (based on Dutch exam curriculum)
+  const subjectGuidance: Record<string, string> = {
+    'Wiskunde A': 'statistiek, kansrekening, groei/verval, grafieken, functies, afgeleide',
+    'Wiskunde B': 'calculus, goniometrie, vectoren, integralen, exponentiële functies',
+    'Wiskunde C': 'toegepaste wiskunde, statistiek, modelleren, kansrekening, grafieken',
+    'Nederlands': 'tekstanalyse, argumentatie, stijlfiguren, taalbeschouwing, literatuur, schrijfvaardigheid',
+    'Engels': 'reading comprehension, grammar, vocabulary, writing skills, text types, idioms',
+    'Duits': 'Leseverstehen, Grammatik, Wortschatz, Schreiben, Landeskunde',
+    'Frans': 'compréhension écrite, grammaire, vocabulaire, expression écrite, culture',
+    'Biologie': 'cellen, DNA/erfelijkheid, evolutie, ecosystemen, menselijk lichaam, fotosynthese, homeostase',
+    'Scheikunde': 'atoommodel, stoichiometrie, zuren/basen, redox, organische chemie, reactiesnelheden',
+    'Natuurkunde': 'mechanica, energie, elektriciteit, golven, straling, moderne natuurkunde',
+    'Geschiedenis': 'tijdvakken, ontwikkelingen, oorzaken, historische context, bronanalyse, periodesoverzicht',
+    'Aardrijkskunde': 'gebieden, processen, mens-omgeving relaties, landschappen, globalisering, duurzaamheid',
+    'Economie': 'vraag/aanbod, marktwerking, overheid, internationale handel, conjunctuur, bedrijfsvoering',
+    'Bedrijfseconomie': 'bedrijfsvoering, financiële administratie, marketing, HRM, ondernemerschap',
+    'Maatschappijwetenschappen': 'sociologie, psychologie, pedagogiek, maatschappelijke vraagstukken, cultuur',
+    'Kunst Algemeen': 'kunstgeschiedenis, kunstbeschouwing, stromingen, kunstwerken analyseren, cultuurhistorie'
+  };
+
+  const examRequirements = levelRequirements[level] || levelRequirements['HAVO'];
+  const curriculumHints = subjectGuidance[subject] || 'relevante examenstof';
+
+  const prompt = `Je bent examinator voor OFFICIËLE Nederlandse eindexamens. Maak ${count} authentieke ${level} examenvragen voor ${subject}${topic ? ` specifiek over "${topic}"` : ''}.
+
+${examRequirements}
+
+VAKINHOUD ${subject} (${level}):
+Behandel onderwerpen uit: ${curriculumHints}
+${topic ? `FOCUS: Alle vragen moeten gaan over "${topic}" binnen dit vak` : 'Varieer over verschillende examenstofonderdelen'}
+
+VRAAGKWALITEIT:
+- Gebruik realistische examensituaties en authentieke data
+- Afleidingsantwoorden: gebaseerd op veelgemaakte denkfouten
+- Open vragen: Vraag om uitleg/onderbouwing, niet alleen een feit
+- Moeilijkheid: passend bij ${level} eindexamen niveau
+
+VERDELING: 70% meerkeuze (4 opties, 1 correct), 30% open (met modelantwoord 2-4 zinnen)
+
+OUTPUT (alleen JSON, geen extra tekst):
 [
   {"type":"MULTIPLE_CHOICE","text":"vraag","options":["A","B","C","D"],"correctIndex":0},
-  {"type":"OPEN","text":"vraag","modelAnswer":"antwoord (2-4 zinnen)"}
-]
-
-EISEN:
-- 70% meerkeuze, 30% open vragen
-- Meerkeuze: 4 opties, 1 correct, 3 plausibele afleidingsantwoorden
-- Vakspecifiek en examenrelevant
-- Alleen JSON output`;
+  {"type":"OPEN","text":"vraag","modelAnswer":"antwoord met uitleg"}
+]`;
 
   try {
     const response = await ai.models.generateContent({
