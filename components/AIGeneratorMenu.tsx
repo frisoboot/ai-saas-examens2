@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { Sparkles, ArrowLeft, Target, ListChecks, Play, Info, Clock, Sliders, CheckSquare, FileText, Zap, Brain, TrendingUp } from 'lucide-react';
+import { Sparkles, ArrowLeft, Target, ListChecks, Play, Info, Clock, Sliders, CheckSquare, FileText, Zap, Brain, TrendingUp, ChevronRight } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
@@ -44,7 +44,7 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const [questionTypeMix, setQuestionTypeMix] = useState('balanced');
   const [timeLimit, setTimeLimit] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'basic' | 'advanced'>('basic');
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
@@ -135,40 +135,6 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Config Panel */}
           <div className="lg:col-span-2 space-y-6">
-
-            {/* Tabs */}
-            <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-2 shadow-lg border border-slate-200/60">
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setActiveTab('basic')}
-                  disabled={isGenerating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
-                    activeTab === 'basic'
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Target className="w-4 h-4 inline mr-2" />
-                  Basis Instellingen
-                </button>
-                <button
-                  onClick={() => setActiveTab('advanced')}
-                  disabled={isGenerating}
-                  className={`flex-1 py-3 px-4 rounded-xl font-semibold text-sm transition-all ${
-                    activeTab === 'advanced'
-                      ? 'bg-gradient-to-r from-indigo-500 to-purple-500 text-white shadow-lg shadow-indigo-200'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Sliders className="w-4 h-4 inline mr-2" />
-                  Geavanceerd
-                </button>
-              </div>
-            </div>
-
-            {/* Basic Tab Content */}
-            {activeTab === 'basic' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
                 {/* Topic Selection */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-shadow">
                   <div className="flex items-center gap-3 mb-5">
@@ -255,12 +221,30 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                     ))}
                   </div>
                 </div>
-              </div>
-            )}
 
-            {/* Advanced Tab Content */}
-            {activeTab === 'advanced' && (
-              <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+            {/* Advanced Options Toggle */}
+            <div>
+              <button
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                disabled={isGenerating}
+                className="w-full bg-white/80 backdrop-blur-sm rounded-2xl p-4 shadow-lg border border-slate-200/60 hover:shadow-xl transition-all flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl text-purple-600 border border-purple-100">
+                    <Sliders className="w-5 h-5" />
+                  </div>
+                  <div className="text-left">
+                    <h3 className="font-bold text-slate-900 text-lg">Geavanceerde Instellingen</h3>
+                    <p className="text-xs text-slate-500">Moeilijkheidsgraad, vraagtype mix & tijdslimiet</p>
+                  </div>
+                </div>
+                <div className={`transition-transform duration-300 ${showAdvanced ? 'rotate-180' : ''}`}>
+                  <ChevronRight className="w-6 h-6 text-slate-400 rotate-90" />
+                </div>
+              </button>
+
+              {showAdvanced && (
+                <div className="space-y-6 mt-6 animate-in fade-in slide-in-from-top-2 duration-300">
                 {/* Difficulty Level */}
                 <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-slate-200/60 hover:shadow-xl transition-shadow">
                   <div className="flex items-center gap-3 mb-5">
@@ -371,6 +355,7 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                 </div>
               </div>
             )}
+            </div>
           </div>
 
           {/* Sidebar Summary */}
@@ -409,24 +394,28 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                   </div>
                 </div>
 
-                <div className="bg-white rounded-xl p-3 border border-slate-100">
-                  <div className="text-xs text-slate-500 font-semibold mb-1">Niveau</div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">
-                      {DIFFICULTY_LEVELS.find(d => d.value === difficulty)?.icon}
-                    </span>
-                    <span className="font-bold text-slate-900 text-sm">
-                      {DIFFICULTY_LEVELS.find(d => d.value === difficulty)?.label}
-                    </span>
-                  </div>
-                </div>
+                {showAdvanced && (
+                  <>
+                    <div className="bg-white rounded-xl p-3 border border-slate-100">
+                      <div className="text-xs text-slate-500 font-semibold mb-1">Moeilijkheid</div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">
+                          {DIFFICULTY_LEVELS.find(d => d.value === difficulty)?.icon}
+                        </span>
+                        <span className="font-bold text-slate-900 text-sm">
+                          {DIFFICULTY_LEVELS.find(d => d.value === difficulty)?.label}
+                        </span>
+                      </div>
+                    </div>
 
-                <div className="bg-white rounded-xl p-3 border border-slate-100">
-                  <div className="text-xs text-slate-500 font-semibold mb-1">Vraagtypen</div>
-                  <div className="font-semibold text-slate-900 text-sm">
-                    {QUESTION_TYPE_MIXES.find(m => m.value === questionTypeMix)?.label}
-                  </div>
-                </div>
+                    <div className="bg-white rounded-xl p-3 border border-slate-100">
+                      <div className="text-xs text-slate-500 font-semibold mb-1">Vraagtypen</div>
+                      <div className="font-semibold text-slate-900 text-sm">
+                        {QUESTION_TYPE_MIXES.find(m => m.value === questionTypeMix)?.label}
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-6 border border-blue-100">

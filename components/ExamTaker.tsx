@@ -24,6 +24,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [isFinished, setIsFinished] = useState(false);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [openAnswerInput, setOpenAnswerInput] = useState('');
+  const [isFinishingExam, setIsFinishingExam] = useState(false);
 
   // Review state
   const [aiExplanations, setAiExplanations] = useState<Record<string, string>>({});
@@ -72,6 +73,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       return;
     }
     isFinishingRef.current = true;
+    setIsFinishingExam(true);
 
     let finalAnswers = { ...session.answers };
     if (currentQuestion.type === 'OPEN') {
@@ -134,6 +136,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
     setSession(prev => ({ ...prev, answers: finalAnswers }));
     setIsFinished(true);
+    setIsFinishingExam(false);
   };
 
   const handleRequestAIExplanation = async (question: Question) => {
@@ -497,6 +500,34 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden text-slate-900 font-sans">
+      {/* Finishing Exam Overlay */}
+      {isFinishingExam && (
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 md:p-12 max-w-md mx-4 shadow-2xl border border-green-100">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500 rounded-2xl mx-auto mb-6 flex items-center justify-center animate-pulse">
+                <CheckCircle className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">Toets wordt nagekeken...</h3>
+              <p className="text-slate-600 mb-6">
+                De AI controleert je antwoorden en maakt een persoonlijke analyse
+              </p>
+
+              {/* Animated Progress Dots */}
+              <div className="flex justify-center gap-2 mb-4">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-3 h-3 bg-teal-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+
+              <p className="text-sm text-slate-500">
+                Dit duurt een paar seconden...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Minimal Header */}
       <div className="bg-white border-b border-slate-100 h-14 flex-shrink-0 flex items-center justify-between px-6 sticky top-0 z-20">
          <div className="flex items-center gap-4">
