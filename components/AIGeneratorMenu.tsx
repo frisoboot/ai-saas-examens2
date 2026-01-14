@@ -62,12 +62,12 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 p-4 md:p-8">
+    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <Button
           variant="ghost"
-          className="mb-6 text-slate-600 hover:text-slate-900"
+          className="mb-8 text-slate-600 hover:text-slate-900"
           onClick={onBack}
           disabled={isGenerating}
         >
@@ -75,55 +75,49 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
           Terug
         </Button>
 
-        <div className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-slate-200">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center">
-              <SubjectIcon className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900">AI Examen Generator</h1>
-              <p className="text-sm text-slate-600">{subject} • {studentLevel}</p>
-            </div>
+        <div className="bg-white border border-slate-200 mb-6">
+          <div className="p-6">
+            <h1 className="text-xl font-semibold text-slate-900 mb-1">AI Examen Generator</h1>
+            <p className="text-sm text-slate-600">{subject} • {studentLevel}</p>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="space-y-5">
           {/* Provider Selection */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Kies je examentype</h3>
-            <p className="text-sm text-slate-600 mb-5">
-              Selecteer het type examen dat het beste bij je voorbereiding past.
-            </p>
+          <div className="bg-white border border-slate-200">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Examentype</h3>
+            </div>
 
-            <div className="space-y-3">
+            <div className="divide-y divide-slate-200">
               {/* Gemini - AI Examen */}
               <button
                 onClick={() => setProvider('gemini')}
                 disabled={isGenerating}
-                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
+                className={`w-full p-6 text-left transition-colors ${
                   provider === 'gemini'
-                    ? 'border-indigo-600 bg-indigo-50/50'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    ? 'bg-slate-50'
+                    : 'bg-white hover:bg-slate-50/50'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                <div className="flex items-start gap-5">
+                  <div className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                     provider === 'gemini'
-                      ? 'border-indigo-600'
+                      ? 'border-slate-900'
                       : 'border-slate-300'
                   }`}>
                     {provider === 'gemini' && (
-                      <div className="w-3 h-3 rounded-full bg-indigo-600" />
+                      <div className="w-2 h-2 rounded-full bg-slate-900" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-3 mb-2">
                       <h4 className="font-semibold text-slate-900">AI Examen</h4>
-                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Gemini</span>
+                      <span className="text-xs text-slate-500">Gemini</span>
                     </div>
                     <p className="text-sm text-slate-600 leading-relaxed">
-                      Voor het <strong>oefenen en leren</strong> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen om concepten te begrijpen en je kennis te testen. Ideaal voor algemene voorbereiding en het ontdekken van je zwakke punten.
+                      Voor het <span className="font-medium text-slate-900">oefenen en leren</span> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen concepten te begrijpen. Ideaal voor algemene voorbereiding.
                     </p>
                   </div>
                 </div>
@@ -133,36 +127,38 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
               <button
                 onClick={() => grokAvailable && setProvider('grok')}
                 disabled={isGenerating || !grokAvailable}
-                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
+                className={`w-full p-6 text-left transition-colors ${
                   provider === 'grok'
-                    ? 'border-amber-600 bg-amber-50/50'
+                    ? 'bg-slate-50'
                     : grokAvailable
-                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                      : 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                      ? 'bg-white hover:bg-slate-50/50'
+                      : 'bg-slate-50/50 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                <div className="flex items-start gap-5">
+                  <div className={`mt-1 w-4 h-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
                     provider === 'grok'
-                      ? 'border-amber-600'
-                      : 'border-slate-300'
+                      ? 'border-slate-900'
+                      : grokAvailable
+                        ? 'border-slate-300'
+                        : 'border-slate-200'
                   }`}>
                     {provider === 'grok' && (
-                      <div className="w-3 h-3 rounded-full bg-amber-600" />
+                      <div className="w-2 h-2 rounded-full bg-slate-900" />
                     )}
                   </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-slate-900">Look-alike Examen</h4>
-                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Grok</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-3 mb-2">
+                      <h4 className={`font-semibold ${grokAvailable ? 'text-slate-900' : 'text-slate-400'}`}>Look-alike Examen</h4>
+                      <span className={`text-xs ${grokAvailable ? 'text-slate-500' : 'text-slate-400'}`}>Grok</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <p className={`text-sm leading-relaxed ${grokAvailable ? 'text-slate-600' : 'text-slate-400'}`}>
                       {grokAvailable ? (
                         <>
-                          Voor <strong>realistische examensimulatie</strong>. Vragen die qua stijl, structuur en moeilijkheidsgraad nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding en om te wennen aan het examenformat.
+                          Voor <span className="font-medium text-slate-900">realistische examensimulatie</span>. Vragen die qua stijl en structuur nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding.
                         </>
                       ) : (
-                        'Deze optie is momenteel niet beschikbaar omdat de API key niet is geconfigureerd.'
+                        'Deze optie is niet beschikbaar (API key niet geconfigureerd).'
                       )}
                     </p>
                   </div>
@@ -172,136 +168,137 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
           </div>
 
           {/* Topic Selection */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Onderwerp</h3>
+          <div className="bg-white border border-slate-200">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Onderwerp</h3>
             </div>
+            <div className="p-6">
 
-            <select
-              value={topic}
-              onChange={(e) => setTopic(e.target.value)}
-              disabled={isGenerating}
-              className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-slate-900 font-medium"
-            >
-              <option value="">Alle onderwerpen</option>
-              {availableTopics.length > 0 && availableTopics.map((t) => (
-                <option key={t} value={t}>{t}</option>
-              ))}
-              <option value="custom">Eigen onderwerp...</option>
-            </select>
-
-            {topic === 'custom' && (
-              <input
-                type="text"
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
+              <select
+                value={topic}
+                onChange={(e) => setTopic(e.target.value)}
                 disabled={isGenerating}
-                placeholder="Typ je onderwerp..."
-                className="w-full p-3 mt-3 bg-white border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-slate-900"
-                autoFocus
-              />
-            )}
+                className="w-full p-3 bg-white border border-slate-300 focus:border-slate-900 focus:outline-none text-slate-900 transition-colors"
+              >
+                <option value="">Alle onderwerpen</option>
+                {availableTopics.length > 0 && availableTopics.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+                <option value="custom">Eigen onderwerp...</option>
+              </select>
+
+              {topic === 'custom' && (
+                <input
+                  type="text"
+                  value={customTopic}
+                  onChange={(e) => setCustomTopic(e.target.value)}
+                  disabled={isGenerating}
+                  placeholder="Typ je onderwerp..."
+                  className="w-full p-3 mt-3 bg-white border border-slate-300 focus:border-slate-900 focus:outline-none text-slate-900 transition-colors"
+                  autoFocus
+                />
+              )}
+            </div>
           </div>
 
           {/* Question Count */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <ListChecks className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Aantal vragen</h3>
+          <div className="bg-white border border-slate-200">
+            <div className="p-6 border-b border-slate-200">
+              <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Aantal vragen</h3>
             </div>
-
-            <div className="grid grid-cols-4 gap-3">
-              {QUESTION_COUNTS.map(count => (
-                <button
-                  key={count}
-                  onClick={() => setQuestionCount(count)}
-                  disabled={isGenerating}
-                  className={`p-4 rounded-xl font-bold text-2xl transition-all ${
-                    questionCount === count
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
-                  }`}
-                >
-                  {count}
-                </button>
-              ))}
+            <div className="p-6">
+              <div className="grid grid-cols-4 gap-2">
+                {QUESTION_COUNTS.map(count => (
+                  <button
+                    key={count}
+                    onClick={() => setQuestionCount(count)}
+                    disabled={isGenerating}
+                    className={`p-4 border font-semibold text-lg transition-colors ${
+                      questionCount === count
+                        ? 'border-slate-900 bg-slate-900 text-white'
+                        : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    {count}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           {/* Advanced Options - Collapsible */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="bg-white border border-slate-200">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               disabled={isGenerating}
-              className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              className="w-full p-6 flex items-center justify-between hover:bg-slate-50 transition-colors border-b border-slate-200"
             >
-              <span className="font-bold text-slate-900">Meer opties</span>
+              <span className="text-sm font-semibold text-slate-900 uppercase tracking-wide">Meer opties</span>
               {showAdvanced ? (
-                <ChevronUp className="w-5 h-5 text-slate-600" />
+                <ChevronUp className="w-4 h-4 text-slate-600" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-slate-600" />
+                <ChevronDown className="w-4 h-4 text-slate-600" />
               )}
             </button>
 
             {showAdvanced && (
-              <div className="p-6 pt-0 space-y-5 border-t border-slate-100">
+              <div className="divide-y divide-slate-200">
                 {/* Difficulty */}
-                <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Moeilijkheidsgraad</label>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className="p-6">
+                  <label className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-4 block">Moeilijkheidsgraad</label>
+                  <div className="grid grid-cols-3 gap-2">
                     {DIFFICULTY_LEVELS.map(level => (
                       <button
                         key={level.value}
                         onClick={() => setDifficulty(level.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold transition-all ${
+                        className={`p-3 border font-medium text-sm transition-colors ${
                           difficulty === level.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        <div className="text-sm">{level.label}</div>
+                        {level.label}
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Question Mix */}
-                <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Type vragen</label>
-                  <div className="grid grid-cols-3 gap-3">
+                <div className="p-6">
+                  <label className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-4 block">Type vragen</label>
+                  <div className="grid grid-cols-3 gap-2">
                     {QUESTION_TYPE_MIXES.map(mix => (
                       <button
                         key={mix.value}
                         onClick={() => setQuestionTypeMix(mix.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        className={`p-3 border text-sm transition-colors text-left ${
                           questionTypeMix === mix.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
-                        <div>{mix.label}</div>
-                        <div className="text-xs text-slate-500 mt-1">{mix.description}</div>
+                        <div className="font-medium">{mix.label}</div>
+                        <div className={`text-xs mt-1 ${questionTypeMix === mix.value ? 'text-slate-300' : 'text-slate-500'}`}>{mix.description}</div>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 {/* Time Limit */}
-                <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Tijdslimiet</label>
+                <div className="p-6">
+                  <label className="text-xs font-semibold text-slate-900 uppercase tracking-wide mb-4 block">Tijdslimiet</label>
                   <div className="grid grid-cols-5 gap-2">
                     {TIME_LIMITS.map(limit => (
                       <button
                         key={limit.value}
                         onClick={() => setTimeLimit(limit.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        className={`p-3 border font-medium text-sm transition-colors ${
                           timeLimit === limit.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'border-slate-900 bg-slate-900 text-white'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50'
                         }`}
                       >
                         {limit.label}
@@ -318,16 +315,15 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
             variant="primary"
             onClick={handleStart}
             disabled={isGenerating || (topic === 'custom' && !customTopic.trim())}
-            className="w-full justify-center py-5 text-lg font-bold shadow-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+            className="w-full justify-center py-4 text-base font-semibold bg-slate-900 hover:bg-slate-800 text-white border border-slate-900"
           >
             {isGenerating ? (
               <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-3" />
                 Bezig met genereren...
               </>
             ) : (
               <>
-                <Play className="w-5 h-5 mr-2 fill-current" />
                 Start Toets
               </>
             )}
