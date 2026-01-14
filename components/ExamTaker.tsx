@@ -154,73 +154,113 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     const mcScore = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && session.answers[q.id] === q.correctIndex).length;
     const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
     const openCount = session.questions.filter(q => q.type === 'OPEN').length;
+    const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
 
     return (
-      <div className="min-h-screen bg-[#f8fafc] py-12 px-4">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-white rounded-3xl shadow-xl shadow-indigo-100 p-8 mb-8 text-center ring-1 ring-slate-100">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">Toets Afgerond!</h2>
-            <p className="text-slate-500 mb-8">Bekijk hieronder je resultaten en vraag de AI om uitleg.</p>
-            
-            <div className="flex justify-center gap-12 mb-8">
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 py-8 md:py-12 px-4">
+        <div className="max-w-5xl mx-auto">
+          {/* Results Header */}
+          <div className="bg-gradient-to-br from-white via-white to-indigo-50/50 rounded-3xl shadow-2xl shadow-indigo-200/50 p-6 md:p-10 mb-8 border border-indigo-100">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-4 py-2 rounded-full text-sm font-bold mb-4 shadow-lg shadow-indigo-300/50">
+                <CheckCircle className="w-4 h-4" />
+                Toets Voltooid
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3">Geweldig gedaan!</h2>
+              <p className="text-slate-600 max-w-xl mx-auto">
+                Je toets is afgerond. Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4 mb-8">
                {totalMc > 0 && (
-                 <div className="text-center">
-                    <div className="text-5xl font-bold text-indigo-600 mb-1">{mcScore}<span className="text-2xl text-slate-300">/</span>{totalMc}</div>
-                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Meerkeuze</div>
+                 <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl p-6 border border-indigo-100 text-center">
+                    <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-2">Meerkeuze Score</div>
+                    <div className="text-5xl font-bold text-indigo-600 mb-1">
+                      {mcScore}<span className="text-2xl text-indigo-300">/</span>{totalMc}
+                    </div>
+                    <div className="text-sm font-semibold text-indigo-700">{percentage}% correct</div>
                  </div>
                )}
                {openCount > 0 && (
-                 <div className="text-center">
+                 <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-6 border border-orange-100 text-center">
+                    <div className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-2">Open Vragen</div>
                     <div className="text-5xl font-bold text-orange-500 mb-1">{openCount}</div>
-                    <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide">Open Vragen</div>
+                    <div className="text-sm font-semibold text-orange-700">Beantwoord</div>
                  </div>
                )}
+               <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-6 border border-green-100 text-center">
+                  <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-2">Totaal Vragen</div>
+                  <div className="text-5xl font-bold text-green-600 mb-1">{session.questions.length}</div>
+                  <div className="text-sm font-semibold text-green-700">Gemaakt</div>
+               </div>
             </div>
-            
-            <Button onClick={onFinish} variant="secondary">
-                <Home className="w-4 h-4 mr-2"/>
-                Terug naar Dashboard
-            </Button>
+
+            <div className="text-center">
+              <Button onClick={onFinish} variant="secondary" className="shadow-lg">
+                  <Home className="w-4 h-4 mr-2"/>
+                  Terug naar Dashboard
+              </Button>
+            </div>
           </div>
 
           {/* AI Summary Section */}
           {loadingSummary ? (
-            <div className="bg-white rounded-2xl shadow-sm p-8 mb-8 border border-indigo-100">
-              <div className="flex items-center justify-center gap-3 text-indigo-600">
-                <BrainCircuit className="w-6 h-6 animate-pulse" />
-                <p className="text-lg">AI analyseert je resultaten...</p>
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 md:p-12 mb-8 border border-indigo-200 animate-pulse">
+              <div className="flex flex-col items-center justify-center gap-4 text-indigo-600">
+                <div className="relative">
+                  <BrainCircuit className="w-12 h-12 animate-pulse" />
+                  <div className="absolute -inset-2 bg-indigo-400/20 rounded-full animate-ping" />
+                </div>
+                <div className="text-center">
+                  <p className="text-xl font-bold text-slate-900 mb-1">AI analyseert je resultaten...</p>
+                  <p className="text-sm text-slate-500">Dit duurt een paar seconden</p>
+                </div>
               </div>
             </div>
           ) : examSummary && (
-            <div className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm p-8 mb-8 border border-indigo-100">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-indigo-600 rounded-xl">
-                  <BrainCircuit className="w-6 h-6 text-white" />
+            <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/80 to-pink-50/50 backdrop-blur-sm rounded-3xl shadow-2xl shadow-indigo-200/50 p-6 md:p-10 mb-8 border-2 border-indigo-100">
+              <div className="flex flex-col md:flex-row md:items-center gap-4 mb-8 pb-6 border-b-2 border-indigo-100">
+                <div className="w-16 h-16 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-300/50">
+                  <BrainCircuit className="w-8 h-8 text-white" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-slate-900">AI Feedback</h3>
-                  <p className="text-sm text-slate-600">Persoonlijke analyse van je prestatie</p>
+                <div className="flex-1">
+                  <h3 className="text-2xl md:text-3xl font-bold text-slate-900 mb-1">AI Persoonlijke Feedback</h3>
+                  <p className="text-slate-600">Gebaseerd op jouw antwoorden en prestatie</p>
+                </div>
+                <div className="bg-white/80 px-4 py-2 rounded-full border border-indigo-200 backdrop-blur-sm">
+                  <span className="text-sm font-bold text-indigo-600">✨ AI Gegenereerd</span>
                 </div>
               </div>
 
               {/* Overall feedback */}
-              <div className="bg-white rounded-xl p-5 mb-4 border border-indigo-100">
-                <p className="text-slate-700 leading-relaxed">{examSummary.overall}</p>
+              <div className="bg-white/90 backdrop-blur-sm rounded-2xl p-6 md:p-8 mb-6 border-2 border-white shadow-lg">
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center flex-shrink-0">
+                    <span className="text-xl">📊</span>
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-slate-900 text-lg mb-1">Algemene Beoordeling</h4>
+                  </div>
+                </div>
+                <p className="text-slate-700 text-lg leading-relaxed pl-13">{examSummary.overall}</p>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4 mb-4">
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
                 {/* Strengths */}
                 {examSummary.strengths.length > 0 && (
-                  <div className="bg-white rounded-xl p-5 border border-green-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                      <h4 className="font-semibold text-slate-900">Sterke Punten</h4>
+                  <div className="bg-gradient-to-br from-green-50/90 to-emerald-50/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-green-100 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-green-500 flex items-center justify-center shadow-md">
+                        <CheckCircle className="w-6 h-6 text-white" />
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-lg">Sterke Punten</h4>
                     </div>
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {examSummary.strengths.map((strength, idx) => (
-                        <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
-                          <span className="text-green-500 mt-0.5">•</span>
-                          <span>{strength}</span>
+                        <li key={idx} className="flex items-start gap-3 bg-white/80 rounded-xl p-3 border border-green-100">
+                          <span className="text-green-500 font-bold flex-shrink-0 mt-0.5">✓</span>
+                          <span className="text-slate-700 leading-relaxed">{strength}</span>
                         </li>
                       ))}
                     </ul>
@@ -229,16 +269,18 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
                 {/* Improvements */}
                 {examSummary.improvements.length > 0 && (
-                  <div className="bg-white rounded-xl p-5 border border-orange-100">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Target className="w-5 h-5 text-orange-600" />
-                      <h4 className="font-semibold text-slate-900">Verbeterpunten</h4>
+                  <div className="bg-gradient-to-br from-orange-50/90 to-amber-50/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-orange-100 shadow-lg">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-xl bg-orange-500 flex items-center justify-center shadow-md">
+                        <Target className="w-6 h-6 text-white" />
+                      </div>
+                      <h4 className="font-bold text-slate-900 text-lg">Verbeterpunten</h4>
                     </div>
-                    <ul className="space-y-2">
+                    <ul className="space-y-3">
                       {examSummary.improvements.map((improvement, idx) => (
-                        <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
-                          <span className="text-orange-500 mt-0.5">•</span>
-                          <span>{improvement}</span>
+                        <li key={idx} className="flex items-start gap-3 bg-white/80 rounded-xl p-3 border border-orange-100">
+                          <span className="text-orange-500 font-bold flex-shrink-0">→</span>
+                          <span className="text-slate-700 leading-relaxed">{improvement}</span>
                         </li>
                       ))}
                     </ul>
@@ -248,107 +290,198 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
               {/* Study Tips */}
               {examSummary.studyTips.length > 0 && (
-                <div className="bg-white rounded-xl p-5 border border-blue-100">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Lightbulb className="w-5 h-5 text-blue-600" />
-                    <h4 className="font-semibold text-slate-900">Studietips</h4>
+                <div className="bg-gradient-to-br from-blue-50/90 to-cyan-50/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-blue-100 shadow-lg">
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="w-10 h-10 rounded-xl bg-blue-500 flex items-center justify-center shadow-md">
+                      <Lightbulb className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-slate-900 text-lg">Studietips</h4>
+                      <p className="text-xs text-blue-700">Concrete acties om je verder te helpen</p>
+                    </div>
                   </div>
-                  <ul className="space-y-2">
+                  <div className="grid md:grid-cols-2 gap-3">
                     {examSummary.studyTips.map((tip, idx) => (
-                      <li key={idx} className="text-sm text-slate-600 flex items-start gap-2">
-                        <span className="text-blue-500 mt-0.5">{idx + 1}.</span>
-                        <span>{tip}</span>
-                      </li>
+                      <div key={idx} className="flex items-start gap-3 bg-white/90 rounded-xl p-4 border border-blue-100">
+                        <div className="w-7 h-7 rounded-full bg-blue-500 flex items-center justify-center flex-shrink-0 text-white font-bold text-sm">
+                          {idx + 1}
+                        </div>
+                        <span className="text-slate-700 leading-relaxed text-sm">{tip}</span>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
                 </div>
               )}
             </div>
           )}
 
+          {/* Question Review Cards */}
           <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-4">
+              <FileText className="w-5 h-5 text-slate-600" />
+              <h3 className="text-xl font-bold text-slate-900">Vraag voor Vraag Review</h3>
+            </div>
+
             {session.questions.map((q, idx) => {
               const answer = session.answers[q.id];
               const isMC = q.type === 'MULTIPLE_CHOICE';
               const isCorrectMC = isMC && answer === q.correctIndex;
 
               return (
-                <div key={q.id} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className={`h-1.5 w-full ${isMC ? (isCorrectMC ? 'bg-green-500' : 'bg-red-500') : 'bg-orange-500'}`} />
+                <div key={q.id} className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border-2 overflow-hidden transition-all hover:shadow-2xl">
+                  {/* Status Bar */}
+                  <div className={`h-2 w-full ${isMC ? (isCorrectMC ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600') : 'bg-gradient-to-r from-orange-400 to-orange-600'}`} />
+
                   <div className="p-6 md:p-8">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 mt-1">
-                        {isMC ? (
-                          isCorrectMC ? <CheckCircle className="w-6 h-6 text-green-500" /> : <XCircle className="w-6 h-6 text-red-500" />
-                        ) : (
-                          <BrainCircuit className="w-6 h-6 text-orange-500" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                           <span className="text-xs font-bold text-slate-400 uppercase">Vraag {idx + 1}</span>
-                        </div>
-                        <h4 className="text-lg font-semibold text-slate-900 mb-4">{q.text}</h4>
-
-                        {/* Answer Display */}
-                        <div className="mb-6 bg-slate-50 rounded-xl p-4 border border-slate-100">
+                    {/* Question Header */}
+                    <div className="flex items-start gap-4 mb-6">
+                      <div className="flex-shrink-0">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
+                          isMC ? (isCorrectMC ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-red-400 to-red-600') : 'bg-gradient-to-br from-orange-400 to-orange-600'
+                        }`}>
                           {isMC ? (
-                            <div className="grid gap-2">
-                               {q.options?.map((opt, optIdx) => {
-                                 const isSelected = optIdx === (answer as number);
-                                 const isRealCorrect = optIdx === q.correctIndex;
-                                 let style = "p-3 rounded-lg text-sm flex items-center justify-between ";
-                                 
-                                 if (isRealCorrect) style += "bg-green-100 text-green-900 font-medium ring-1 ring-green-200";
-                                 else if (isSelected && !isRealCorrect) style += "bg-red-100 text-red-900 ring-1 ring-red-200";
-                                 else style += "text-slate-500 opacity-60";
-
-                                 return (
-                                   <div key={optIdx} className={style}>
-                                     <div className="flex items-center">
-                                       <span className="w-5 mr-2 font-mono opacity-50">{String.fromCharCode(65 + optIdx)}.</span>
-                                       {opt}
-                                     </div>
-                                     {isRealCorrect && <CheckCircle className="w-4 h-4 text-green-600" />}
-                                     {isSelected && !isRealCorrect && <XCircle className="w-4 h-4 text-red-600" />}
-                                   </div>
-                                 );
-                               })}
-                            </div>
+                            isCorrectMC ? <CheckCircle className="w-7 h-7 text-white" /> : <XCircle className="w-7 h-7 text-white" />
                           ) : (
-                            <div>
-                               <div className="text-xs text-slate-500 uppercase font-bold mb-1">Jouw antwoord:</div>
-                               <p className="text-slate-800 mb-3">{answer as string}</p>
-                               <div className="h-px bg-slate-200 my-2" />
-                               <div className="text-xs text-slate-500 uppercase font-bold mb-1">Model antwoord:</div>
-                               <p className="text-slate-600 italic">{q.modelAnswer}</p>
-                            </div>
+                            <BrainCircuit className="w-7 h-7 text-white" />
                           )}
                         </div>
-
-                        {!aiExplanations[q.id] ? (
-                            <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleRequestAIExplanation(q)}
-                                disabled={loadingExplanation === q.id}
-                                className="w-full sm:w-auto"
-                            >
-                                {loadingExplanation === q.id ? 'AI is aan het denken...' : 'Vraag AI om uitleg'}
-                            </Button>
-                        ) : (
-                            <div className="bg-indigo-50/50 rounded-xl p-5 border border-indigo-100 animate-fadeIn">
-                                <div className="flex items-center gap-2 mb-3 text-indigo-700 font-bold text-xs uppercase tracking-wider">
-                                    <BrainCircuit className="w-4 h-4" />
-                                    AI Feedback
-                                </div>
-                                <div className="text-slate-700 text-sm leading-relaxed prose prose-indigo max-w-none prose-p:my-1">
-                                    <ReactMarkdown>{aiExplanations[q.id]}</ReactMarkdown>
-                                </div>
-                            </div>
-                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-3">
+                          <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full uppercase tracking-wider">
+                            Vraag {idx + 1} van {session.questions.length}
+                          </span>
+                          {isMC && (
+                            <span className={`px-3 py-1 font-bold text-xs rounded-full ${
+                              isCorrectMC
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              {isCorrectMC ? '✓ Correct' : '✗ Fout'}
+                            </span>
+                          )}
+                          {!isMC && (
+                            <span className="px-3 py-1 bg-orange-100 text-orange-700 font-bold text-xs rounded-full">
+                              Open Vraag
+                            </span>
+                          )}
+                        </div>
+                        <h4 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">{q.text}</h4>
                       </div>
                     </div>
+
+                    {/* Answer Display */}
+                    <div className="mb-6">
+                      {isMC ? (
+                        <div className="space-y-2">
+                          {q.options?.map((opt, optIdx) => {
+                            const isSelected = optIdx === (answer as number);
+                            const isRealCorrect = optIdx === q.correctIndex;
+
+                            return (
+                              <div
+                                key={optIdx}
+                                className={`p-4 rounded-xl flex items-center justify-between transition-all ${
+                                  isRealCorrect
+                                    ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 shadow-md'
+                                    : isSelected && !isRealCorrect
+                                      ? 'bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 shadow-md'
+                                      : 'bg-slate-50 border border-slate-200 opacity-60'
+                                }`}
+                              >
+                                <div className="flex items-center gap-4 flex-1">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                                    isRealCorrect
+                                      ? 'bg-green-500 text-white'
+                                      : isSelected && !isRealCorrect
+                                        ? 'bg-red-500 text-white'
+                                        : 'bg-slate-300 text-slate-600'
+                                  }`}>
+                                    {String.fromCharCode(65 + optIdx)}
+                                  </div>
+                                  <span className={`text-base ${
+                                    isRealCorrect || (isSelected && !isRealCorrect)
+                                      ? 'font-semibold text-slate-900'
+                                      : 'text-slate-600'
+                                  }`}>
+                                    {opt}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {isSelected && (
+                                    <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-1 rounded-full">
+                                      Jouw keuze
+                                    </span>
+                                  )}
+                                  {isRealCorrect && <CheckCircle className="w-6 h-6 text-green-600" />}
+                                  {isSelected && !isRealCorrect && <XCircle className="w-6 h-6 text-red-600" />}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+                                <span className="text-white font-bold text-sm">Je</span>
+                              </div>
+                              <span className="text-sm font-bold text-blue-900 uppercase tracking-wider">Jouw antwoord</span>
+                            </div>
+                            <p className="text-slate-800 leading-relaxed">{answer as string || 'Geen antwoord gegeven'}</p>
+                          </div>
+
+                          <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
+                            <div className="flex items-center gap-2 mb-3">
+                              <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                                <CheckCircle className="w-5 h-5 text-white" />
+                              </div>
+                              <span className="text-sm font-bold text-green-900 uppercase tracking-wider">Model antwoord</span>
+                            </div>
+                            <p className="text-slate-800 leading-relaxed">{q.modelAnswer}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* AI Explanation Section */}
+                    {!aiExplanations[q.id] ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleRequestAIExplanation(q)}
+                        disabled={loadingExplanation === q.id}
+                        className="w-full md:w-auto bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:border-indigo-300 hover:shadow-lg"
+                      >
+                        {loadingExplanation === q.id ? (
+                          <>
+                            <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent mr-2" />
+                            AI is aan het denken...
+                          </>
+                        ) : (
+                          <>
+                            <BrainCircuit className="w-4 h-4 mr-2" />
+                            Vraag AI om uitleg
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/80 to-pink-50/50 rounded-xl p-6 border-2 border-indigo-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-indigo-200">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
+                            <BrainCircuit className="w-6 h-6 text-white" />
+                          </div>
+                          <div>
+                            <h5 className="font-bold text-slate-900">AI Uitleg</h5>
+                            <p className="text-xs text-slate-600">Persoonlijke feedback op jouw antwoord</p>
+                          </div>
+                        </div>
+                        <div className="text-slate-700 leading-relaxed prose prose-indigo max-w-none prose-p:my-2 prose-strong:text-indigo-700 prose-ul:my-2">
+                          <ReactMarkdown>{aiExplanations[q.id]}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
