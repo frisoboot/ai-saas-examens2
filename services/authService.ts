@@ -1,6 +1,6 @@
 import { StudentProfile, AdminUser, StudentLevel } from '../types';
 import { supabase, supabaseAdmin } from './supabaseService';
-import { apiCreateStudent, apiResetPassword } from './apiService';
+import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiService';
 
 // ============================================================================
 // SUPABASE AUTH INTEGRATIE
@@ -522,4 +522,97 @@ export const getCurrentUser = async (): Promise<{ role: 'admin' | 'student'; dat
 export const signOut = async (): Promise<void> => {
   if (!supabase) return;
   await supabase.auth.signOut();
+};
+
+// Delete student account - gebruikt API (veilig!) of fallback
+export const deleteStudent = async (
+  name: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    // ====================================================================
+    // PRODUCTIE: Gebruik veilige API endpoint (aanbevolen!)
+    // ====================================================================
+    if (supabase && !supabaseAdmin) {
+      // In productie: gebruik API (supabaseAdmin is niet beschikbaar)
+      return await apiDeleteStudent(name);
+    }
+
+    // ====================================================================
+    // DEVELOPMENT: Gebruik supabaseAdmin direct (alleen voor development!)
+    // ====================================================================
+    if (supabaseAdmin) {
+      console.warn('⚠️  Using supabaseAdmin directly for student deletion - only use in development!');
+
+      // Haal student profiel op om auth_user_id te krijgen
+      const { data: profileData, error: profileError } = await supabaseAdmin
+        .from('student_profiles')
+        .select('auth_user_id')
+        .eq('name', name)
+        .maybeSingle();
+
+      if (profileError) {
+        return { success: false, error: 'Student niet gevonden' };
+      }
+
+      if (!profileData) {
+        return { success: false, error: 'Student niet gevonden' };
+      }
+
+      const authUserId = profileData.auth_user_id;
+
+      // Stap 1: Verwijder exam results
+      await supabaseAdmin
+        .from('exam_results')
+        .delete()
+        .eq('student_name', name);
+
+      // Stap 2: Verwijder student progress
+      await supabaseAdmin
+        .from('student_progress')
+        .delete()
+        .eq('student_name', name);
+
+      // Stap 3: Verwijder student profiel
+      const { error: deleteProfileError } = await supabaseAdmin
+        .from('student_profiles')
+        .delete()
+        .eq('name', name);
+
+      if (deleteProfileError) {
+        console.error('Error deleting student profile:', deleteProfileError);
+        return { success: false, error: deleteProfileError.message };
+      }
+
+      // Stap 4: Verwijder Supabase Auth user (als die bestaat)
+      if (authUserId) {
+        const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
+
+        if (authDeleteError) {
+          console.error('Error deleting auth user:', authDeleteError);
+          // Profiel is al verwijderd, dus we loggen dit alleen
+        }
+      }
+
+      return { success: true };
+    }
+
+    // ====================================================================
+    // FALLBACK: LocalStorage (alleen als Supabase niet beschikbaar is)
+    // ====================================================================
+    console.warn('⚠️  Using localStorage fallback for deletion');
+    const stored = localStorage.getItem('ai_exam_students');
+    const students: StudentProfile[] = stored ? JSON.parse(stored) : [];
+    const filtered = students.filter(s => s.name !== name);
+
+    if (filtered.length === students.length) {
+      return { success: false, error: 'Student niet gevonden' };
+    }
+
+    localStorage.setItem('ai_exam_students', JSON.stringify(filtered));
+    return { success: true };
+
+  } catch (error) {
+    console.error('Error deleting student:', error);
+    return { success: false, error: 'Er ging iets mis bij het verwijderen van de student' };
+  }
 };

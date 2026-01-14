@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
-import { getAllStudents, createStudentAccount, updateStudent, deactivateStudent, activateStudent, resetStudentPassword } from '../services/authService';
+import { getAllStudents, createStudentAccount, updateStudent, deactivateStudent, activateStudent, resetStudentPassword, deleteStudent } from '../services/authService';
 import { Button } from './Button';
-import { UserPlus, Search, Key, UserX, UserCheck, Mail, Shield } from 'lucide-react';
+import { UserPlus, Search, Key, UserX, UserCheck, Mail, Shield, Trash2 } from 'lucide-react';
 
 interface AdminStudentManagementProps {
   adminUsername: string;
@@ -92,6 +92,38 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       } else {
         setError(result.error || 'Fout bij resetten wachtwoord');
       }
+    }
+  };
+
+  const handleDeleteStudent = async (name: string) => {
+    // Dubbele confirmatie voor delete actie
+    const confirmed = window.confirm(
+      `Weet je zeker dat je ${name} wilt verwijderen?\n\n` +
+      `Dit verwijdert:\n` +
+      `- Het student account\n` +
+      `- Alle examen resultaten\n` +
+      `- Alle voortgangsdata\n\n` +
+      `Deze actie kan NIET ongedaan gemaakt worden!`
+    );
+
+    if (!confirmed) return;
+
+    // Tweede confirmatie
+    const doubleConfirm = window.confirm(
+      `Laatste kans: verwijder ${name} definitief?`
+    );
+
+    if (!doubleConfirm) return;
+
+    setError('');
+    setSuccess('');
+
+    const result = await deleteStudent(name);
+    if (result.success) {
+      setSuccess(`${name} is volledig verwijderd uit het systeem`);
+      loadStudents();
+    } else {
+      setError(result.error || 'Fout bij verwijderen student');
     }
   };
 
@@ -316,6 +348,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                           ) : (
                             <UserCheck className="w-4 h-4" />
                           )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStudent(student.name)}
+                          className="p-1.5 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Student permanent verwijderen"
+                        >
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     </td>

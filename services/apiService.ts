@@ -121,3 +121,43 @@ export const apiResetPassword = async (
     };
   }
 };
+
+/**
+ * Verwijder een student account via de API
+ */
+export const apiDeleteStudent = async (
+  studentName: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    const token = await getAuthToken();
+    if (!token) {
+      return { success: false, error: 'Niet ingelogd' };
+    }
+
+    const response = await fetch(`${API_BASE_URL}/delete-student`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        studentName
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('API error:', data);
+      return { success: false, error: data.error || 'Er ging iets mis' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error calling delete-student API:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Netwerkfout'
+    };
+  }
+};

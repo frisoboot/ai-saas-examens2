@@ -1,4 +1,4 @@
-import { ArrowRight, CheckCircle2, Brain, Target, Zap, ChevronRight, Star, Shield, Users, GraduationCap } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Brain, Target, Zap, GraduationCap } from 'lucide-react';
 
 interface LandingPageProps {
   onAdminLogin: () => void;
@@ -39,11 +39,10 @@ export function LandingPage({ onAdminLogin, onStudentLogin, onRegister }: Landin
 
       {/* Hero Section */}
       <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        {/* Abstract Background Elements */}
-        <div className="absolute inset-0 -z-10 overflow-hidden">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-blue-50 to-white rounded-[100%] blur-3xl opacity-60"></div>
-          <div className="absolute top-0 inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        </div>
+        {/* Background - same as other sections */}
+        <div className="absolute inset-0 bg-blue-50"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-white to-transparent rounded-[100%] blur-3xl opacity-60"></div>
 
         <div className="max-w-6xl mx-auto px-6 text-center relative z-10">
           
@@ -92,8 +91,13 @@ export function LandingPage({ onAdminLogin, onStudentLogin, onRegister }: Landin
       </section>
 
       {/* Features Grid */}
-      <section className="py-24 bg-white relative">
-        <div className="max-w-6xl mx-auto px-6">
+      <section className="py-24 relative overflow-hidden">
+        {/* Background - same as pricing section */}
+        <div className="absolute inset-0 bg-blue-50"></div>
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:32px_32px]"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-gradient-to-b from-white to-transparent rounded-[100%] blur-3xl opacity-60"></div>
+
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4 tracking-tight">Hoe het werkt</h2>
             <p className="text-lg text-gray-500 max-w-2xl mx-auto">
