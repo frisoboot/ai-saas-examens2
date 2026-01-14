@@ -22,6 +22,7 @@ interface ExamSummary {
 export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, onFinish }) => {
   const [session, setSession] = useState(initialSession);
   const [isFinished, setIsFinished] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [openAnswerInput, setOpenAnswerInput] = useState('');
 
@@ -72,6 +73,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       return;
     }
     isFinishingRef.current = true;
+    setIsSubmitting(true);
 
     let finalAnswers = { ...session.answers };
     if (currentQuestion.type === 'OPEN') {
@@ -148,6 +150,51 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     setAiExplanations(prev => ({ ...prev, [question.id]: explanation }));
     setLoadingExplanation(null);
   };
+
+  // --- SUBMITTING LOADING SCREEN ---
+  if (isSubmitting && !isFinished) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center p-4">
+        <div className="text-center">
+          {/* Animated circles background */}
+          <div className="relative mb-8">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-32 h-32 rounded-full border-4 border-white/20 animate-ping" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-4 border-white/30 animate-pulse" />
+            </div>
+            <div className="relative w-20 h-20 mx-auto bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-2xl">
+              <BrainCircuit className="w-10 h-10 text-white animate-pulse" />
+            </div>
+          </div>
+
+          {/* Loading text */}
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
+            Toets wordt verwerkt...
+          </h2>
+          <p className="text-white/80 text-lg mb-8 max-w-md mx-auto">
+            Je antwoorden worden opgeslagen en geanalyseerd door de AI
+          </p>
+
+          {/* Progress indicators */}
+          <div className="flex items-center justify-center gap-2 mb-8">
+            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <div className="w-3 h-3 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+
+          {/* Info card */}
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 max-w-sm mx-auto border border-white/20">
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              <CheckCircle className="w-5 h-5 flex-shrink-0" />
+              <span>{session.questions.length} vragen beantwoord</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // --- REVIEW MODE ---
   if (isFinished) {
