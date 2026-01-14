@@ -11,7 +11,7 @@ interface SubjectOptionsProps {
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartAIQuestions: (count: number, topic?: string) => void;
+  onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number) => void;
   onStartExam: (year?: number) => void;
 }
 

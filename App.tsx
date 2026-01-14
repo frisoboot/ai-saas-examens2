@@ -129,7 +129,14 @@ const App: React.FC = () => {
     }
   };
 
-  const startAIQuestions = async (subject: string, count: number = 10, topic?: string) => {
+  const startAIQuestions = async (
+    subject: string,
+    count: number = 10,
+    topic?: string,
+    difficulty?: string,
+    questionTypeMix?: string,
+    timeLimit?: number
+  ) => {
     if (!currentProfile) return;
 
     // Show loading feedback
@@ -138,6 +145,8 @@ const App: React.FC = () => {
 
     try {
       // Generate AI questions using Gemini API with level-specific prompts
+      // Note: difficulty, questionTypeMix, and timeLimit are currently not used in generation
+      // but are available for future implementation
       const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
