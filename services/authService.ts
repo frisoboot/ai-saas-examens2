@@ -70,10 +70,8 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
 // ============================================================================
 async function verifyAdminLoginViaAPI(username: string, password: string): Promise<AdminUser | null> {
   try {
-    // Bepaal de API URL (local dev of productie)
-    const apiUrl = import.meta.env.DEV
-      ? 'http://localhost:3001/api/admin-login'
-      : '/api/admin-login';
+    // Gebruik altijd de relatieve URL - werkt met Vercel Dev en productie
+    const apiUrl = '/api/admin-login';
 
     console.log('🔐 Verifying admin via server-side API...');
 
