@@ -60,7 +60,7 @@ export const getExplanation = async (question: Question, studentAnswer: number |
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: prompt,
     });
     return response.text || "Geen uitleg beschikbaar.";
@@ -121,7 +121,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
   `;
 
   return ai.chats.create({
-    model: 'gemini-3-flash-preview',
+    model: 'gemini-2.0-flash',
     config: {
       systemInstruction: systemInstruction
     }
@@ -252,56 +252,121 @@ export const generateAIQuestions = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: prompt,
     });
 
     const responseText = response.text || '';
 
-    // Extract JSON from response (sometimes AI adds markdown code blocks)
-    let jsonText = responseText.trim();
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+    if (!responseText.trim()) {
+      throw new Error("AI gaf een lege response terug. Probeer het opnieuw.");
     }
 
-    const questionsData = JSON.parse(jsonText);
+    // Extract JSON from response (handle various markdown code block formats)
+    let jsonText = responseText.trim();
 
-    // Convert to Question format
-    const questions: Question[] = questionsData.map((q: any, index: number) => {
+    // Remove markdown code blocks with various formats
+    // Handles: ```json, ``` json, ```JSON, ```, etc.
+    const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+    const match = jsonText.match(codeBlockRegex);
+    if (match) {
+      jsonText = match[1].trim();
+    } else if (jsonText.startsWith('```')) {
+      // Fallback: remove any backticks at start/end
+      jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    // Try to find JSON array if there's extra text
+    if (!jsonText.startsWith('[')) {
+      const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        jsonText = arrayMatch[0];
+      }
+    }
+
+    // Parse JSON with specific error handling
+    let questionsData: any[];
+    try {
+      questionsData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error("JSON parse error. Raw response:", responseText.substring(0, 500));
+      throw new Error("AI response kon niet worden verwerkt. Het antwoord was geen geldig JSON formaat.");
+    }
+
+    // Validate that we got an array
+    if (!Array.isArray(questionsData)) {
+      throw new Error("AI response bevatte geen vragenlijst. Probeer het opnieuw.");
+    }
+
+    if (questionsData.length === 0) {
+      throw new Error("AI genereerde geen vragen. Probeer het opnieuw met een ander onderwerp.");
+    }
+
+    // Convert to Question format with validation
+    const questions: Question[] = [];
+
+    for (let index = 0; index < questionsData.length; index++) {
+      const q = questionsData[index];
+
+      // Validate required fields
+      if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
+        console.warn(`Vraag ${index + 1} heeft geen tekst, wordt overgeslagen`);
+        continue;
+      }
+
       const baseQuestion = {
         id: `ai-${Date.now()}-${index}`,
         type: q.type || 'MULTIPLE_CHOICE' as const,
         level: level as any,
         subject: subject,
-        text: q.text,
-        contextText: q.contextText || undefined,
+        text: q.text.trim(),
+        contextText: q.contextText ? q.contextText.trim() : undefined,
         examType: 'practice' as const,
         source: `AI-gegenereerd (${level} niveau)`,
       };
 
-      // Add type-specific properties
+      // Add type-specific properties with validation
       if (q.type === 'OPEN') {
-        return {
+        questions.push({
           ...baseQuestion,
           type: 'OPEN' as const,
-          modelAnswer: q.modelAnswer || '',
-        };
+          modelAnswer: q.modelAnswer || 'Geen modelantwoord beschikbaar.',
+        });
       } else {
-        return {
+        // Validate multiple choice specific fields
+        if (!Array.isArray(q.options) || q.options.length < 2) {
+          console.warn(`Vraag ${index + 1} heeft ongeldige opties, wordt overgeslagen`);
+          continue;
+        }
+
+        // Ensure correctIndex is valid
+        const correctIndex = typeof q.correctIndex === 'number'
+          ? Math.max(0, Math.min(q.correctIndex, q.options.length - 1))
+          : 0;
+
+        questions.push({
           ...baseQuestion,
           type: 'MULTIPLE_CHOICE' as const,
-          options: q.options,
-          correctIndex: q.correctIndex,
-        };
+          options: q.options.map((opt: any) => String(opt).trim()),
+          correctIndex: correctIndex,
+        });
       }
-    });
+    }
+
+    if (questions.length === 0) {
+      throw new Error("Geen geldige vragen konden worden gegenereerd. Probeer het opnieuw.");
+    }
 
     return questions;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Fout bij genereren AI vragen:", error);
-    throw new Error("Kon geen AI vragen genereren. Probeer het later opnieuw.");
+
+    // Re-throw with more specific error message
+    if (error.message && !error.message.includes("Kon geen AI vragen")) {
+      throw error;
+    }
+
+    throw new Error("Kon geen AI vragen genereren. Controleer je internetverbinding en probeer het opnieuw.");
   }
 };
 
@@ -370,27 +435,37 @@ export const generateExamSummary = async (
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash',
       contents: prompt,
     });
 
     const responseText = response.text || '';
     let jsonText = responseText.trim();
 
-    // Remove markdown code blocks if present
-    if (jsonText.startsWith('```json')) {
-      jsonText = jsonText.replace(/^```json\n/, '').replace(/\n```$/, '');
+    // Remove markdown code blocks with various formats
+    const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+    const match = jsonText.match(codeBlockRegex);
+    if (match) {
+      jsonText = match[1].trim();
     } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```\n/, '').replace(/\n```$/, '');
+      jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    // Try to find JSON object if there's extra text
+    if (!jsonText.startsWith('{')) {
+      const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+      if (objectMatch) {
+        jsonText = objectMatch[0];
+      }
     }
 
     const summary = JSON.parse(jsonText);
 
     return {
       overall: summary.overall || "Goed geprobeerd!",
-      strengths: summary.strengths || [],
-      improvements: summary.improvements || [],
-      studyTips: summary.studyTips || []
+      strengths: Array.isArray(summary.strengths) ? summary.strengths : [],
+      improvements: Array.isArray(summary.improvements) ? summary.improvements : [],
+      studyTips: Array.isArray(summary.studyTips) ? summary.studyTips : []
     };
   } catch (error) {
     console.error("Fout bij genereren examen samenvatting:", error);
