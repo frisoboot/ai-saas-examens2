@@ -128,7 +128,7 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({ onBack
           <form className="space-y-5" onSubmit={handleSubmit}>
             <div>
               <label className="block text-[13px] font-medium text-gray-900 mb-1.5 ml-1">
-                Naam
+                Gebruikersnaam
               </label>
               <input
                 type="text"
@@ -136,7 +136,7 @@ export const StudentRegistration: React.FC<StudentRegistrationProps> = ({ onBack
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 className="block w-full rounded-[14px] border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-blue-500 sm:text-sm transition-all outline-none border focus:ring-1"
-                placeholder="Jan de Vries"
+                placeholder="jandevries"
               />
             </div>
 
