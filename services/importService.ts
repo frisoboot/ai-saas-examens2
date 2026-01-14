@@ -326,22 +326,6 @@ export const generateCSVTemplate = (): string => {
   return csv;
 };
 
-// AI-powered PDF scanning (placeholder for future implementation)
-export const scanPDFWithAI = async (pdfFile: File): Promise<BulkImportQuestion[]> => {
-  // This would integrate with Google Gemini Vision API or similar
-  // For now, return empty array with TODO
-  console.warn('AI PDF scanning nog niet geïmplementeerd - toekomstige feature');
-  console.log('Upload ontvangen:', pdfFile.name);
-
-  // Future implementation would:
-  // 1. Convert PDF to images
-  // 2. Use Gemini Vision API to extract text and structure
-  // 3. Parse extracted data into BulkImportQuestion format
-  // 4. Return parsed questions
-
-  return [];
-};
-
 // Validate import file type
 export const validateFileType = (file: File): { valid: boolean; error?: string } => {
   const validExtensions = ['.csv', '.json'];

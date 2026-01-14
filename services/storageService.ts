@@ -209,15 +209,6 @@ export const getStudentProfile = async (name: string): Promise<StudentProfile | 
   return students.find(s => s.name.toLowerCase() === name.toLowerCase());
 };
 
-// DEPRECATED: This function has been removed. Use authService.verifyStudentLogin instead.
-// This function was using insecure plain text password comparison.
-export const verifyStudentLogin = async (name: string, password: string): Promise<boolean> => {
-  throw new Error(
-    'verifyStudentLogin is deprecated and removed for security reasons. ' +
-    'Use authService.verifyStudentLogin instead, which uses bcrypt password hashing.'
-  );
-};
-
 // ============================================================================
 // YEAR-BASED EXAM FUNCTIONS
 // ============================================================================
