@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
-import { createMollieClient } from '@mollie/api-client';
+import { createMollieClient, type Payment } from '@mollie/api-client';
 import { sendWelcomeEmail } from '../services/emailService';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
@@ -117,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const webhookUrl = `${req.headers.origin || 'https://' + req.headers.host}/api/mollie-webhook`;
     console.log('Creating Mollie payment with webhook:', webhookUrl);
 
-    const payment = await mollieClient.payments.create({
+    const payment = (await mollieClient.payments.create({
       amount: {
         currency: 'EUR',
         value: '0.01' // Small amount to create mandate (€0.01)
@@ -126,13 +126,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       redirectUrl: returnUrl,
       webhookUrl: webhookUrl,
       customerId: customer.id,
-      sequenceType: 'first', // Creates reusable mandate
-      methods: ['ideal'], // Only iDEAL
+      sequenceType: 'first' as any, // Creates reusable mandate
+      method: 'ideal' as any, // Only iDEAL
       metadata: {
         type: 'trial_start',
         studentName: name
       }
-    });
+    } as any)) as unknown as Payment;
 
     console.log('Mollie payment created:', payment.id);
 
