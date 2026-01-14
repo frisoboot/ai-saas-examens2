@@ -1,15 +1,18 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { Sparkles, ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp } from 'lucide-react';
+import { Sparkles, ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Zap, GraduationCap } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
+import { isGrokConfigured } from '../services/grokService';
+
+export type AIProvider = 'gemini' | 'grok';
 
 interface AIGeneratorMenuProps {
   subject: string;
   studentLevel: StudentLevel;
   onBack: () => void;
-  onGenerate: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number) => void;
+  onGenerate: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number, provider?: AIProvider) => void;
 }
 
 const QUESTION_COUNTS = [5, 10, 15, 20];
@@ -45,6 +48,9 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const [timeLimit, setTimeLimit] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [provider, setProvider] = useState<AIProvider>('gemini');
+
+  const grokAvailable = isGrokConfigured();
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
   const SubjectIcon = getSubjectIcon(subject);
@@ -52,7 +58,7 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const handleStart = () => {
     setIsGenerating(true);
     const finalTopic = topic === 'custom' ? customTopic : topic;
-    onGenerate(questionCount, finalTopic.trim() || undefined, difficulty, questionTypeMix, timeLimit);
+    onGenerate(questionCount, finalTopic.trim() || undefined, difficulty, questionTypeMix, timeLimit, provider);
   };
 
   return (
@@ -83,6 +89,80 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
 
         {/* Main Content */}
         <div className="space-y-5">
+          {/* Provider Selection */}
+          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
+            <div className="flex items-center gap-3 mb-4">
+              <Zap className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-slate-900">Type examen</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Gemini - AI Examen */}
+              <button
+                onClick={() => setProvider('gemini')}
+                disabled={isGenerating}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  provider === 'gemini'
+                    ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-500 shadow-md'
+                    : 'bg-white border-slate-200 hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    provider === 'gemini'
+                      ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className={`font-bold ${provider === 'gemini' ? 'text-indigo-900' : 'text-slate-900'}`}>
+                      AI Examen
+                    </div>
+                    <div className="text-xs text-slate-500">Powered by Gemini</div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600">
+                  Standaard AI-gegenereerde oefenvragen op jouw niveau.
+                </p>
+              </button>
+
+              {/* Grok - Look-alike Examen */}
+              <button
+                onClick={() => grokAvailable && setProvider('grok')}
+                disabled={isGenerating || !grokAvailable}
+                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                  provider === 'grok'
+                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-500 shadow-md'
+                    : grokAvailable
+                      ? 'bg-white border-slate-200 hover:border-slate-300'
+                      : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                }`}
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                    provider === 'grok'
+                      ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    <GraduationCap className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className={`font-bold ${provider === 'grok' ? 'text-amber-900' : 'text-slate-900'}`}>
+                      Look-alike Examen
+                    </div>
+                    <div className="text-xs text-slate-500">Powered by Grok</div>
+                  </div>
+                </div>
+                <p className="text-sm text-slate-600">
+                  {grokAvailable
+                    ? 'Vragen die lijken op echte eindexamens.'
+                    : 'Niet beschikbaar (API key niet geconfigureerd)'}
+                </p>
+              </button>
+            </div>
+          </div>
+
           {/* Topic Selection */}
           <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
             <div className="flex items-center gap-3 mb-4">
