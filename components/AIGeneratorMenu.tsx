@@ -62,12 +62,18 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-indigo-50/30 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 p-4 md:p-8 relative overflow-hidden">
+      {/* Animated background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 -left-20 w-96 h-96 bg-gradient-to-br from-indigo-200/30 to-purple-200/30 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 -right-20 w-96 h-96 bg-gradient-to-br from-purple-200/30 to-pink-200/30 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
+
+      <div className="max-w-3xl mx-auto relative z-10">
         {/* Header */}
         <Button
           variant="ghost"
-          className="mb-6 text-slate-600 hover:text-slate-900"
+          className="mb-6 text-slate-600 hover:text-slate-900 hover:bg-white/60 backdrop-blur-sm transition-all"
           onClick={onBack}
           disabled={isGenerating}
         >
@@ -75,14 +81,19 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
           Terug
         </Button>
 
-        <div className="bg-white rounded-2xl p-6 mb-6 shadow-lg border border-slate-200">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center">
-              <SubjectIcon className="w-6 h-6" />
+        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 mb-6 shadow-2xl shadow-indigo-200/50 border border-white/60 hover:shadow-indigo-300/60 transition-all duration-500">
+          <div className="flex items-center gap-5 mb-2">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-md opacity-50 animate-pulse" />
+              <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg">
+                <SubjectIcon className="w-8 h-8" />
+              </div>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">AI Examen Generator</h1>
-              <p className="text-sm text-slate-600">{subject} • {studentLevel}</p>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent">
+                AI Examen Generator
+              </h1>
+              <p className="text-sm text-slate-600 font-medium mt-1">{subject} • {studentLevel}</p>
             </div>
           </div>
         </div>
@@ -90,9 +101,12 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
         {/* Main Content */}
         <div className="space-y-5">
           {/* Provider Selection */}
-          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
-            <h3 className="font-semibold text-slate-900 mb-2">Kies je examentype</h3>
-            <p className="text-sm text-slate-600 mb-5">
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-7 shadow-xl shadow-slate-200/50 border border-white/60">
+            <div className="flex items-center gap-2 mb-2">
+              <Sparkles className="w-5 h-5 text-indigo-600" />
+              <h3 className="font-bold text-slate-900">Kies je examentype</h3>
+            </div>
+            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
               Selecteer het type examen dat het beste bij je voorbereiding past.
             </p>
 
@@ -101,29 +115,29 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
               <button
                 onClick={() => setProvider('gemini')}
                 disabled={isGenerating}
-                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
+                className={`group w-full p-6 rounded-2xl border-2 text-left transition-all duration-300 ${
                   provider === 'gemini'
-                    ? 'border-indigo-600 bg-indigo-50/50'
-                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                    ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 via-purple-50/50 to-pink-50/30 shadow-lg shadow-indigo-200/50'
+                    : 'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/30 hover:shadow-md'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                <div className="flex items-start gap-5">
+                  <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                     provider === 'gemini'
-                      ? 'border-indigo-600'
-                      : 'border-slate-300'
+                      ? 'border-indigo-600 bg-indigo-600 shadow-lg shadow-indigo-300/50'
+                      : 'border-slate-300 group-hover:border-indigo-400'
                   }`}>
                     {provider === 'gemini' && (
-                      <div className="w-3 h-3 rounded-full bg-indigo-600" />
+                      <div className="w-3 h-3 rounded-full bg-white" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-slate-900">AI Examen</h4>
-                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Gemini</span>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-bold text-slate-900 text-lg">AI Examen</h4>
+                      <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold shadow-sm">Gemini</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed">
-                      Voor het <strong>oefenen en leren</strong> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen om concepten te begrijpen en je kennis te testen. Ideaal voor algemene voorbereiding en het ontdekken van je zwakke punten.
+                    <p className="text-sm text-slate-700 leading-relaxed">
+                      Voor het <strong className="text-indigo-700">oefenen en leren</strong> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen om concepten te begrijpen en je kennis te testen. Ideaal voor algemene voorbereiding en het ontdekken van je zwakke punten.
                     </p>
                   </div>
                 </div>
@@ -133,33 +147,33 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
               <button
                 onClick={() => grokAvailable && setProvider('grok')}
                 disabled={isGenerating || !grokAvailable}
-                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
+                className={`group w-full p-6 rounded-2xl border-2 text-left transition-all duration-300 ${
                   provider === 'grok'
-                    ? 'border-amber-600 bg-amber-50/50'
+                    ? 'border-amber-500 bg-gradient-to-br from-amber-50 via-orange-50/50 to-yellow-50/30 shadow-lg shadow-amber-200/50'
                     : grokAvailable
-                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                      : 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
+                      ? 'border-slate-200 bg-white/50 hover:border-amber-300 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-orange-50/30 hover:shadow-md'
+                      : 'border-slate-200 bg-slate-50/50 opacity-60 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                <div className="flex items-start gap-5">
+                  <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
                     provider === 'grok'
-                      ? 'border-amber-600'
-                      : 'border-slate-300'
+                      ? 'border-amber-600 bg-amber-600 shadow-lg shadow-amber-300/50'
+                      : grokAvailable ? 'border-slate-300 group-hover:border-amber-400' : 'border-slate-300'
                   }`}>
                     {provider === 'grok' && (
-                      <div className="w-3 h-3 rounded-full bg-amber-600" />
+                      <div className="w-3 h-3 rounded-full bg-white" />
                     )}
                   </div>
                   <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-slate-900">Look-alike Examen</h4>
-                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Grok</span>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h4 className="font-bold text-slate-900 text-lg">Look-alike Examen</h4>
+                      <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-sm">Grok</span>
                     </div>
-                    <p className="text-sm text-slate-600 leading-relaxed">
+                    <p className="text-sm text-slate-700 leading-relaxed">
                       {grokAvailable ? (
                         <>
-                          Voor <strong>realistische examensimulatie</strong>. Vragen die qua stijl, structuur en moeilijkheidsgraad nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding en om te wennen aan het examenformat.
+                          Voor <strong className="text-amber-700">realistische examensimulatie</strong>. Vragen die qua stijl, structuur en moeilijkheidsgraad nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding en om te wennen aan het examenformat.
                         </>
                       ) : (
                         'Deze optie is momenteel niet beschikbaar omdat de API key niet is geconfigureerd.'
@@ -172,17 +186,19 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
           </div>
 
           {/* Topic Selection */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <Target className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Onderwerp</h3>
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-7 shadow-xl shadow-slate-200/50 border border-white/60 hover:shadow-2xl transition-all duration-300">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-lg shadow-indigo-200/50">
+                <Target className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg">Onderwerp</h3>
             </div>
 
             <select
               value={topic}
               onChange={(e) => setTopic(e.target.value)}
               disabled={isGenerating}
-              className="w-full p-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-slate-900 font-medium"
+              className="w-full p-4 bg-gradient-to-br from-slate-50 to-indigo-50/30 border-2 border-slate-200 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-slate-900 font-semibold transition-all shadow-sm hover:shadow-md cursor-pointer"
             >
               <option value="">Alle onderwerpen</option>
               {availableTopics.length > 0 && availableTopics.map((t) => (
@@ -198,17 +214,19 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                 onChange={(e) => setCustomTopic(e.target.value)}
                 disabled={isGenerating}
                 placeholder="Typ je onderwerp..."
-                className="w-full p-3 mt-3 bg-white border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none text-slate-900"
+                className="w-full p-4 mt-4 bg-white border-2 border-indigo-300 rounded-xl focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 outline-none text-slate-900 font-medium transition-all shadow-sm placeholder:text-slate-400"
                 autoFocus
               />
             )}
           </div>
 
           {/* Question Count */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <ListChecks className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Aantal vragen</h3>
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-7 shadow-xl shadow-slate-200/50 border border-white/60 hover:shadow-2xl transition-all duration-300">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-200/50">
+                <ListChecks className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-bold text-slate-900 text-lg">Aantal vragen</h3>
             </div>
 
             <div className="grid grid-cols-4 gap-3">
@@ -217,48 +235,57 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                   key={count}
                   onClick={() => setQuestionCount(count)}
                   disabled={isGenerating}
-                  className={`p-4 rounded-xl font-bold text-2xl transition-all ${
+                  className={`relative p-5 rounded-2xl font-bold text-2xl transition-all duration-300 ${
                     questionCount === count
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg scale-105'
-                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                      ? 'bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white shadow-2xl shadow-indigo-300/50 scale-105'
+                      : 'bg-gradient-to-br from-slate-50 to-indigo-50/20 text-slate-600 hover:bg-gradient-to-br hover:from-indigo-50 hover:to-purple-50 hover:scale-102 hover:shadow-lg border border-slate-200 hover:border-indigo-200'
                   }`}
                 >
-                  {count}
+                  {questionCount === count && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-400 to-purple-500 rounded-2xl blur-xl opacity-50 animate-pulse" />
+                  )}
+                  <span className="relative">{count}</span>
                 </button>
               ))}
             </div>
           </div>
 
           {/* Advanced Options - Collapsible */}
-          <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
+          <div className="bg-white/70 backdrop-blur-xl rounded-2xl shadow-xl shadow-slate-200/50 border border-white/60 overflow-hidden hover:shadow-2xl transition-all duration-300">
             <button
               onClick={() => setShowAdvanced(!showAdvanced)}
               disabled={isGenerating}
-              className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+              className="w-full p-6 flex items-center justify-between hover:bg-gradient-to-r hover:from-indigo-50/50 hover:to-purple-50/30 transition-all duration-300 group"
             >
-              <span className="font-bold text-slate-900">Meer opties</span>
+              <div className="flex items-center gap-3">
+                <GraduationCap className="w-5 h-5 text-indigo-600 group-hover:scale-110 transition-transform" />
+                <span className="font-bold text-slate-900 text-lg">Meer opties</span>
+              </div>
               {showAdvanced ? (
-                <ChevronUp className="w-5 h-5 text-slate-600" />
+                <ChevronUp className="w-5 h-5 text-slate-600 group-hover:text-indigo-600 transition-colors" />
               ) : (
-                <ChevronDown className="w-5 h-5 text-slate-600" />
+                <ChevronDown className="w-5 h-5 text-slate-600 group-hover:text-indigo-600 transition-colors" />
               )}
             </button>
 
             {showAdvanced && (
-              <div className="p-6 pt-0 space-y-5 border-t border-slate-100">
+              <div className="p-7 pt-0 space-y-6 border-t border-slate-200/50">
                 {/* Difficulty */}
                 <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Moeilijkheidsgraad</label>
+                  <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
+                    <Zap className="w-4 h-4 text-amber-500" />
+                    Moeilijkheidsgraad
+                  </label>
                   <div className="grid grid-cols-3 gap-3">
                     {DIFFICULTY_LEVELS.map(level => (
                       <button
                         key={level.value}
                         onClick={() => setDifficulty(level.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold transition-all ${
+                        className={`p-4 rounded-xl border-2 font-semibold transition-all duration-300 ${
                           difficulty === level.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-500 text-indigo-900 shadow-lg shadow-indigo-200/50 scale-105'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/30 hover:to-purple-50/20 hover:scale-102'
                         }`}
                       >
                         <div className="text-sm">{level.label}</div>
@@ -269,21 +296,24 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
 
                 {/* Question Mix */}
                 <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Type vragen</label>
+                  <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
+                    <ListChecks className="w-4 h-4 text-purple-500" />
+                    Type vragen
+                  </label>
                   <div className="grid grid-cols-3 gap-3">
                     {QUESTION_TYPE_MIXES.map(mix => (
                       <button
                         key={mix.value}
                         onClick={() => setQuestionTypeMix(mix.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        className={`p-4 rounded-xl border-2 font-semibold text-sm transition-all duration-300 ${
                           questionTypeMix === mix.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'bg-gradient-to-br from-purple-50 to-pink-50 border-purple-500 text-purple-900 shadow-lg shadow-purple-200/50 scale-105'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-purple-300 hover:bg-gradient-to-br hover:from-purple-50/30 hover:to-pink-50/20 hover:scale-102'
                         }`}
                       >
-                        <div>{mix.label}</div>
-                        <div className="text-xs text-slate-500 mt-1">{mix.description}</div>
+                        <div className="font-bold">{mix.label}</div>
+                        <div className="text-xs text-slate-500 mt-1 font-normal">{mix.description}</div>
                       </button>
                     ))}
                   </div>
@@ -291,17 +321,20 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
 
                 {/* Time Limit */}
                 <div>
-                  <label className="font-semibold text-slate-900 mb-3 block">Tijdslimiet</label>
+                  <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
+                    <Target className="w-4 h-4 text-pink-500" />
+                    Tijdslimiet
+                  </label>
                   <div className="grid grid-cols-5 gap-2">
                     {TIME_LIMITS.map(limit => (
                       <button
                         key={limit.value}
                         onClick={() => setTimeLimit(limit.value)}
                         disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold text-sm transition-all ${
+                        className={`p-3 rounded-xl border-2 font-semibold text-xs transition-all duration-300 ${
                           timeLimit === limit.value
-                            ? 'bg-indigo-50 border-indigo-500 text-indigo-900'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'bg-gradient-to-br from-pink-50 to-orange-50 border-pink-500 text-pink-900 shadow-lg shadow-pink-200/50 scale-105'
+                            : 'bg-white border-slate-200 text-slate-600 hover:border-pink-300 hover:bg-gradient-to-br hover:from-pink-50/30 hover:to-orange-50/20 hover:scale-102'
                         }`}
                       >
                         {limit.label}
@@ -314,24 +347,27 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
           </div>
 
           {/* Start Button */}
-          <Button
-            variant="primary"
-            onClick={handleStart}
-            disabled={isGenerating || (topic === 'custom' && !customTopic.trim())}
-            className="w-full justify-center py-5 text-lg font-bold shadow-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
-          >
-            {isGenerating ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent mr-3" />
-                Bezig met genereren...
-              </>
-            ) : (
-              <>
-                <Play className="w-5 h-5 mr-2 fill-current" />
-                Start Toets
-              </>
-            )}
-          </Button>
+          <div className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
+            <Button
+              variant="primary"
+              onClick={handleStart}
+              disabled={isGenerating || (topic === 'custom' && !customTopic.trim())}
+              className="relative w-full justify-center py-6 text-lg font-bold shadow-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:from-indigo-500 hover:via-purple-500 hover:to-pink-500 border-2 border-white/20 transition-all duration-300 hover:scale-102 active:scale-98"
+            >
+              {isGenerating ? (
+                <>
+                  <div className="animate-spin rounded-full h-6 w-6 border-3 border-white border-t-transparent mr-3" />
+                  Bezig met genereren...
+                </>
+              ) : (
+                <>
+                  <Play className="w-6 h-6 mr-2 fill-current" />
+                  Start Toets
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
