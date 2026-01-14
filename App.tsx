@@ -140,7 +140,7 @@ const App: React.FC = () => {
     if (!currentProfile) return;
 
     // Show loading feedback
-    const loadingMessage = `AI genereert ${count} ${currentProfile.level} eindexamenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`;
+    const loadingMessage = `AI genereert ${count} ${currentProfile.level} eindexamenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit duurt ongeveer 5-10 seconden.`;
     console.log(loadingMessage);
 
     try {

@@ -135,125 +135,38 @@ export const generateAIQuestions = async (
   count: number = 10,
   topic?: string
 ): Promise<Question[]> => {
-  // Define level-specific exam requirements
-  let levelInstructions = "";
-  let exampleTypes = "";
+  // Compact level-specific instructions
+  const levelGuide = level === 'VMBO-TL'
+    ? 'eenvoudige taal, praktijkgericht, basis begrippen'
+    : level === 'HAVO'
+    ? 'correcte vakterminologie, toepassing, verbanden leggen'
+    : 'academisch niveau, complexe analyse, abstractievermogen';
 
-  switch (level) {
-    case 'VMBO-TL':
-      levelInstructions = `
-      VMBO-TL EINDEXAMEN KENMERKEN:
-      - Taal: Helder, direct en concreet. Vermijd complexe zinnen.
-      - Vraagstelling: Praktisch gericht, herkenbaar uit het dagelijks leven
-      - Antwoorden: Duidelijk onderscheidbaar, geen verwarring
-      - Diepgang: Reproductie en begrip, beperkte analyse
-      - Focus op: Feiten, basisbegrippen, praktische toepassing
-      `;
-      exampleTypes = `
-      Voorbeeldvragen:
-      - Feitelijke kennisvragen ("In welk jaar...", "Wat is de hoofdstad van...")
-      - Herkenningsvragen met duidelijke context
-      - Eenvoudige oorzaak-gevolg relaties
-      `;
-      break;
+  // Optimized shorter prompt for faster generation
+  const prompt = `Maak ${count} ${level} eindexamenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}.
 
-    case 'HAVO':
-      levelInstructions = `
-      HAVO EINDEXAMEN KENMERKEN:
-      - Taal: Correct Nederlands met juiste vakterminologie
-      - Vraagstelling: Mix van kennis en toepassing, vaak met praktijksituatie
-      - Antwoorden: Vereisen goed begrip en kunnen afleidingsantwoorden bevatten
-      - Diepgang: Reproductie, begrip én toepassing. Leerling moet verbanden leggen.
-      - Focus op: Concepten uitleggen, theorie toepassen, redeneerketen volgen
-      `;
-      exampleTypes = `
-      Voorbeeldvragen:
-      - Toepassingsvragen ("Wat gebeurt er als...", "Welk effect heeft...")
-      - Vraagstukken met korte context/casus
-      - Vragen die begrip van mechanismen testen
-      - Vergelijkingsvragen ("Wat is het verschil tussen...")
-      `;
-      break;
+NIVEAU: ${levelGuide}
 
-    case 'VWO':
-      levelInstructions = `
-      VWO EINDEXAMEN KENMERKEN:
-      - Taal: Academisch, genuanceerd met correcte wetenschappelijke terminologie
-      - Vraagstelling: Complex, vereist diepgaand begrip en abstractievermogen
-      - Antwoorden: Vaak subtiele verschillen, vereist kritisch denken
-      - Diepgang: Alle niveaus: kennis, begrip, toepassing, analyse, synthese
-      - Focus op: Complexe verbanden, uitzonderingen, onderliggende principes, kritische analyse
-      `;
-      exampleTypes = `
-      Voorbeeldvragen:
-      - Analytische vragen ("Verklaar waarom...", "Analyseer de oorzaken van...")
-      - Multi-stap redeneringen
-      - Vragen die abstractievermogen vereisen
-      - Vraagstukken met onverwachte wendingen of uitzonderingen
-      - Vragen die dwarsverbanden tussen verschillende onderdelen vereisen
-      `;
-      break;
+FORMAT (JSON array, geen extra tekst):
+[
+  {"type":"MULTIPLE_CHOICE","text":"vraag","options":["A","B","C","D"],"correctIndex":0},
+  {"type":"OPEN","text":"vraag","modelAnswer":"antwoord (2-4 zinnen)"}
+]
 
-    default:
-      levelInstructions = "Pas de vraagstelling aan aan het eindexamen niveau.";
-      exampleTypes = "";
-  }
-
-  const prompt = `
-    Je bent een ervaren examinator die officiële ${level} eindexamenvragen maakt voor het vak ${subject}.
-    ${topic ? `SPECIFIEK ONDERWERP: Focus ALLE vragen op het onderwerp: "${topic}".` : ''}
-
-    ${levelInstructions}
-
-    ${exampleTypes}
-
-    VAKSPECIFIEKE EISEN VOOR ${subject}:
-    - Gebruik authentieke begrippen en situaties uit het vakgebied
-    - Zorg dat de vragen aansluiten bij de kerndoelen en eindtermen voor ${level}
-    - Maak vragen die typerend zijn voor ${subject} examens
-    ${topic ? `- Zorg dat alle vragen gaan over ${topic}` : ''}
-
-    OPDRACHT:
-    Maak PRECIES ${count} vragen die volledig voldoen aan ${level} eindexamen niveau.
-
-    VRAAGTYPE MIX:
-    - Maak ongeveer 70% MEERKEUZEVRAGEN en 30% OPEN VRAGEN
-    - Varieer de vraagtypen door het examen heen voor een realistisch eindexamen
-
-    Voor MEERKEUZEVRAGEN:
-    - 4 antwoordopties hebben (A, B, C, D)
-    - 1 duidelijk correct antwoord hebben
-    - 3 plausibele maar incorrecte afleidingsantwoorden (veelgemaakte fouten, dichtbij maar net niet goed)
-
-    Voor OPEN VRAGEN:
-    - Vraag die een uitgebreid antwoord vereist (2-4 zinnen)
-    - Geef een duidelijk modelantwoord
-    - Geschikt voor dieper begrip en analyse
-
-    BELANGRIJK: Geef je antwoord als JSON array met dit EXACTE format:
-    [
-      {
-        "type": "MULTIPLE_CHOICE",
-        "text": "De vraag hier",
-        "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
-        "correctIndex": 0,
-        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
-      },
-      {
-        "type": "OPEN",
-        "text": "De open vraag hier",
-        "modelAnswer": "Het modelantwoord hier (2-4 zinnen)",
-        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
-      }
-    ]
-
-    Geef ALLEEN de JSON array terug, geen extra tekst ervoor of erna.
-  `;
+EISEN:
+- 70% meerkeuze, 30% open vragen
+- Meerkeuze: 4 opties, 1 correct, 3 plausibele afleidingsantwoorden
+- Vakspecifiek en examenrelevant
+- Alleen JSON output`;
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-2.0-flash-exp', // Faster model
       contents: prompt,
+      config: {
+        temperature: 0.7, // Slightly lower for faster, more focused responses
+        maxOutputTokens: 4096, // Limit output length
+      }
     });
 
     const responseText = response.text || '';

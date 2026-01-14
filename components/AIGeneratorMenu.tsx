@@ -45,18 +45,63 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const [timeLimit, setTimeLimit] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'basic' | 'advanced'>('basic');
+  const [loadingProgress, setLoadingProgress] = useState(0);
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
   const SubjectIcon = getSubjectIcon(subject);
 
   const handleStart = () => {
     setIsGenerating(true);
+    setLoadingProgress(0);
+
+    // Simulate progress for better UX
+    const progressInterval = setInterval(() => {
+      setLoadingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 10;
+      });
+    }, 500);
+
     const finalTopic = topic === 'custom' ? customTopic : topic;
     onGenerate(questionCount, finalTopic.trim() || undefined, difficulty, questionTypeMix, timeLimit);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/50 p-4 md:p-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {/* Loading Overlay */}
+      {isGenerating && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl p-8 md:p-12 max-w-md mx-4 shadow-2xl border border-indigo-100">
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl mx-auto mb-6 flex items-center justify-center animate-pulse">
+                <Brain className="w-10 h-10 text-white" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-3">AI genereert je toets...</h3>
+              <p className="text-slate-600 mb-6">
+                {questionCount} {studentLevel} vragen voor {subject}
+                {topic && topic !== 'custom' && ` over ${topic}`}
+                {topic === 'custom' && customTopic && ` over ${customTopic}`}
+              </p>
+
+              {/* Progress Bar */}
+              <div className="relative w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-4">
+                <div
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${loadingProgress}%` }}
+                />
+              </div>
+
+              <p className="text-sm text-slate-500">
+                {loadingProgress < 30 ? '📝 Vragen bedenken...' : loadingProgress < 60 ? '🎯 Antwoorden controleren...' : loadingProgress < 90 ? '✨ Laatste check...' : '🚀 Bijna klaar!'}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
