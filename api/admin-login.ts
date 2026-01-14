@@ -30,8 +30,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { username, password } = req.body;
 
+    console.log('🔍 Admin login attempt for username:', username);
+
     // Validatie
     if (!username || !password) {
+      console.log('❌ Missing username or password');
       return res.status(400).json({
         success: false,
         error: 'Username en password zijn verplicht'
@@ -41,6 +44,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Haal admin credentials uit environment (SERVER-SIDE, geen VITE_ prefix!)
     const adminUsername = process.env.ADMIN_USERNAME || 'admin';
     const adminPassword = process.env.ADMIN_PASSWORD;
+
+    console.log('🔍 Environment check - ADMIN_USERNAME:', adminUsername ? '✓ set' : '✗ not set');
+    console.log('🔍 Environment check - ADMIN_PASSWORD:', adminPassword ? '✓ set' : '✗ not set');
 
     // SECURITY: Check of admin wachtwoord is ingesteld
     if (!adminPassword) {

@@ -31,12 +31,16 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
 
     if (error) {
       console.error('Supabase Auth error:', error.message);
-      return null;
+      // FALLBACK: Probeer API als Supabase Auth faalt
+      console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
+      return await verifyAdminLoginViaAPI(username, password);
     }
 
     if (!data.user) {
       console.log('No user returned from Supabase Auth');
-      return null;
+      // FALLBACK: Probeer API als geen user gevonden
+      console.warn('⚠️ No Supabase user found, trying server-side API fallback...');
+      return await verifyAdminLoginViaAPI(username, password);
     }
 
     // Controleer of user admin role heeft
@@ -44,7 +48,9 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
     if (role !== 'admin') {
       console.error('User is not an admin');
       await supabase.auth.signOut();
-      return null;
+      // FALLBACK: Probeer API als user geen admin is
+      console.warn('⚠️ Supabase user is not admin, trying server-side API fallback...');
+      return await verifyAdminLoginViaAPI(username, password);
     }
 
     console.log('Admin login SUCCESS via Supabase Auth');
@@ -60,7 +66,7 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
     console.error('❌ Error verifying admin login via Supabase:', error);
 
     // SECURITY: Fallback naar server-side API als Supabase faalt
-    console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
+    console.warn('⚠️ Supabase Auth exception, trying server-side API fallback...');
     return await verifyAdminLoginViaAPI(username, password);
   }
 };
