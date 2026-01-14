@@ -17,9 +17,9 @@ interface AIGeneratorMenuProps {
 
 const QUESTION_COUNTS = [5, 10, 15, 20];
 const DIFFICULTY_LEVELS = [
-  { value: 'easy', label: 'Makkelijk', icon: '🟢' },
-  { value: 'medium', label: 'Gemiddeld', icon: '🟡' },
-  { value: 'hard', label: 'Moeilijk', icon: '🔴' }
+  { value: 'easy', label: 'Makkelijk' },
+  { value: 'medium', label: 'Gemiddeld' },
+  { value: 'hard', label: 'Moeilijk' }
 ];
 const QUESTION_TYPE_MIXES = [
   { value: 'balanced', label: 'Mix', description: '70% meerkeuze, 30% open' },
@@ -90,75 +90,83 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
         {/* Main Content */}
         <div className="space-y-5">
           {/* Provider Selection */}
-          <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-200">
-            <div className="flex items-center gap-3 mb-4">
-              <Zap className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Type examen</h3>
-            </div>
+          <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200">
+            <h3 className="font-semibold text-slate-900 mb-2">Kies je examentype</h3>
+            <p className="text-sm text-slate-600 mb-5">
+              Selecteer het type examen dat het beste bij je voorbereiding past.
+            </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               {/* Gemini - AI Examen */}
               <button
                 onClick={() => setProvider('gemini')}
                 disabled={isGenerating}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
                   provider === 'gemini'
-                    ? 'bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-500 shadow-md'
-                    : 'bg-white border-slate-200 hover:border-slate-300'
+                    ? 'border-indigo-600 bg-indigo-50/50'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                 }`}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                <div className="flex items-start gap-4">
+                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                     provider === 'gemini'
-                      ? 'bg-gradient-to-br from-indigo-500 to-purple-500 text-white'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'border-indigo-600'
+                      : 'border-slate-300'
                   }`}>
-                    <Sparkles className="w-5 h-5" />
+                    {provider === 'gemini' && (
+                      <div className="w-3 h-3 rounded-full bg-indigo-600" />
+                    )}
                   </div>
-                  <div>
-                    <div className={`font-bold ${provider === 'gemini' ? 'text-indigo-900' : 'text-slate-900'}`}>
-                      AI Examen
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-slate-900">AI Examen</h4>
+                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Gemini</span>
                     </div>
-                    <div className="text-xs text-slate-500">Powered by Gemini</div>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      Voor het <strong>oefenen en leren</strong> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen om concepten te begrijpen en je kennis te testen. Ideaal voor algemene voorbereiding en het ontdekken van je zwakke punten.
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-600">
-                  Standaard AI-gegenereerde oefenvragen op jouw niveau.
-                </p>
               </button>
 
               {/* Grok - Look-alike Examen */}
               <button
                 onClick={() => grokAvailable && setProvider('grok')}
                 disabled={isGenerating || !grokAvailable}
-                className={`p-4 rounded-xl border-2 text-left transition-all ${
+                className={`w-full p-5 rounded-lg border-2 text-left transition-all ${
                   provider === 'grok'
-                    ? 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-500 shadow-md'
+                    ? 'border-amber-600 bg-amber-50/50'
                     : grokAvailable
-                      ? 'bg-white border-slate-200 hover:border-slate-300'
-                      : 'bg-slate-50 border-slate-200 opacity-60 cursor-not-allowed'
+                      ? 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      : 'border-slate-200 bg-slate-50 opacity-60 cursor-not-allowed'
                 }`}
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                <div className="flex items-start gap-4">
+                  <div className={`mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
                     provider === 'grok'
-                      ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white'
-                      : 'bg-slate-100 text-slate-600'
+                      ? 'border-amber-600'
+                      : 'border-slate-300'
                   }`}>
-                    <GraduationCap className="w-5 h-5" />
+                    {provider === 'grok' && (
+                      <div className="w-3 h-3 rounded-full bg-amber-600" />
+                    )}
                   </div>
-                  <div>
-                    <div className={`font-bold ${provider === 'grok' ? 'text-amber-900' : 'text-slate-900'}`}>
-                      Look-alike Examen
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-slate-900">Look-alike Examen</h4>
+                      <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-600">Grok</span>
                     </div>
-                    <div className="text-xs text-slate-500">Powered by Grok</div>
+                    <p className="text-sm text-slate-600 leading-relaxed">
+                      {grokAvailable ? (
+                        <>
+                          Voor <strong>realistische examensimulatie</strong>. Vragen die qua stijl, structuur en moeilijkheidsgraad nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding en om te wennen aan het examenformat.
+                        </>
+                      ) : (
+                        'Deze optie is momenteel niet beschikbaar omdat de API key niet is geconfigureerd.'
+                      )}
+                    </p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-600">
-                  {grokAvailable
-                    ? 'Vragen die lijken op echte eindexamens.'
-                    : 'Niet beschikbaar (API key niet geconfigureerd)'}
-                </p>
               </button>
             </div>
           </div>
@@ -253,7 +261,6 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                             : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
                         }`}
                       >
-                        <div className="text-xl mb-1">{level.icon}</div>
                         <div className="text-sm">{level.label}</div>
                       </button>
                     ))}
