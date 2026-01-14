@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { createMollieClient } from '@mollie/api-client';
+import { sendWelcomeEmail } from '../services/emailService';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -171,6 +172,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .eq('name', name);
 
     console.log('Profile updated with Mollie IDs');
+
+    // Step 7: Send welcome email (don't block if it fails)
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + trialDays);
+
+    sendWelcomeEmail({
+      name: name,
+      email: email,
+      trialEndDate: trialEndDate.toISOString()
+    }).catch(error => {
+      console.error('Failed to send welcome email (non-blocking):', error);
+    });
 
     // Return checkout URL
     const checkoutUrl = payment.getCheckoutUrl();
