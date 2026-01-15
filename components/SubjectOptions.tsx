@@ -170,27 +170,27 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
           {/* Look-alike Toetsen - xAI */}
           <div
             onClick={() => setView('xai-setup')}
-            className="group bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.1)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.2)] border border-slate-700/50 hover:border-cyan-500/40 transition-all duration-300 cursor-pointer"
+            className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-cyan-500/30 transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-start gap-6">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-cyan-500/20 flex-shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-cyan-500 to-emerald-500 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg flex-shrink-0">
                 <Brain className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-bold text-white">Look-alike Toetsen</h3>
-                  <span className="px-2 py-0.5 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 rounded-full text-xs font-bold text-cyan-400 border border-cyan-500/30">
+                  <h3 className="text-xl font-bold text-slate-900">Look-alike Toetsen</h3>
+                  <span className="px-2 py-0.5 bg-gradient-to-r from-cyan-500 to-emerald-500 rounded-full text-xs font-bold text-white">
                     xAI
                   </span>
                 </div>
-                <p className="text-slate-400 text-sm mb-4 leading-relaxed">
+                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
                   Vragen die qua stijl en moeilijkheid niet te onderscheiden zijn van echte {student.level} eindexamens voor {subject}.
                 </p>
                 <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <span className="text-slate-400">Grok-4 Fast</span>
-                  <span className="text-slate-600">•</span>
-                  <span className="text-slate-400">Authentieke examenstijl</span>
+                  <Sparkles className="w-4 h-4 text-cyan-500" />
+                  <span>Grok-4 Fast</span>
+                  <span className="text-slate-300">•</span>
+                  <span>Authentieke examenstijl</span>
                 </div>
               </div>
             </div>
