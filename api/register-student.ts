@@ -126,16 +126,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Mollie customer created:', customer.id);
 
     // Step 4: Create first payment (iDEAL mandate for trial)
-    // Construct webhook URL robustly
-    let baseUrl = req.headers.origin as string | undefined;
-    if (!baseUrl && req.headers.host) {
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      baseUrl = `${protocol}://${req.headers.host}`;
+    // Use APP_URL environment variable for reliable webhook URL (required for Mollie)
+    const appUrl = process.env.VITE_APP_URL || process.env.APP_URL;
+    if (!appUrl) {
+      console.error('Missing APP_URL environment variable for webhook');
+      return res.status(500).json({ error: 'Server configuratie fout: APP_URL niet ingesteld.' });
     }
-    if (!baseUrl) {
-      console.error('Could not determine base URL for webhook');
-      return res.status(500).json({ error: 'Server configuratie fout: kon webhook URL niet bepalen.' });
-    }
+    // Remove trailing slash if present and construct webhook URL
+    const baseUrl = appUrl.replace(/\/$/, '');
     const webhookUrl = `${baseUrl}/api/mollie-webhook`;
     console.log('Creating Mollie payment with webhook:', webhookUrl);
 
@@ -158,44 +156,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Mollie payment created:', payment.id);
 
-    // Step 5: Create subscription (starts after 7 days)
-    const trialDays = 7;
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() + trialDays);
-
-    console.log('Creating Mollie subscription starting at:', startDate.toISOString().split('T')[0]);
-
-    const subscription = await mollieClient.customerSubscriptions.create({
-      customerId: customer.id,
-      amount: {
-        currency: 'EUR',
-        value: '12.50'
-      },
-      interval: '1 month',
-      description: 'AI Examen Trainer Abonnement',
-      webhookUrl: webhookUrl,
-      startDate: startDate.toISOString().split('T')[0], // YYYY-MM-DD format
-      metadata: {
-        type: 'subscription_payment',
-        studentName: name,
-        level: level
-      }
-    });
-
-    console.log('Mollie subscription created:', subscription.id);
-
-    // Step 6: Update profile with Mollie IDs
+    // Step 5: Update profile with Mollie customer ID
+    // Note: Subscription will be created by webhook after mandate is confirmed
     await supabaseAdmin
       .from('student_profiles')
       .update({
-        mollie_customer_id: customer.id,
-        mollie_subscription_id: subscription.id
+        mollie_customer_id: customer.id
       })
       .eq('name', name);
 
-    console.log('Profile updated with Mollie IDs');
+    console.log('Profile updated with Mollie customer ID');
 
-    // Step 7: Send welcome email (don't block if it fails)
+    // Step 6: Send welcome email (don't block if it fails)
+    const trialDays = 7;
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + trialDays);
 
@@ -214,8 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       success: true,
       checkoutUrl: checkoutUrl,
-      customerId: customer.id,
-      subscriptionId: subscription.id
+      customerId: customer.id
     });
 
   } catch (error: any) {

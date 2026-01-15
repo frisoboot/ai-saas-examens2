@@ -29,12 +29,30 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 // Simple auth check - require a secret token for cron jobs
 const CRON_SECRET = process.env.CRON_SECRET || 'dev-secret-change-in-production';
 
+// Check if request is from Vercel Cron or has valid secret
+const isAuthorized = (req: VercelRequest): boolean => {
+  // Vercel Cron sends this header automatically
+  const vercelCronHeader = req.headers['x-vercel-cron'];
+  if (vercelCronHeader) {
+    console.log('[CRON] Request from Vercel Cron');
+    return true;
+  }
+
+  // Manual trigger with Bearer token
+  const authHeader = req.headers.authorization;
+  if (authHeader === `Bearer ${CRON_SECRET}`) {
+    console.log('[CRON] Request with valid Bearer token');
+    return true;
+  }
+
+  return false;
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('[CRON] Expired trials check started');
 
-  // Verify cron secret
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  // Verify authorization
+  if (!isAuthorized(req)) {
     console.log('[CRON] Unauthorized request');
     return res.status(401).json({ error: 'Unauthorized' });
   }

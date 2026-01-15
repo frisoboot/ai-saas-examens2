@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
-import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked, Layers } from 'lucide-react';
+import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked, Layers, CreditCard, XCircle } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -34,6 +34,42 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+  const [cancelError, setCancelError] = useState('');
+  const [cancelSuccess, setCancelSuccess] = useState(false);
+
+  // Check if student has a paid subscription (not admin-created)
+  const hasSubscription = !student.createdByAdmin &&
+    (student.subscriptionStatus === 'trial' || student.subscriptionStatus === 'active');
+
+  const handleCancelSubscription = async () => {
+    setCancelLoading(true);
+    setCancelError('');
+
+    try {
+      const response = await fetch('/api/cancel-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentName: student.name })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Opzeggen mislukt');
+      }
+
+      setCancelSuccess(true);
+      // Refresh page after 2 seconds
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err: any) {
+      setCancelError(err.message || 'Er ging iets mis');
+      setCancelLoading(false);
+    }
+  };
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -107,7 +143,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Jouw Voortgang</div>
-           
+
            {/* Placeholder stats */}
            <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 text-indigo-700">
               <Award className="w-5 h-5" />
@@ -116,6 +152,32 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <div className="text-xs opacity-70">Maak je eerste toets</div>
               </div>
            </div>
+
+           {/* Subscription info for paid users */}
+           {hasSubscription && (
+              <div className="mt-6 pt-6 border-t border-slate-100">
+                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Abonnement</div>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-4 h-4 text-slate-500" />
+                    <span className="text-sm font-semibold text-slate-700">
+                      {student.subscriptionStatus === 'trial' ? 'Gratis Trial' : 'Actief Abonnement'}
+                    </span>
+                  </div>
+                  {student.subscriptionExpiresAt && (
+                    <p className="text-xs text-slate-500 mb-3">
+                      {student.subscriptionStatus === 'trial' ? 'Trial eindigt' : 'Verlengd op'}: {new Date(student.subscriptionExpiresAt).toLocaleDateString('nl-NL')}
+                    </p>
+                  )}
+                  <button
+                    onClick={() => setShowCancelModal(true)}
+                    className="w-full text-xs text-red-500 hover:text-red-600 hover:bg-red-50 py-2 rounded-lg transition-colors"
+                  >
+                    Abonnement opzeggen
+                  </button>
+                </div>
+              </div>
+           )}
         </nav>
 
         <div className="p-6 border-t border-slate-100">
@@ -197,6 +259,66 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
            </div>
         </div>
       </main>
+
+      {/* Cancel Subscription Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            {cancelSuccess ? (
+              <div className="text-center">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 mb-2">Opgezegd</h3>
+                <p className="text-slate-600">Je abonnement is opgezegd. Je kunt blijven gebruiken tot het einde van de huidige periode.</p>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                    <XCircle className="w-6 h-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold text-slate-900">Abonnement opzeggen?</h3>
+                    <p className="text-sm text-slate-500">Dit kun je niet ongedaan maken</p>
+                  </div>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-amber-800">
+                    <strong>Let op:</strong> Na opzegging kun je nog gebruiken tot het einde van je huidige periode. Daarna heb je geen toegang meer tot de examenvragen en AI-features.
+                  </p>
+                </div>
+
+                {cancelError && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 text-sm text-red-700">
+                    {cancelError}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowCancelModal(false)}
+                    disabled={cancelLoading}
+                    className="flex-1 bg-slate-100 text-slate-700 py-3 rounded-xl font-semibold hover:bg-slate-200 transition disabled:opacity-50"
+                  >
+                    Annuleren
+                  </button>
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={cancelLoading}
+                    className="flex-1 bg-red-600 text-white py-3 rounded-xl font-semibold hover:bg-red-700 transition disabled:opacity-50"
+                  >
+                    {cancelLoading ? 'Bezig...' : 'Ja, opzeggen'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
