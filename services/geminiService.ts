@@ -71,7 +71,7 @@ export const getExplanation = async (question: Question, studentAnswer: number |
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     });
     return response.text || "Geen uitleg beschikbaar.";
@@ -132,7 +132,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
   `;
 
   return getAI().chats.create({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     config: {
       systemInstruction: systemInstruction
     }
@@ -210,6 +210,28 @@ export const generateAIQuestions = async (
       exampleTypes = "";
   }
 
+  // Bepaal of het vak tekstbegrip/leesvaardigheid vragen nodig heeft
+  const isLanguageSubject = ['Nederlands', 'Engels', 'Duits', 'Frans', 'Spaans'].includes(subject);
+  const needsReadingComprehension = isLanguageSubject ||
+    (topic && ['Leesvaardigheid', 'Tekstbegrip', 'Tekstanalyse', 'Argumentatieve vaardigheden', 'Samenvatten'].some(t => topic.toLowerCase().includes(t.toLowerCase())));
+
+  const readingComprehensionInstructions = needsReadingComprehension ? `
+    TEKSTBEGRIP INSTRUCTIES (ZEER BELANGRIJK):
+    - Voeg bij MINSTENS 60% van de vragen een contextText toe met een Nederlandse brontekst
+    - De brontekst moet een authentieke Nederlandse tekst zijn (artikel, column, essay, nieuwsbericht, etc.)
+    - Schrijf de brontekst ALTIJD in het Nederlands, ook als het vak een vreemde taal is (de vraag toetst begrip, niet de taal van de brontekst)
+    - De brontekst moet 150-400 woorden lang zijn
+    - Maak de tekst interessant en relevant voor ${level} leerlingen
+    - Voorbeelden van geschikte teksten:
+      * Krantenartikelen over actuele onderwerpen
+      * Opiniestukken en columns
+      * Fragmenten uit non-fictie boeken
+      * Wetenschappelijke artikelen (aangepast aan niveau)
+      * Historische bronnen of verslagen
+    - De vragen moeten gaan over de inhoud, structuur, of argumentatie van de tekst
+    - Varieer in vraagtypen: hoofdgedachte, tekstdoel, woordbetekenis, verwijswoorden, argumentatie
+  ` : '';
+
   const prompt = `
     Je bent een ervaren examinator die officiële ${level} eindexamenvragen maakt voor het vak ${subject}.
     ${topic ? `SPECIFIEK ONDERWERP: Focus ALLE vragen op het onderwerp: "${topic}".` : ''}
@@ -223,6 +245,7 @@ export const generateAIQuestions = async (
     - Zorg dat de vragen aansluiten bij de kerndoelen en eindtermen voor ${level}
     - Maak vragen die typerend zijn voor ${subject} examens
     ${topic ? `- Zorg dat alle vragen gaan over ${topic}` : ''}
+    ${readingComprehensionInstructions}
 
     OPDRACHT:
     Maak PRECIES ${count} vragen die volledig voldoen aan ${level} eindexamen niveau.
@@ -248,13 +271,13 @@ export const generateAIQuestions = async (
         "text": "De vraag hier",
         "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
         "correctIndex": 0,
-        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
+        "contextText": "Nederlandse brontekst hier (150-400 woorden). VERPLICHT voor tekstbegrip vragen."
       },
       {
         "type": "OPEN",
         "text": "De open vraag hier",
         "modelAnswer": "Het modelantwoord hier (2-4 zinnen)",
-        "contextText": "Optionele brontekst of context (alleen toevoegen als relevant voor de vraag)"
+        "contextText": "Nederlandse brontekst hier indien van toepassing"
       }
     ]
 
@@ -263,7 +286,7 @@ export const generateAIQuestions = async (
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     });
 
@@ -445,7 +468,7 @@ export const generateExamSummary = async (
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-2.5-flash',
     contents: prompt,
   });
 
@@ -568,7 +591,7 @@ export const generateFlashcards = async (
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.0-flash',
+      model: 'gemini-2.5-flash',
       contents: prompt,
     });
 
