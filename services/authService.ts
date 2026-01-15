@@ -31,12 +31,16 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
 
     if (error) {
       console.error('Supabase Auth error:', error.message);
-      return null;
+      // SECURITY: Fallback naar server-side API als Supabase Auth faalt
+      console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
+      return await verifyAdminLoginViaAPI(username, password);
     }
 
     if (!data.user) {
       console.log('No user returned from Supabase Auth');
-      return null;
+      // SECURITY: Fallback naar server-side API
+      console.warn('⚠️ No user from Supabase, trying server-side API fallback...');
+      return await verifyAdminLoginViaAPI(username, password);
     }
 
     // Controleer of user admin role heeft
