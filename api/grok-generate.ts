@@ -56,7 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-4-fast',
+        model: 'grok-2-latest',
         messages: [
           {
             role: 'system',
@@ -78,13 +78,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (response.status === 401) {
         return res.status(500).json({
           success: false,
-          error: 'Grok API key is ongeldig. Neem contact op met de beheerder.'
+          error: 'Grok API key is ongeldig. Controleer AI_GATEWAY_API_KEY in Vercel.'
+        });
+      }
+
+      if (response.status === 429) {
+        return res.status(500).json({
+          success: false,
+          error: 'Te veel verzoeken. Wacht even en probeer opnieuw.'
+        });
+      }
+
+      if (response.status === 404) {
+        return res.status(500).json({
+          success: false,
+          error: 'Grok model niet gevonden. Mogelijk is grok-4-fast niet beschikbaar.'
         });
       }
 
       return res.status(500).json({
         success: false,
-        error: 'Er ging iets mis bij het genereren van vragen.'
+        error: `Grok API fout (${response.status}). Probeer opnieuw.`
       });
     }
 
