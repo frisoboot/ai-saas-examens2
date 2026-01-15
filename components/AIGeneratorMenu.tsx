@@ -319,29 +319,31 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                   </div>
                 </div>
 
-                {/* Time Limit */}
-                <div>
-                  <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
-                    <Target className="w-4 h-4 text-pink-500" />
-                    Tijdslimiet
-                  </label>
-                  <div className="grid grid-cols-5 gap-2">
-                    {TIME_LIMITS.map(limit => (
-                      <button
-                        key={limit.value}
-                        onClick={() => setTimeLimit(limit.value)}
-                        disabled={isGenerating}
-                        className={`p-3 rounded-xl border-2 font-semibold text-xs transition-all duration-300 ${
-                          timeLimit === limit.value
-                            ? 'bg-gradient-to-br from-pink-50 to-orange-50 border-pink-500 text-pink-900 shadow-lg shadow-pink-200/50 scale-105'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-pink-300 hover:bg-gradient-to-br hover:from-pink-50/30 hover:to-orange-50/20 hover:scale-102'
+                {/* Time Limit - Only show for Look-alike (Grok) exams */}
+                {provider === 'grok' && (
+                  <div>
+                    <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
+                      <Target className="w-4 h-4 text-pink-500" />
+                      Tijdslimiet
+                    </label>
+                    <div className="grid grid-cols-5 gap-2">
+                      {TIME_LIMITS.map(limit => (
+                        <button
+                          key={limit.value}
+                          onClick={() => setTimeLimit(limit.value)}
+                          disabled={isGenerating}
+                          className={`p-3 rounded-xl border-2 font-semibold text-xs transition-all duration-300 ${
+                            timeLimit === limit.value
+                              ? 'bg-gradient-to-br from-pink-50 to-orange-50 border-pink-500 text-pink-900 shadow-lg shadow-pink-200/50 scale-105'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-pink-300 hover:bg-gradient-to-br hover:from-pink-50/30 hover:to-orange-50/20 hover:scale-102'
                         }`}
-                      >
-                        {limit.label}
-                      </button>
-                    ))}
+                        >
+                          {limit.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>

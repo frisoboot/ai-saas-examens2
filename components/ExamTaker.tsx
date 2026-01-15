@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, XCircle, ArrowRight, Home, BrainCircuit, FileText, ChevronRight, X, Lightbulb, Target, TrendingUp } from 'lucide-react';
+import { CheckCircle, XCircle, ArrowRight, Home, BrainCircuit, FileText, ChevronRight, X, Lightbulb, Target, TrendingUp, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 interface ExamTakerProps {
@@ -32,6 +32,14 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [examSummary, setExamSummary] = useState<ExamSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
 
+  // Timer state for Look-alike exams
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
+    if (initialSession.timeLimit && initialSession.timeLimit > 0) {
+      return initialSession.timeLimit * 60; // Convert minutes to seconds
+    }
+    return null;
+  });
+
   // Prevent multiple calls to finishExam
   const isFinishingRef = React.useRef(false);
 
@@ -45,6 +53,33 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
     }
   }, [activeQuestionIdx, currentQuestion]);
+
+  // Timer countdown effect
+  React.useEffect(() => {
+    if (remainingSeconds === null || isFinished || isSubmitting) return;
+
+    if (remainingSeconds <= 0) {
+      // Time's up - auto-finish the exam
+      finishExam();
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setRemainingSeconds(prev => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [remainingSeconds, isFinished, isSubmitting]);
+
+  // Format remaining time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Determine if time is running low (less than 2 minutes)
+  const isTimeLow = remainingSeconds !== null && remainingSeconds < 120;
 
   const handleSelectAnswer = (val: number | string) => {
     setSession(prev => ({
@@ -598,24 +633,38 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             <span className="text-slate-300">|</span>
             <span className="text-sm text-slate-500">Vraag {activeQuestionIdx + 1} / {session.questions.length}</span>
          </div>
-         
+
          {/* Central Progress */}
          <div className="absolute left-1/2 transform -translate-x-1/2 w-1/3 max-w-xs hidden md:block">
             <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-              <div 
-                className="bg-indigo-600 h-full rounded-full transition-all duration-500 ease-out" 
+              <div
+                className="bg-indigo-600 h-full rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
          </div>
 
-         <button 
-           onClick={onFinish}
-           className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
-           title="Stoppen"
-         >
-           <X className="w-5 h-5" />
-         </button>
+         <div className="flex items-center gap-4">
+            {/* Timer display for Look-alike exams */}
+            {remainingSeconds !== null && (
+              <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-lg font-bold transition-all ${
+                isTimeLow
+                  ? 'bg-red-100 text-red-700 animate-pulse'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                <Clock className={`w-5 h-5 ${isTimeLow ? 'animate-bounce' : ''}`} />
+                <span>{formatTime(remainingSeconds)}</span>
+              </div>
+            )}
+
+            <button
+              onClick={onFinish}
+              className="text-slate-400 hover:text-red-500 transition-colors p-2 rounded-full hover:bg-red-50"
+              title="Stoppen"
+            >
+              <X className="w-5 h-5" />
+            </button>
+         </div>
       </div>
 
       {/* Main Content Split */}

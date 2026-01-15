@@ -91,6 +91,7 @@ export interface ExamSession {
   examYear?: number;
   examType: 'subject_practice' | 'year_exam' | 'ai_practice' | 'official_exam';
   startTime?: number; // Timestamp when exam started
+  timeLimit?: number; // Time limit in minutes (0 = no limit)
 }
 
 // Admin user interface

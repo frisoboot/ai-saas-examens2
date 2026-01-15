@@ -173,7 +173,8 @@ const App: React.FC = () => {
         currentQuestionIndex: 0,
         answers: {},
         examType: 'ai_practice',
-        startTime: Date.now()
+        startTime: Date.now(),
+        timeLimit: isGrok && timeLimit ? timeLimit : undefined
       });
       setView('EXAM');
     } catch (error: any) {
