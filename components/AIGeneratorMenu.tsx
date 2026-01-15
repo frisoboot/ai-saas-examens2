@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Zap, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Zap, GraduationCap, Sparkles } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
@@ -68,7 +68,7 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
         </Button>
 
         <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 mb-6 shadow-2xl shadow-indigo-200/50 border border-white/60 hover:shadow-indigo-300/60 transition-all duration-500">
-          <div className="flex items-center gap-5 mb-2">
+          <div className="flex items-center gap-5 mb-4">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl blur-md opacity-50 animate-pulse" />
               <div className="relative w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-center shadow-lg">
@@ -80,6 +80,21 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                 AI Examen Generator
               </h1>
               <p className="text-sm text-slate-600 font-medium mt-1">{subject} • {studentLevel}</p>
+            </div>
+          </div>
+
+          {/* Info banner - uitleg hoe het werkt */}
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200/50">
+            <div className="flex items-start gap-3">
+              <Sparkles className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm text-slate-800 font-medium">
+                  Hoe werkt het?
+                </p>
+                <p className="text-xs text-slate-600 mt-1">
+                  Kies een onderwerp en aantal vragen. De AI genereert oefenvragen op basis van jouw niveau. Je kunt de moeilijkheid en het type vragen aanpassen.
+                </p>
+              </div>
             </div>
           </div>
         </div>
