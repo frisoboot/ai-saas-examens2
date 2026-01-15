@@ -4,7 +4,6 @@ import { Sparkles, ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, 
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
-import { isGrokConfigured } from '../services/grokService';
 
 export type AIProvider = 'gemini' | 'grok';
 
@@ -49,8 +48,8 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [provider, setProvider] = useState<AIProvider>('gemini');
-
-  const grokAvailable = isGrokConfigured();
+  // Grok is always shown as available - errors are handled server-side when generating
+  const grokAvailable = true;
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
   const SubjectIcon = getSubjectIcon(subject);
