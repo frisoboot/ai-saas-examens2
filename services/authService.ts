@@ -90,7 +90,62 @@ async function verifyAdminLoginViaAPI(username: string, password: string): Promi
     const data = await response.json();
 
     if (data.success && data.admin) {
-      console.log('✅ Admin login SUCCESS via server-side API');
+      console.log('✅ Admin credentials verified via server-side API');
+
+      // Als de API aangeeft dat we via Supabase Auth moeten inloggen
+      // (dit betekent dat de admin user nu bestaat in Supabase Auth)
+      if (data.useSupabaseAuth && supabase) {
+        console.log('🔐 Logging in via Supabase Auth with admin credentials...');
+
+        const adminEmail = `${username}@admin.local`;
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: password
+        });
+
+        if (authError) {
+          console.error('❌ Supabase Auth login failed after API success:', authError);
+          // De credentials zijn geverifieerd, maar de Supabase login faalde
+          // Dit kan gebeuren als er een timing issue is bij het aanmaken van de user
+          // Probeer nog een keer na een korte pauze
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          const { data: retryData, error: retryError } = await supabase.auth.signInWithPassword({
+            email: adminEmail,
+            password: password
+          });
+
+          if (retryError) {
+            console.error('❌ Retry Supabase Auth login also failed:', retryError);
+            return null;
+          }
+
+          if (retryData.user) {
+            console.log('✅ Admin login SUCCESS via Supabase Auth (retry)');
+            return {
+              id: retryData.user.id,
+              username: retryData.user.user_metadata?.username || username,
+              passwordHash: '',
+              email: retryData.user.email,
+              lastLogin: new Date().toISOString()
+            };
+          }
+        }
+
+        if (authData?.user) {
+          console.log('✅ Admin login SUCCESS via Supabase Auth');
+          return {
+            id: authData.user.id,
+            username: authData.user.user_metadata?.username || username,
+            passwordHash: '',
+            email: authData.user.email,
+            lastLogin: new Date().toISOString()
+          };
+        }
+      }
+
+      // Fallback: return admin info van API (geen Supabase session)
+      console.log('✅ Admin login SUCCESS via API only (no Supabase session)');
       return {
         id: data.admin.id,
         username: data.admin.username,

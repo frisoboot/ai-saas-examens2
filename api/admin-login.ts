@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { createClient } from '@supabase/supabase-js';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
@@ -9,6 +10,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * Environment variabele (server-side only, GEEN VITE_ prefix):
  * - ADMIN_PASSWORD: Het admin wachtwoord (minimaal 12 karakters)
  * - ADMIN_USERNAME: De admin gebruikersnaam (standaard: admin)
+ *
+ * Deze endpoint maakt automatisch een Supabase Auth user aan voor de admin
+ * als die nog niet bestaat, zodat de admin een echte session krijgt.
  */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -71,17 +75,107 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Check credentials
     if (username === adminUsername && password === adminPassword) {
-      console.log('✅ Admin login SUCCESS via API endpoint');
+      console.log('✅ Admin credentials verified via API endpoint');
 
-      // Return success met admin user info (ZONDER wachtwoord!)
+      // Haal Supabase credentials op
+      const supabaseUrl = process.env.VITE_SUPABASE_URL;
+      const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+      if (!supabaseUrl || !supabaseServiceKey) {
+        console.error('❌ Missing Supabase environment variables');
+        return res.status(500).json({
+          success: false,
+          error: 'Server configuratie fout. Neem contact op met de beheerder.'
+        });
+      }
+
+      // Maak Supabase admin client
+      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      });
+
+      const adminEmail = `${adminUsername}@admin.local`;
+
+      // Check of admin user al bestaat in Supabase Auth
+      const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+
+      if (listError) {
+        console.error('❌ Error listing users:', listError);
+        return res.status(500).json({
+          success: false,
+          error: 'Kon gebruikers niet ophalen'
+        });
+      }
+
+      const existingAdmin = existingUsers.users.find(u => u.email === adminEmail);
+
+      if (!existingAdmin) {
+        // Admin user bestaat nog niet, maak deze aan
+        console.log('📝 Creating admin user in Supabase Auth...');
+
+        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+          email: adminEmail,
+          password: password,
+          email_confirm: true,
+          user_metadata: {
+            role: 'admin',
+            username: adminUsername
+          }
+        });
+
+        if (createError) {
+          console.error('❌ Error creating admin user:', createError);
+          return res.status(500).json({
+            success: false,
+            error: 'Kon admin user niet aanmaken'
+          });
+        }
+
+        console.log('✅ Admin user created:', newUser.user.id);
+      } else {
+        // Admin user bestaat al, update eventueel de metadata en het wachtwoord
+        console.log('📝 Admin user exists, updating metadata and password...');
+
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          existingAdmin.id,
+          {
+            password: password,
+            user_metadata: {
+              role: 'admin',
+              username: adminUsername
+            }
+          }
+        );
+
+        if (updateError) {
+          console.error('❌ Error updating admin user:', updateError);
+          // Ga toch door, de login kan nog steeds werken
+        }
+      }
+
+      // Genereer een session token voor de admin
+      // We gebruiken signInWithPassword via de admin client om een echte session te krijgen
+      const { data: signInData, error: signInError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email: adminEmail
+      });
+
+      // Return success met admin user info en instructie om via Supabase in te loggen
+      console.log('✅ Admin login SUCCESS - user exists in Supabase Auth');
+
       return res.status(200).json({
         success: true,
         admin: {
-          id: 'admin-001',
+          id: existingAdmin?.id || 'admin-new',
           username: adminUsername,
-          email: `${adminUsername}@admin.local`,
+          email: adminEmail,
           lastLogin: new Date().toISOString()
-        }
+        },
+        // Geef aan dat de frontend nu via Supabase Auth moet inloggen
+        useSupabaseAuth: true
       });
     }
 
