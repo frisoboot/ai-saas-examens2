@@ -4,54 +4,53 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 
 // ============================================================================
 // SUPABASE AUTH INTEGRATIE
-// Dit bestand gebruikt nu Supabase Auth voor authenticatie met custom metadata
+// Dit bestand gebruikt Supabase Auth voor authenticatie
 // ============================================================================
 
-// Admin authentication met Supabase Auth
+// Admin authentication - via API die admin user aanmaakt in Supabase Auth
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
   console.log('verifyAdminLogin called for user:', username);
 
-  // ============================================================================
-  // SECURITY: Probeer eerst Supabase Auth, fallback naar API
-  // ============================================================================
   if (!supabase) {
-    // Als Supabase niet beschikbaar is, gebruik de veilige server-side API
-    console.warn('⚠️  Supabase niet beschikbaar, gebruik server-side API fallback');
-    return await verifyAdminLoginViaAPI(username, password);
+    console.error('Supabase niet beschikbaar');
+    return null;
   }
 
   try {
-    // Gebruik email format voor Supabase Auth: admin@admin.local
-    const email = `${username}@admin.local`;
+    // Stap 1: API aanroepen om admin user aan te maken/updaten in Supabase Auth
+    const response = await fetch('/api/admin-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
 
+    const apiResult = await response.json();
+
+    if (!apiResult.success) {
+      console.error('Admin login failed:', apiResult.error);
+      return null;
+    }
+
+    // Stap 2: Nu inloggen via Supabase Auth (user bestaat nu)
+    const email = `${username}@admin.local`;
     const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password
     });
 
-    if (error) {
-      console.error('Supabase Auth error:', error.message);
-      // SECURITY: Fallback naar server-side API als Supabase Auth faalt
-      console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
-      return await verifyAdminLoginViaAPI(username, password);
+    if (error || !data.user) {
+      console.error('Supabase Auth login failed:', error?.message);
+      return null;
     }
 
-    if (!data.user) {
-      console.log('No user returned from Supabase Auth');
-      // SECURITY: Fallback naar server-side API
-      console.warn('⚠️ No user from Supabase, trying server-side API fallback...');
-      return await verifyAdminLoginViaAPI(username, password);
-    }
-
-    // Controleer of user admin role heeft
-    const role = data.user.user_metadata?.role;
-    if (role !== 'admin') {
+    // Stap 3: Controleer of user admin role heeft
+    if (data.user.user_metadata?.role !== 'admin') {
       console.error('User is not an admin');
       await supabase.auth.signOut();
       return null;
     }
 
-    console.log('Admin login SUCCESS via Supabase Auth');
+    console.log('Admin login SUCCESS');
 
     return {
       id: data.user.id,
@@ -60,54 +59,12 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
       email: data.user.email,
       lastLogin: new Date().toISOString()
     };
-  } catch (error) {
-    console.error('❌ Error verifying admin login via Supabase:', error);
 
-    // SECURITY: Fallback naar server-side API als Supabase faalt
-    console.warn('⚠️ Supabase Auth failed, trying server-side API fallback...');
-    return await verifyAdminLoginViaAPI(username, password);
+  } catch (error) {
+    console.error('Error during admin login:', error);
+    return null;
   }
 };
-
-// ============================================================================
-// SECURITY: Server-side API admin login (wachtwoord blijft op server!)
-// ============================================================================
-async function verifyAdminLoginViaAPI(username: string, password: string): Promise<AdminUser | null> {
-  try {
-    // Gebruik altijd de relatieve URL - werkt met Vercel Dev en productie
-    const apiUrl = '/api/admin-login';
-
-    console.log('🔐 Verifying admin via server-side API...');
-
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ username, password }),
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.admin) {
-      console.log('✅ Admin login SUCCESS via server-side API');
-      return {
-        id: data.admin.id,
-        username: data.admin.username,
-        passwordHash: '',
-        email: data.admin.email,
-        lastLogin: data.admin.lastLogin
-      };
-    }
-
-    console.log('❌ Admin login FAILED via API:', data.error);
-    return null;
-
-  } catch (error) {
-    console.error('❌ Error calling admin-login API:', error);
-    return null;
-  }
-}
 
 // Student authentication met Supabase Auth
 export const verifyStudentLogin = async (name: string, password: string): Promise<StudentProfile | null> => {
