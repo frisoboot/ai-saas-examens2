@@ -5,12 +5,13 @@ import { Button } from './Button';
 import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked, Layers } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
+import { AIProvider } from './AIGeneratorMenu';
 
 interface StudentDashboardProps {
   student: StudentProfile;
   onStartExam: (subject: string, year?: number) => void;
   onStartChat: (subject: string) => void;
-  onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number) => void;
+  onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number, provider?: AIProvider) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onLogout: () => void;
 }
@@ -65,8 +66,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         student={student}
         onBack={() => setSelectedSubject(null)}
         onStartChat={() => onStartChat(selectedSubject)}
-        onStartAIQuestions={(count, topic, difficulty, questionTypeMix, timeLimit) =>
-          onStartAIQuestions(selectedSubject, count, topic, difficulty, questionTypeMix, timeLimit)
+        onStartAIQuestions={(count, topic, difficulty, questionTypeMix, timeLimit, provider) =>
+          onStartAIQuestions(selectedSubject, count, topic, difficulty, questionTypeMix, timeLimit, provider)
         }
         onStartExam={(year) => onStartExam(selectedSubject, year)}
         onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
