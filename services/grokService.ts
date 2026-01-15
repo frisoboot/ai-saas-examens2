@@ -21,6 +21,10 @@ export const generateLookAlikeQuestions = async (
   count: number = 10,
   topic?: string
 ): Promise<Question[]> => {
+  // Check if API key is configured before making request
+  if (!apiKey) {
+    throw new Error('Grok API key is niet geconfigureerd. Voeg VITE_GROK_API_KEY toe aan je .env bestand.');
+  }
   // Define level-specific exam requirements
   let levelInstructions = "";
   let exampleTypes = "";
