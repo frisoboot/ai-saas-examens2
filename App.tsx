@@ -3,6 +3,7 @@ import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, Flashc
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
 import { generateAIQuestions, generateFlashcards } from './services/geminiService';
+import { generateLookAlikeQuestions } from './services/xaiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
@@ -230,6 +231,52 @@ const App: React.FC = () => {
     }
   };
 
+  const startLookAlikeQuestions = async (
+    subject: string,
+    count: number = 10,
+    topic?: string
+  ) => {
+    if (!currentProfile) return;
+
+    console.log(`xAI genereert ${count} look-alike vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
+
+    try {
+      const questions = await generateLookAlikeQuestions(subject, currentProfile.level, count, topic);
+
+      if (questions.length === 0) {
+        alert(`Kon geen look-alike vragen genereren voor ${subject}. Probeer het opnieuw.`);
+        return;
+      }
+
+      setCurrentExamSession({
+        studentName: currentProfile.name,
+        subject,
+        questions: questions,
+        currentQuestionIndex: 0,
+        answers: {},
+        examType: 'ai_practice',
+        startTime: Date.now()
+      });
+      setView('EXAM');
+    } catch (error: any) {
+      console.error('Fout bij genereren xAI look-alike vragen:', error);
+
+      let errorMessage = 'Er ging iets mis bij het genereren van de look-alike vragen.\n\n';
+
+      if (error.message?.includes('API key')) {
+        errorMessage += 'xAI API key is niet geconfigureerd. Neem contact op met de beheerder.';
+      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        errorMessage += 'Te veel verzoeken. Probeer het over een paar minuten opnieuw.';
+      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
+        errorMessage += 'Controleer je internetverbinding en probeer het opnieuw.';
+      } else {
+        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
+      }
+
+      alert(errorMessage);
+    }
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'HOME':
@@ -411,6 +458,7 @@ const App: React.FC = () => {
             onStartChat={startChat}
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
+            onStartLookAlike={startLookAlikeQuestions}
             onLogout={() => {
               setStudentName('');
               setStudentPassword('');
