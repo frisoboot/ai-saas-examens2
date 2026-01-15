@@ -73,6 +73,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missende vereiste velden' });
     }
 
+    // Password strength validation (consistent with register-student.ts)
+    if (newPassword.length < 8) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 karakters zijn' });
+    }
+
     // Maak admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {

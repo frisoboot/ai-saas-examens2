@@ -49,7 +49,7 @@ const App: React.FC = () => {
       const profile = await verifyStudentLogin(studentName, studentPassword);
       if (profile) {
         // Check for subscription expiration
-        if ((profile as any).subscriptionExpired) {
+        if (profile.subscriptionExpired) {
           setCurrentProfile(profile);
           setView('SUBSCRIPTION_EXPIRED');
           return;

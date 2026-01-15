@@ -8,7 +8,18 @@ if (!apiKey) {
   console.warn('Gemini API key not found. Set VITE_GEMINI_API_KEY in your .env file.');
 }
 
-const ai = new GoogleGenAI({ apiKey });
+// Lazy initialization to prevent crashes with empty API key
+let _ai: GoogleGenAI | null = null;
+
+const getAI = (): GoogleGenAI => {
+  if (!apiKey) {
+    throw new Error('Gemini API key niet geconfigureerd. Stel VITE_GEMINI_API_KEY in je .env bestand in.');
+  }
+  if (!_ai) {
+    _ai = new GoogleGenAI({ apiKey });
+  }
+  return _ai;
+};
 
 // Explanation for Exam Review
 export const getExplanation = async (question: Question, studentAnswer: number | string): Promise<string> => {
@@ -59,7 +70,7 @@ export const getExplanation = async (question: Question, studentAnswer: number |
   }
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-2.0-flash',
       contents: prompt,
     });
@@ -120,7 +131,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
     4. Sluit af en toe af met een korte quizvraag om kennis te testen.
   `;
 
-  return ai.chats.create({
+  return getAI().chats.create({
     model: 'gemini-2.0-flash',
     config: {
       systemInstruction: systemInstruction
@@ -251,7 +262,7 @@ export const generateAIQuestions = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-2.0-flash',
       contents: prompt,
     });
@@ -433,7 +444,7 @@ export const generateExamSummary = async (
     Geef ALLEEN de JSON terug, geen extra tekst.
   `;
 
-  const response = await ai.models.generateContent({
+  const response = await getAI().models.generateContent({
     model: 'gemini-2.0-flash',
     contents: prompt,
   });
@@ -556,7 +567,7 @@ export const generateFlashcards = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    const response = await getAI().models.generateContent({
       model: 'gemini-2.0-flash',
       contents: prompt,
     });

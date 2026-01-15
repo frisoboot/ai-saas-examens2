@@ -130,6 +130,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Student progress deleted for student:', studentName);
     }
 
+    // Stap 2b: Verwijder flashcard progress
+    const { error: flashcardProgressError } = await supabaseAdmin
+      .from('flashcard_progress')
+      .delete()
+      .eq('student_name', studentName);
+
+    if (flashcardProgressError) {
+      console.error('Error deleting flashcard progress:', flashcardProgressError);
+      // Ga door, want dit is niet kritisch
+    } else {
+      console.log('Flashcard progress deleted for student:', studentName);
+    }
+
+    // Stap 2c: Verwijder subscription events
+    const { error: subscriptionEventsError } = await supabaseAdmin
+      .from('subscription_events')
+      .delete()
+      .eq('student_name', studentName);
+
+    if (subscriptionEventsError) {
+      console.error('Error deleting subscription events:', subscriptionEventsError);
+      // Ga door, want dit is niet kritisch
+    } else {
+      console.log('Subscription events deleted for student:', studentName);
+    }
+
     // Stap 3: Verwijder student profiel
     const { error: profileError } = await supabaseAdmin
       .from('student_profiles')

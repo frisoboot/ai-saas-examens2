@@ -88,18 +88,39 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
   }
 
   // Haal student profiel op uit database
-  const { data: profileData, error: profileError } = await supabase!
-    .from('student_profiles')
-    .select('*')
-    .eq('name', data.user.user_metadata?.name)
-    .maybeSingle();
+  // Try by name from metadata first, fallback to auth_user_id for robustness
+  const studentName = data.user.user_metadata?.name;
+  let profileData = null;
+  let profileError = null;
+
+  if (studentName) {
+    const result = await supabase!
+      .from('student_profiles')
+      .select('*')
+      .eq('name', studentName)
+      .maybeSingle();
+    profileData = result.data;
+    profileError = result.error;
+  }
+
+  // Fallback: try to find by auth_user_id if name lookup failed
+  if (!profileData && !profileError) {
+    const fallbackResult = await supabase!
+      .from('student_profiles')
+      .select('*')
+      .eq('auth_user_id', data.user.id)
+      .maybeSingle();
+    profileData = fallbackResult.data;
+    profileError = fallbackResult.error;
+  }
 
   if (profileError) {
     throw new Error(`Fout bij ophalen student profiel: ${profileError.message}`);
   }
 
   if (!profileData) {
-    throw new Error('Student profiel niet gevonden in database');
+    await supabase!.auth.signOut();
+    throw new Error('Student profiel niet gevonden in database. Neem contact op met de beheerder.');
   }
 
   // Check subscription status
@@ -108,16 +129,24 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
     ? new Date(profileData.subscription_expires_at)
     : null;
 
-  const hasValidSubscription =
+  const hasValidSubscriptionStatus =
     profileData.subscription_status === 'trial' ||
     profileData.subscription_status === 'active';
 
-  const isNotExpired = expiresAt && expiresAt > now;
+  // Subscription is expired if:
+  // 1. There's an expiration date AND it has passed, OR
+  // 2. The subscription status is explicitly 'expired' or 'cancelled' or 'inactive'
+  const isExpired = expiresAt !== null && expiresAt <= now;
+  const hasInvalidStatus =
+    profileData.subscription_status === 'expired' ||
+    profileData.subscription_status === 'cancelled' ||
+    profileData.subscription_status === 'inactive';
 
-  // If subscription expired or inactive, return profile with flag
-  if (profileData.created_by_admin) {
-    // Students created by admin don't need subscription (special case: schools)
-  } else if (!hasValidSubscription || !isNotExpired) {
+  // Determine if subscription should be considered expired
+  const subscriptionExpired = !profileData.created_by_admin && (isExpired || hasInvalidStatus || !hasValidSubscriptionStatus);
+
+  // If subscription expired, return profile with flag
+  if (subscriptionExpired) {
     return {
       name: profileData.name,
       level: profileData.level,
@@ -406,6 +435,28 @@ export const deleteStudent = async (
     .eq('student_name', name);
 
   if (progressError) throw progressError;
+
+  // Stap 2b: Verwijder flashcard progress
+  const { error: flashcardProgressError } = await supabaseAdmin
+    .from('flashcard_progress')
+    .delete()
+    .eq('student_name', name);
+
+  // Non-critical, log but don't throw
+  if (flashcardProgressError) {
+    console.error('Error deleting flashcard progress:', flashcardProgressError);
+  }
+
+  // Stap 2c: Verwijder subscription events
+  const { error: subscriptionEventsError } = await supabaseAdmin
+    .from('subscription_events')
+    .delete()
+    .eq('student_name', name);
+
+  // Non-critical, log but don't throw
+  if (subscriptionEventsError) {
+    console.error('Error deleting subscription events:', subscriptionEventsError);
+  }
 
   // Stap 3: Verwijder student profiel
   const { error: deleteProfileError } = await supabaseAdmin
