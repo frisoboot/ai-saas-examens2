@@ -161,7 +161,7 @@ const App: React.FC = () => {
         : await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
-          const apiKeyName = isGrok ? 'VITE_GROK_API_KEY' : 'VITE_GEMINI_API_KEY';
+          const apiKeyName = isGrok ? 'AI_GATEWAY_API_KEY' : 'VITE_GEMINI_API_KEY';
           alert(`❌ Kon geen ${examTypeName} vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige ${providerName} API key hebt (${apiKeyName})\n- Je internetverbinding werkt`);
           return;
       }
@@ -183,7 +183,7 @@ const App: React.FC = () => {
       let errorMessage = `❌ Er ging iets mis bij het genereren van de ${examTypeName} vragen.\n\n`;
 
       if (error.message?.includes('API key')) {
-        const apiKeyName = isGrok ? 'VITE_GROK_API_KEY' : 'VITE_GEMINI_API_KEY';
+        const apiKeyName = isGrok ? 'AI_GATEWAY_API_KEY' : 'VITE_GEMINI_API_KEY';
         errorMessage += `Controleer of je een geldige ${providerName} API key hebt ingesteld in je .env bestand:\n${apiKeyName}=jouw-api-key`;
       } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
         errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';

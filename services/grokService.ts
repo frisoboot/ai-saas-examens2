@@ -5,7 +5,7 @@ import { Question } from "../types";
 const apiKey = import.meta.env.VITE_GROK_API_KEY || '';
 
 if (!apiKey) {
-  console.warn('Grok API key not found. Set VITE_GROK_API_KEY in your .env file for look-alike exams.');
+  console.warn('Grok API key not found. Set AI_GATEWAY_API_KEY in your .env file for look-alike exams.');
 }
 
 const client = new OpenAI({
@@ -23,7 +23,7 @@ export const generateLookAlikeQuestions = async (
 ): Promise<Question[]> => {
   // Check if API key is configured before making request
   if (!apiKey) {
-    throw new Error('Grok API key is niet geconfigureerd. Voeg VITE_GROK_API_KEY toe aan je .env bestand.');
+    throw new Error('Grok API key is niet geconfigureerd. Voeg AI_GATEWAY_API_KEY toe aan je .env bestand.');
   }
   // Define level-specific exam requirements
   let levelInstructions = "";
