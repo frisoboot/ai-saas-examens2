@@ -512,6 +512,333 @@ export const generateExamSummary = async (
   };
 };
 
+// Generate Look-alike Exam Questions (mimic real Dutch final exams)
+export const generateLookalikeExamQuestions = async (
+  subject: string,
+  level: StudentLevel,
+  count: number = 10,
+  topic?: string,
+  examStyle?: 'tijdvak1' | 'tijdvak2' | 'mixed'
+): Promise<Question[]> => {
+  // Determine exam style description
+  const examStyleDesc = examStyle === 'tijdvak1'
+    ? 'eerste tijdvak (mei/juni)'
+    : examStyle === 'tijdvak2'
+      ? 'tweede tijdvak (juni/juli, vaak iets moeilijker)'
+      : 'mix van beide tijdvakken';
+
+  // Level-specific exam characteristics
+  let levelExamStyle = "";
+  let cognitiveRequirements = "";
+
+  switch (level) {
+    case 'VMBO-TL':
+      levelExamStyle = `
+      VMBO-TL CENTRAAL EXAMEN KENMERKEN:
+      - Examenduur indicatie: ~90-120 minuten voor volledige toets
+      - Taalgebruik: Helder, direct en toegankelijk Nederlands
+      - Vraagstelling: Praktisch gericht met herkenbare contexten
+      - Tekstlengte bronnen: 200-400 woorden per brontekst
+      - Antwoordopties: 4 opties bij meerkeuze, duidelijk onderscheidbaar
+      - Puntenweging: Meeste vragen 1-2 punten
+      `;
+      cognitiveRequirements = `
+      Cognitieve niveaus (Bloom):
+      - 50% Onthouden en Begrijpen (feiten, basisbegrippen)
+      - 35% Toepassen (regels en procedures in bekende situaties)
+      - 15% Analyseren (eenvoudige verbanden leggen)
+      `;
+      break;
+
+    case 'HAVO':
+      levelExamStyle = `
+      HAVO CENTRAAL EXAMEN KENMERKEN:
+      - Examenduur indicatie: ~150-180 minuten voor volledige toets
+      - Taalgebruik: Correct Nederlands met vakspecifieke terminologie
+      - Vraagstelling: Mix van kennis, toepassing en inzicht
+      - Tekstlengte bronnen: 300-600 woorden per brontekst
+      - Antwoordopties: 4 opties met plausibele afleiders
+      - Puntenweging: Variërend 1-4 punten per vraag
+      `;
+      cognitiveRequirements = `
+      Cognitieve niveaus (Bloom):
+      - 30% Onthouden en Begrijpen
+      - 40% Toepassen (in nieuwe contexten)
+      - 25% Analyseren (verbanden en structuren)
+      - 5% Evalueren (beoordelen van informatie)
+      `;
+      break;
+
+    case 'VWO':
+      levelExamStyle = `
+      VWO CENTRAAL EXAMEN KENMERKEN:
+      - Examenduur indicatie: ~180-210 minuten voor volledige toets
+      - Taalgebruik: Academisch, genuanceerd met wetenschappelijke terminologie
+      - Vraagstelling: Complex, vereist abstractievermogen en kritisch denken
+      - Tekstlengte bronnen: 400-800 woorden per brontekst
+      - Antwoordopties: 4 opties met subtiele nuanceverschillen
+      - Puntenweging: Variërend 1-6 punten per vraag
+      `;
+      cognitiveRequirements = `
+      Cognitieve niveaus (Bloom):
+      - 20% Onthouden en Begrijpen
+      - 30% Toepassen
+      - 30% Analyseren (complexe structuren en verbanden)
+      - 15% Evalueren (kritisch beoordelen)
+      - 5% Creëren (synthese van informatie)
+      `;
+      break;
+
+    default:
+      levelExamStyle = "Pas de vraagstelling aan aan het eindexamenniveau.";
+      cognitiveRequirements = "";
+  }
+
+  // Subject-specific exam requirements with Dutch reading texts
+  const isLanguageSubject = ['Nederlands', 'Engels', 'Duits', 'Frans', 'Spaans'].includes(subject);
+  const isDutch = subject === 'Nederlands';
+
+  // Enhanced reading text instructions for language subjects (especially Dutch)
+  let readingTextInstructions = '';
+
+  if (isDutch) {
+    readingTextInstructions = `
+    BELANGRIJK - NEDERLANDS CENTRAAL EXAMEN LEESTEKSTEN:
+    Je genereert vragen voor het centraal examen Nederlands. Dit examen draait VOLLEDIG om tekstbegrip.
+
+    VERPLICHTE STRUCTUUR:
+    - ELKE vraag MOET een contextText bevatten met een volledige Nederlandse brontekst
+    - Bronteksten moeten authentiek en examenwaardig zijn
+
+    TEKST VEREISTEN (per brontekst):
+    - Lengte: MINIMAAL 250 woorden, MAXIMAAL 500 woorden
+    - Genre variatie vereist:
+      * Informatieve teksten (nieuwsartikelen, wetenschapsjournalistiek)
+      * Betoogend teksten (columns, opiniestukken, essays)
+      * Beschouwende teksten (recensies, analyses)
+      * Verhalende non-fictie (reportages, autobiografische fragmenten)
+
+    TEKSTKENMERKEN:
+    - Actuele, maatschappelijk relevante onderwerpen
+    - Duidelijke argumentatiestructuur bij betogen
+    - Rijke woordenschat passend bij ${level} niveau
+    - Complexe zinsstructuren (bijzinnen, tangconstructies)
+    - Verwijswoorden en signaalwoorden
+    - Impliciete informatie die geïnfereerd moet worden
+
+    VRAAGTYPEN VOOR TEKSTBEGRIP (varieer door hele toets):
+    1. Hoofdgedachte/kern van de tekst (15%)
+    2. Tekstdoel en doelgroep (10%)
+    3. Argumentatieanalyse: standpunt, argument, tegenargument (20%)
+    4. Woordbetekenis in context (15%)
+    5. Verwijswoorden: waar slaat 'dit', 'deze', 'dat' op? (15%)
+    6. Alinea-functie en tekststructuur (10%)
+    7. Toon en schrijfstijl (10%)
+    8. Samenvatten en parafraseren (5%)
+
+    VOORBEELDTEKST (gebruik als inspiratie voor niveau en stijl):
+    "De discussie over kunstmatige intelligentie in het onderwijs laait weer op. Voorstanders wijzen op de mogelijkheden: gepersonaliseerd leren, directe feedback en toegang tot onbeperkte kennis. Tegenstanders vrezen dat leerlingen hun kritisch denkvermogen verliezen wanneer antwoorden letterlijk voor het oprapen liggen.
+
+    Onderwijskundige Dr. Maria Jansen nuanceert: 'Het gaat niet om óf we AI inzetten, maar hóé.' Volgens haar moeten docenten leerlingen juist leren om AI kritisch te bevragen. 'Een chatbot kan fouten maken. Leerlingen moeten leren die te herkennen.'
+
+    Deze visie sluit aan bij het rapport 'Onderwijs in 2030' van de Onderwijsraad. Hierin wordt gepleit voor een curriculum waarin digitale geletterdheid centraal staat. Niet als apart vak, maar geïntegreerd in alle vakken. De vraag is echter of scholen hier klaar voor zijn. Uit onderzoek blijkt dat slechts 34% van de docenten zich voldoende bekwaam acht om AI-tools in te zetten."
+    `;
+  } else if (isLanguageSubject) {
+    readingTextInstructions = `
+    TEKSTBEGRIP VOOR ${subject.toUpperCase()}:
+    - Voeg bij MINIMAAL 70% van de vragen een Nederlandse brontekst toe
+    - De brontekst moet in het Nederlands zijn (het examen toetst begripsvaardigheid)
+    - Teksten: 200-450 woorden, relevant voor ${level} leerlingen
+    - Varieer in tekstsoorten: nieuwsartikelen, essays, verhalen, betogen
+    - Vragen kunnen gaan over: hoofdgedachte, tekstdoel, woordbetekenis, verwijswoorden
+    `;
+  } else {
+    // Non-language subjects may also have context texts
+    readingTextInstructions = `
+    BRONMATERIAAL VOOR ${subject.toUpperCase()}:
+    - Voeg bij 40-60% van de vragen een korte context/casus toe
+    - Dit kunnen zijn: grafieken beschrijvingen, experimenten, nieuwsberichten over ${subject}
+    - Lengte: 100-300 woorden waar relevant
+    - Maak de context realistisch en examenwaardig
+    `;
+  }
+
+  const prompt = `
+    Je bent een ervaren CITO-examinator die authentieke ${level} centraal eindexamenvragen maakt voor ${subject}.
+    Je taak is om vragen te genereren die NIET te onderscheiden zijn van echte examenvragen uit ${examStyleDesc}.
+    ${topic ? `\nSPECIFIEK ONDERWERP: Focus alle vragen op: "${topic}"` : ''}
+
+    ${levelExamStyle}
+
+    ${cognitiveRequirements}
+
+    ${readingTextInstructions}
+
+    AUTHENTIEKE EXAMENKENMERKEN:
+    1. Begin meerkeuze-vragen NOOIT met "Welke van de volgende..." - gebruik natuurlijke vraagformuleringen
+    2. Vraagnummering: Gebruik geen vraagnummers in de vraagtekst zelf
+    3. Verwijs naar de brontekst waar relevant: "In de tekst staat...", "De auteur beweert...", "Uit alinea 3 blijkt..."
+    4. Bij meerkeuze: formuleer het juiste antwoord NIET als het langste of meest gedetailleerde
+    5. Afleiders moeten gebaseerd zijn op veelgemaakte fouten of misconcepties
+
+    EXAMENVRAAG FORMULERINGEN (voorbeelden per type):
+    - Hoofdgedachte: "Welke uitspraak geeft de kern van de tekst het beste weer?"
+    - Tekstdoel: "Met welk doel heeft de schrijver deze tekst geschreven?"
+    - Argumentatie: "Welke bewering uit de tekst is een argument voor het standpunt van de auteur?"
+    - Woordbetekenis: "Wat wordt bedoeld met '...' in regel X?"
+    - Verwijswoord: "Waarop slaat 'dit' in de zin '...'?"
+    - Structuur: "Wat is de functie van alinea 3 in de tekst?"
+
+    OPEN VRAGEN FORMULERING:
+    - Vraag om onderbouwing: "Leg uit waarom... Gebruik informatie uit de tekst."
+    - Vraag om analyse: "De auteur gebruikt een bepaald stijlmiddel. Noem dit stijlmiddel en leg uit wat het effect ervan is."
+    - Maximaal aantal woorden aangeven: "Vat de tekst samen in maximaal 50 woorden."
+
+    OPDRACHT:
+    Genereer PRECIES ${count} examenvragen die authentiek aanvoelen als het centraal examen ${subject} ${level}.
+
+    MIX VAN VRAAGTYPEN:
+    - Ongeveer 70% meerkeuze (MULTIPLE_CHOICE)
+    - Ongeveer 30% open vragen (OPEN)
+
+    MEERKEUZE VEREISTEN:
+    - Precies 4 antwoordopties (A, B, C, D)
+    - Één duidelijk correct antwoord
+    - Drie plausibele maar incorrecte afleiders
+    - Opties van vergelijkbare lengte
+
+    OPEN VRAAG VEREISTEN:
+    - Duidelijke vraagstelling
+    - Modelantwoord met scoringselementen
+    - Passend bij ${level} verwachtingsniveau
+
+    BELANGRIJK - JSON FORMAT:
+    Geef je antwoord als JSON array met dit EXACTE format:
+    [
+      {
+        "type": "MULTIPLE_CHOICE",
+        "text": "De examenvraag hier",
+        "options": ["Optie A", "Optie B", "Optie C", "Optie D"],
+        "correctIndex": 0,
+        "contextText": "De volledige Nederlandse brontekst hier (250-500 woorden voor Nederlands, korter voor andere vakken)"
+      },
+      {
+        "type": "OPEN",
+        "text": "De open examenvraag hier",
+        "modelAnswer": "Volledig modelantwoord met verwachte elementen",
+        "contextText": "Brontekst indien van toepassing"
+      }
+    ]
+
+    Geef ALLEEN de JSON array terug, geen extra tekst.
+  `;
+
+  try {
+    const response = await getAI().models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: prompt,
+    });
+
+    const responseText = response.text || '';
+
+    if (!responseText.trim()) {
+      throw new Error("AI gaf een lege response terug. Probeer het opnieuw.");
+    }
+
+    // Extract JSON from response
+    let jsonText = responseText.trim();
+
+    const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+    const match = jsonText.match(codeBlockRegex);
+    if (match) {
+      jsonText = match[1].trim();
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    if (!jsonText.startsWith('[')) {
+      const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        jsonText = arrayMatch[0];
+      }
+    }
+
+    let questionsData: any[];
+    try {
+      questionsData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error("JSON parse error. Raw response:", responseText.substring(0, 500));
+      throw new Error("AI response kon niet worden verwerkt als geldig JSON.");
+    }
+
+    if (!Array.isArray(questionsData) || questionsData.length === 0) {
+      throw new Error("AI genereerde geen examenvragen. Probeer het opnieuw.");
+    }
+
+    // Convert to Question format
+    const questions: Question[] = [];
+    const now = Date.now();
+
+    for (let index = 0; index < questionsData.length; index++) {
+      const q = questionsData[index];
+
+      if (!q.text || typeof q.text !== 'string' || q.text.trim().length === 0) {
+        console.warn(`Examenvraag ${index + 1} heeft geen tekst, wordt overgeslagen`);
+        continue;
+      }
+
+      const baseQuestion = {
+        id: `lookalike-${now}-${index}`,
+        type: q.type || 'MULTIPLE_CHOICE' as const,
+        level: level,
+        subject: subject,
+        text: q.text.trim(),
+        contextText: q.contextText ? q.contextText.trim() : undefined,
+        examType: 'practice' as const,
+        source: `Look-alike Examen (${level} - ${examStyleDesc})`,
+      };
+
+      if (q.type === 'OPEN') {
+        questions.push({
+          ...baseQuestion,
+          type: 'OPEN' as const,
+          modelAnswer: q.modelAnswer || 'Geen modelantwoord beschikbaar.',
+        });
+      } else {
+        if (!Array.isArray(q.options) || q.options.length < 2) {
+          console.warn(`Examenvraag ${index + 1} heeft ongeldige opties, wordt overgeslagen`);
+          continue;
+        }
+
+        const correctIndex = typeof q.correctIndex === 'number'
+          ? Math.max(0, Math.min(q.correctIndex, q.options.length - 1))
+          : 0;
+
+        questions.push({
+          ...baseQuestion,
+          type: 'MULTIPLE_CHOICE' as const,
+          options: q.options.map((opt: any) => String(opt).trim()),
+          correctIndex: correctIndex,
+        });
+      }
+    }
+
+    if (questions.length === 0) {
+      throw new Error("Geen geldige examenvragen konden worden gegenereerd.");
+    }
+
+    return questions;
+  } catch (error: any) {
+    console.error("Fout bij genereren look-alike examenvragen:", error);
+
+    if (error.message && !error.message.includes("Kon geen")) {
+      throw error;
+    }
+
+    throw new Error("Kon geen look-alike examenvragen genereren. Controleer je internetverbinding en probeer het opnieuw.");
+  }
+};
+
 // Generate AI flashcards for a subject
 export const generateFlashcards = async (
   subject: string,
