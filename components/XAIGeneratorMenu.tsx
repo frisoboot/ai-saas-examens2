@@ -85,7 +85,7 @@ export const XAIGeneratorMenu: React.FC<XAIGeneratorMenuProps> = ({
               <Brain className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm text-slate-300 font-medium">
-                  Powered by Grok-3
+                  Powered by Grok-2
                 </p>
                 <p className="text-xs text-slate-500 mt-1">
                   Vragen die qua stijl en moeilijkheid niet te onderscheiden zijn van echte eindexamens

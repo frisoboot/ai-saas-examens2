@@ -188,7 +188,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                 </p>
                 <div className="flex items-center gap-2 text-sm text-slate-500">
                   <Sparkles className="w-4 h-4 text-cyan-400" />
-                  <span className="text-slate-400">Grok-3</span>
+                  <span className="text-slate-400">Grok-2</span>
                   <span className="text-slate-600">•</span>
                   <span className="text-slate-400">Authentieke examenstijl</span>
                 </div>
