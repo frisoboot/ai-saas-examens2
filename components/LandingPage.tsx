@@ -206,11 +206,12 @@ export function LandingPage({ onAdminLogin, onStudentLogin, onRegister }: Landin
             <span className="text-lg font-bold text-gray-900">Examentrainer.nl</span>
           </div>
           
-          <div className="flex gap-8 text-sm text-gray-500">
+          <div className="flex flex-wrap justify-center md:justify-end gap-x-8 gap-y-2 text-sm text-gray-500">
             <button onClick={onAdminLogin} className="hover:text-gray-900 transition-colors">Docenten</button>
             <a href="#" className="hover:text-gray-900 transition-colors">Privacy</a>
             <a href="#" className="hover:text-gray-900 transition-colors">Voorwaarden</a>
             <span>© {new Date().getFullYear()}</span>
+            <span>KVK: 91609232</span>
           </div>
         </div>
       </footer>
