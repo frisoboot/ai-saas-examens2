@@ -3,7 +3,7 @@ import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
-import { AIGeneratorMenu, AIProvider } from './AIGeneratorMenu';
+import { AIGeneratorMenu } from './AIGeneratorMenu';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -12,7 +12,7 @@ interface SubjectOptionsProps {
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number, provider?: AIProvider) => void;
+  onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartExam: (year?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
 }

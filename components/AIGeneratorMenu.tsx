@@ -1,17 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { Sparkles, ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Zap, GraduationCap } from 'lucide-react';
+import { ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Zap, GraduationCap } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
-
-export type AIProvider = 'gemini' | 'grok';
 
 interface AIGeneratorMenuProps {
   subject: string;
   studentLevel: StudentLevel;
   onBack: () => void;
-  onGenerate: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number, provider?: AIProvider) => void;
+  onGenerate: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
 }
 
 const QUESTION_COUNTS = [5, 10, 15, 20];
@@ -25,13 +23,6 @@ const QUESTION_TYPE_MIXES = [
   { value: 'mostly_mc', label: 'Meerkeuze', description: '90% meerkeuze' },
   { value: 'mostly_open', label: 'Open vragen', description: '60% open' }
 ];
-const TIME_LIMITS = [
-  { value: 0, label: 'Geen limiet' },
-  { value: 15, label: '15 min' },
-  { value: 30, label: '30 min' },
-  { value: 45, label: '45 min' },
-  { value: 60, label: '60 min' }
-];
 
 export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   subject,
@@ -44,12 +35,8 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const [questionCount, setQuestionCount] = useState(10);
   const [difficulty, setDifficulty] = useState('medium');
   const [questionTypeMix, setQuestionTypeMix] = useState('balanced');
-  const [timeLimit, setTimeLimit] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [provider, setProvider] = useState<AIProvider>('gemini');
-  // Grok is always shown as available - errors are handled server-side when generating
-  const grokAvailable = true;
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
   const SubjectIcon = getSubjectIcon(subject);
@@ -57,7 +44,7 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
   const handleStart = () => {
     setIsGenerating(true);
     const finalTopic = topic === 'custom' ? customTopic : topic;
-    onGenerate(questionCount, finalTopic.trim() || undefined, difficulty, questionTypeMix, timeLimit, provider);
+    onGenerate(questionCount, finalTopic.trim() || undefined, difficulty, questionTypeMix);
   };
 
   return (
@@ -99,91 +86,6 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
 
         {/* Main Content */}
         <div className="space-y-5">
-          {/* Provider Selection */}
-          <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-7 shadow-xl shadow-slate-200/50 border border-white/60">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="w-5 h-5 text-indigo-600" />
-              <h3 className="font-bold text-slate-900">Kies je examentype</h3>
-            </div>
-            <p className="text-sm text-slate-600 mb-6 leading-relaxed">
-              Selecteer het type examen dat het beste bij je voorbereiding past.
-            </p>
-
-            <div className="space-y-3">
-              {/* Gemini - AI Examen */}
-              <button
-                onClick={() => setProvider('gemini')}
-                disabled={isGenerating}
-                className={`group w-full p-6 rounded-2xl border-2 text-left transition-all duration-300 ${
-                  provider === 'gemini'
-                    ? 'border-indigo-500 bg-gradient-to-br from-indigo-50 via-purple-50/50 to-pink-50/30 shadow-lg shadow-indigo-200/50'
-                    : 'border-slate-200 bg-white/50 hover:border-indigo-300 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/30 hover:shadow-md'
-                }`}
-              >
-                <div className="flex items-start gap-5">
-                  <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    provider === 'gemini'
-                      ? 'border-indigo-600 bg-indigo-600 shadow-lg shadow-indigo-300/50'
-                      : 'border-slate-300 group-hover:border-indigo-400'
-                  }`}>
-                    {provider === 'gemini' && (
-                      <div className="w-3 h-3 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-bold text-slate-900 text-lg">AI Examen</h4>
-                      <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white font-semibold shadow-sm">Gemini</span>
-                    </div>
-                    <p className="text-sm text-slate-700 leading-relaxed">
-                      Voor het <strong className="text-indigo-700">oefenen en leren</strong> van nieuwe stof. De AI genereert gevarieerde vragen die je helpen om concepten te begrijpen en je kennis te testen. Ideaal voor algemene voorbereiding en het ontdekken van je zwakke punten.
-                    </p>
-                  </div>
-                </div>
-              </button>
-
-              {/* Grok - Look-alike Examen */}
-              <button
-                onClick={() => grokAvailable && setProvider('grok')}
-                disabled={isGenerating || !grokAvailable}
-                className={`group w-full p-6 rounded-2xl border-2 text-left transition-all duration-300 ${
-                  provider === 'grok'
-                    ? 'border-amber-500 bg-gradient-to-br from-amber-50 via-orange-50/50 to-yellow-50/30 shadow-lg shadow-amber-200/50'
-                    : grokAvailable
-                      ? 'border-slate-200 bg-white/50 hover:border-amber-300 hover:bg-gradient-to-br hover:from-amber-50/50 hover:to-orange-50/30 hover:shadow-md'
-                      : 'border-slate-200 bg-slate-50/50 opacity-60 cursor-not-allowed'
-                }`}
-              >
-                <div className="flex items-start gap-5">
-                  <div className={`mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all ${
-                    provider === 'grok'
-                      ? 'border-amber-600 bg-amber-600 shadow-lg shadow-amber-300/50'
-                      : grokAvailable ? 'border-slate-300 group-hover:border-amber-400' : 'border-slate-300'
-                  }`}>
-                    {provider === 'grok' && (
-                      <div className="w-3 h-3 rounded-full bg-white" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h4 className="font-bold text-slate-900 text-lg">Look-alike Examen</h4>
-                      <span className="text-xs px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white font-semibold shadow-sm">Grok</span>
-                    </div>
-                    <p className="text-sm text-slate-700 leading-relaxed">
-                      {grokAvailable ? (
-                        <>
-                          Voor <strong className="text-amber-700">realistische examensimulatie</strong>. Vragen die qua stijl, structuur en moeilijkheidsgraad nauw aansluiten bij echte eindexamens. Perfect voor de laatste fase van je voorbereiding en om te wennen aan het examenformat.
-                        </>
-                      ) : (
-                        'Deze optie is momenteel niet beschikbaar omdat de API key niet is geconfigureerd.'
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </button>
-            </div>
-          </div>
-
           {/* Topic Selection */}
           <div className="bg-white/70 backdrop-blur-xl rounded-2xl p-7 shadow-xl shadow-slate-200/50 border border-white/60 hover:shadow-2xl transition-all duration-300">
             <div className="flex items-center gap-3 mb-5">
@@ -317,32 +219,6 @@ export const AIGeneratorMenu: React.FC<AIGeneratorMenuProps> = ({
                     ))}
                   </div>
                 </div>
-
-                {/* Time Limit - Only show for Look-alike (Grok) exams */}
-                {provider === 'grok' && (
-                  <div>
-                    <label className="font-bold text-slate-900 mb-4 block flex items-center gap-2">
-                      <Target className="w-4 h-4 text-pink-500" />
-                      Tijdslimiet
-                    </label>
-                    <div className="grid grid-cols-5 gap-2">
-                      {TIME_LIMITS.map(limit => (
-                        <button
-                          key={limit.value}
-                          onClick={() => setTimeLimit(limit.value)}
-                          disabled={isGenerating}
-                          className={`p-3 rounded-xl border-2 font-semibold text-xs transition-all duration-300 ${
-                            timeLimit === limit.value
-                              ? 'bg-gradient-to-br from-pink-50 to-orange-50 border-pink-500 text-pink-900 shadow-lg shadow-pink-200/50 scale-105'
-                              : 'bg-white border-slate-200 text-slate-600 hover:border-pink-300 hover:bg-gradient-to-br hover:from-pink-50/30 hover:to-orange-50/20 hover:scale-102'
-                        }`}
-                        >
-                          {limit.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
