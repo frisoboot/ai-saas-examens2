@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// xAI API configuration - using grok-3 (best available model)
+// xAI API configuration - using grok-4-fast (fastest & most capable model)
 const XAI_API_URL = 'https://api.x.ai/v1/chat/completions';
-const XAI_MODEL = 'grok-3';
+const XAI_MODEL = 'grok-4-fast';
 
 interface GenerateRequest {
   subject: string;
