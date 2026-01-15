@@ -16,7 +16,7 @@ interface SubjectOptionsProps {
   onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartExam: (year?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
-  onStartLookAlike: (count: number, topic?: string) => void;
+  onStartLookAlike: (count: number, topic?: string, timeLimit?: number) => void;
 }
 
 export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
