@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, MessageCircle, Sparkles, BookOpen, Calendar } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles, Calendar } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
-import { getSubjectIcon } from '../utils/subjectIcons';
+import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
 interface SubjectOptionsProps {
   subject: string;
@@ -28,6 +28,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   const [view, setView] = useState<'default' | 'ai-setup'>('default');
   
   const SubjectIcon = getSubjectIcon(subject);
+  const subjectColorClass = getSubjectColor(subject);
 
   useEffect(() => {
     const loadYears = async () => {
@@ -95,8 +96,8 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
             className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-purple-500/30 transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-start gap-6">
-              <div className="w-14 h-14 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0">
-                <MessageCircle className="w-7 h-7" />
+              <div className={`w-14 h-14 rounded-2xl ${subjectColorClass} flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0`}>
+                <SubjectIcon className="w-7 h-7" />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 mb-2">AI Bijlesdocent</h3>
@@ -120,8 +121,8 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
             className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
           >
             <div className="flex items-start gap-6">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0">
-                <Sparkles className="w-7 h-7" />
+              <div className={`w-14 h-14 rounded-2xl ${subjectColorClass} flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0`}>
+                <SubjectIcon className="w-7 h-7" />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 mb-2">AI Examen Generator</h3>
@@ -141,8 +142,8 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
           {/* Eindexamen Oefenen */}
           <div className="bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-200/60">
             <div className="flex items-start gap-6 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center shadow-sm flex-shrink-0">
-                <BookOpen className="w-7 h-7" />
+              <div className={`w-14 h-14 rounded-2xl ${subjectColorClass} flex items-center justify-center shadow-sm flex-shrink-0`}>
+                <SubjectIcon className="w-7 h-7" />
               </div>
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-slate-900 mb-2">Eindexamen Oefenen</h3>
