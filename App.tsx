@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser } from './types';
+import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
-import { generateAIQuestions } from './services/geminiService';
+import { generateAIQuestions, generateFlashcards } from './services/geminiService';
 import { generateLookAlikeQuestions } from './services/grokService';
 import { AIProvider } from './components/AIGeneratorMenu';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
+import { FlashcardStudy } from './components/FlashcardStudy';
 import { LandingPage } from './components/LandingPage';
 import { StudentRegistration } from './components/StudentRegistration';
 import { PaymentSuccess } from './components/PaymentSuccess';
@@ -31,6 +32,7 @@ const App: React.FC = () => {
   const [currentProfile, setCurrentProfile] = useState<StudentProfile | null>(null);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
+  const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
   const [loginError, setLoginError] = useState('');
 
@@ -197,6 +199,51 @@ const App: React.FC = () => {
   const startChat = (subject: string) => {
     setChatSubject(subject);
     setView('SUBJECT_CHAT');
+  };
+
+  const startFlashcards = async (
+    subject: string,
+    count: number = 10,
+    topic?: string
+  ) => {
+    if (!currentProfile) return;
+
+    console.log(`Genereren van ${count} flashcards voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
+
+    try {
+      const flashcards = await generateFlashcards(subject, currentProfile.level, count, topic);
+
+      if (flashcards.length === 0) {
+        alert(`Kon geen flashcards genereren voor ${subject}. Probeer het opnieuw.`);
+        return;
+      }
+
+      setCurrentFlashcardSession({
+        studentName: currentProfile.name,
+        subject,
+        level: currentProfile.level,
+        cards: flashcards,
+        currentCardIndex: 0,
+        knownCards: [],
+        unknownCards: [],
+        startTime: Date.now()
+      });
+      setView('FLASHCARD_STUDY');
+    } catch (error: any) {
+      console.error('Fout bij genereren flashcards:', error);
+
+      let errorMessage = 'Er ging iets mis bij het genereren van de flashcards.\n\n';
+
+      if (error.message?.includes('API key')) {
+        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld.';
+      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
+      } else {
+        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
+      }
+
+      alert(errorMessage);
+    }
   };
 
   const renderContent = () => {
@@ -379,6 +426,7 @@ const App: React.FC = () => {
             onStartExam={startExam}
             onStartChat={startChat}
             onStartAIQuestions={startAIQuestions}
+            onStartFlashcards={startFlashcards}
             onLogout={() => {
               setStudentName('');
               setStudentPassword('');
@@ -404,6 +452,17 @@ const App: React.FC = () => {
             subject={chatSubject}
             student={currentProfile}
             onBack={() => setView('STUDENT_DASHBOARD')}
+          />
+        );
+
+      case 'FLASHCARD_STUDY':
+        if (!currentProfile || !currentFlashcardSession) return null;
+        return (
+          <FlashcardStudy
+            session={currentFlashcardSession}
+            student={currentProfile}
+            onBack={() => setView('STUDENT_DASHBOARD')}
+            onComplete={() => setView('STUDENT_DASHBOARD')}
           />
         );
 

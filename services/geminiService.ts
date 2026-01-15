@@ -1,5 +1,5 @@
 import { GoogleGenAI, Chat } from "@google/genai";
-import { Question, StudentProfile } from "../types";
+import { Question, StudentProfile, Flashcard, StudentLevel } from "../types";
 
 // Fix: Use Vite's import.meta.env instead of process.env
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -476,5 +476,167 @@ export const generateExamSummary = async (
       improvements: percentage < 60 ? ["Bestudeer de theorie nog eens", "Maak meer oefenexamens"] : ["Let goed op details"],
       studyTips: ["Herhaal de stof regelmatig", "Maak aantekeningen", "Oefen met verschillende vraagtypen"]
     };
+  }
+};
+
+// Generate AI flashcards for a subject
+export const generateFlashcards = async (
+  subject: string,
+  level: StudentLevel,
+  count: number = 10,
+  topic?: string
+): Promise<Flashcard[]> => {
+  // Define level-specific complexity
+  let levelInstructions = "";
+
+  switch (level) {
+    case 'VMBO-TL':
+      levelInstructions = `
+      VMBO-TL NIVEAU:
+      - Taal: Eenvoudig en direct, gebruik herkenbare voorbeelden
+      - Vragen: Focus op feiten, basisbegrippen en definities
+      - Antwoorden: Kort en bondig, max 1-2 zinnen
+      - Complexiteit: Reproductie en basisbegrip
+      `;
+      break;
+    case 'HAVO':
+      levelInstructions = `
+      HAVO NIVEAU:
+      - Taal: Helder met correcte vakterminologie
+      - Vragen: Mix van feiten, begrippen en toepassingen
+      - Antwoorden: Volledig maar beknopt, 1-3 zinnen
+      - Complexiteit: Begrip en toepassing van concepten
+      `;
+      break;
+    case 'VWO':
+      levelInstructions = `
+      VWO NIVEAU:
+      - Taal: Academisch met wetenschappelijke terminologie
+      - Vragen: Complexe concepten, verbanden en analyses
+      - Antwoorden: Volledig met nuance waar nodig, 2-4 zinnen
+      - Complexiteit: Diepgaand begrip, analyse en synthese
+      `;
+      break;
+    default:
+      levelInstructions = "Pas het niveau aan aan de eindexamenstof.";
+  }
+
+  const prompt = `
+    Je bent een ervaren ${subject} docent die flashcards maakt voor ${level} eindexamenstof.
+    ${topic ? `SPECIFIEK ONDERWERP: Focus ALLE kaarten op het onderwerp: "${topic}".` : ''}
+
+    ${levelInstructions}
+
+    OPDRACHT:
+    Maak PRECIES ${count} flashcards die helpen bij het studeren voor het ${level} eindexamen ${subject}.
+
+    FLASHCARD RICHTLIJNEN:
+    - Elke kaart heeft een VOORKANT (vraag/begrip) en een ACHTERKANT (antwoord/uitleg)
+    - Maak een goede mix van:
+      * Definitie-kaarten ("Wat is...?")
+      * Feitenkaarten ("Wanneer/Waar/Wie...?")
+      * Begripskaarten ("Leg uit waarom...")
+      * Toepassingskaarten ("Wat gebeurt er als...?")
+    - Zorg dat de voorkant een duidelijke vraag of begrip is
+    - Zorg dat de achterkant een volledig maar beknopt antwoord geeft
+    ${topic ? `- Alle kaarten moeten gaan over: ${topic}` : ''}
+
+    BELANGRIJK: Geef je antwoord als JSON array met dit EXACTE format:
+    [
+      {
+        "front": "Wat is fotosynthese?",
+        "back": "Het proces waarbij planten zonlicht gebruiken om CO2 en water om te zetten in glucose en zuurstof."
+      },
+      {
+        "front": "Noem 3 factoren die fotosynthese beïnvloeden.",
+        "back": "1. Lichtintensiteit\\n2. CO2-concentratie\\n3. Temperatuur"
+      }
+    ]
+
+    Geef ALLEEN de JSON array terug, geen extra tekst ervoor of erna.
+  `;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: prompt,
+    });
+
+    const responseText = response.text || '';
+
+    if (!responseText.trim()) {
+      throw new Error("AI gaf een lege response terug. Probeer het opnieuw.");
+    }
+
+    // Extract JSON from response
+    let jsonText = responseText.trim();
+
+    // Remove markdown code blocks
+    const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+    const match = jsonText.match(codeBlockRegex);
+    if (match) {
+      jsonText = match[1].trim();
+    } else if (jsonText.startsWith('```')) {
+      jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+    }
+
+    // Try to find JSON array if there's extra text
+    if (!jsonText.startsWith('[')) {
+      const arrayMatch = jsonText.match(/\[[\s\S]*\]/);
+      if (arrayMatch) {
+        jsonText = arrayMatch[0];
+      }
+    }
+
+    // Parse JSON
+    let cardsData: any[];
+    try {
+      cardsData = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error("JSON parse error. Raw response:", responseText.substring(0, 500));
+      throw new Error("AI response kon niet worden verwerkt. Het antwoord was geen geldig JSON formaat.");
+    }
+
+    if (!Array.isArray(cardsData) || cardsData.length === 0) {
+      throw new Error("AI genereerde geen flashcards. Probeer het opnieuw.");
+    }
+
+    // Convert to Flashcard format
+    const now = new Date().toISOString();
+    const flashcards: Flashcard[] = [];
+
+    for (let index = 0; index < cardsData.length; index++) {
+      const card = cardsData[index];
+
+      if (!card.front || !card.back) {
+        console.warn(`Flashcard ${index + 1} mist front of back, wordt overgeslagen`);
+        continue;
+      }
+
+      flashcards.push({
+        id: `fc-${Date.now()}-${index}`,
+        subject: subject,
+        level: level,
+        front: card.front.trim(),
+        back: card.back.trim(),
+        topic: topic,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    if (flashcards.length === 0) {
+      throw new Error("Geen geldige flashcards konden worden gegenereerd. Probeer het opnieuw.");
+    }
+
+    return flashcards;
+  } catch (error: any) {
+    console.error("Fout bij genereren flashcards:", error);
+
+    if (error.message && !error.message.includes("Kon geen flashcards")) {
+      throw error;
+    }
+
+    throw new Error("Kon geen flashcards genereren. Controleer je internetverbinding en probeer het opnieuw.");
   }
 };
