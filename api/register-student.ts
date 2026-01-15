@@ -3,18 +3,30 @@ import { createClient } from '@supabase/supabase-js';
 import { createMollieClient, type Payment } from '@mollie/api-client';
 import { sendWelcomeEmail } from '../services/emailService';
 
-const supabaseUrl = process.env.VITE_SUPABASE_URL!;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-
-const mollieClient = createMollieClient({ apiKey: process.env.MOLLIE_API_KEY! });
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Register student endpoint called');
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Validate environment variables
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const mollieApiKey = process.env.MOLLIE_API_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('Missing Supabase environment variables');
+    return res.status(500).json({ error: 'Server configuratie fout. Neem contact op met de beheerder.' });
+  }
+
+  if (!mollieApiKey) {
+    console.error('Missing Mollie API key');
+    return res.status(500).json({ error: 'Betalingssysteem niet geconfigureerd. Neem contact op met de beheerder.' });
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+  const mollieClient = createMollieClient({ apiKey: mollieApiKey });
 
   const { name, email, password, level, returnUrl } = req.body;
 
@@ -114,7 +126,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Mollie customer created:', customer.id);
 
     // Step 4: Create first payment (iDEAL mandate for trial)
-    const webhookUrl = `${req.headers.origin || 'https://' + req.headers.host}/api/mollie-webhook`;
+    // Construct webhook URL robustly
+    let baseUrl = req.headers.origin as string | undefined;
+    if (!baseUrl && req.headers.host) {
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      baseUrl = `${protocol}://${req.headers.host}`;
+    }
+    if (!baseUrl) {
+      console.error('Could not determine base URL for webhook');
+      return res.status(500).json({ error: 'Server configuratie fout: kon webhook URL niet bepalen.' });
+    }
+    const webhookUrl = `${baseUrl}/api/mollie-webhook`;
     console.log('Creating Mollie payment with webhook:', webhookUrl);
 
     const payment = (await mollieClient.payments.create({

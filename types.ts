@@ -73,6 +73,9 @@ export interface StudentProfile {
   mollieSubscriptionId?: string;
   trialStartedAt?: string;
   trialEndsAt?: string;
+
+  // Runtime flag set by auth when subscription is expired
+  subscriptionExpired?: boolean;
 }
 
 export type ViewState = 'HOME' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED' | 'FLASHCARD_STUDY';
