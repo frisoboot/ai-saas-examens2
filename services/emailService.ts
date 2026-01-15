@@ -1,7 +1,8 @@
 /**
  * Email Service - Send transactional emails
  *
- * Uses Resend for email delivery (or can fallback to console.log in dev)
+ * Uses Resend for email delivery
+ * In development mode, logs to console instead of sending
  */
 
 interface WelcomeEmailData {
@@ -29,7 +30,7 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
 
   // In development: just log
   if (process.env.NODE_ENV === 'development' || !process.env.RESEND_API_KEY) {
-    console.log('📧 [DEV] Welcome email would be sent to:', email);
+    console.log('[DEV] Welcome email would be sent to:', email);
     console.log('Subject: Welkom bij Examentrainer.nl - Je 7 Dagen Trial is Gestart!');
     console.log('Body:', {
       name,
@@ -40,32 +41,26 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
   }
 
   // Production: send via Resend
-  try {
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Examentrainer.nl <noreply@examentrainer.nl>',
-        to: email,
-        subject: 'Welkom bij Examentrainer.nl - Je 7 Dagen Trial is Gestart! 🎉',
-        html: generateWelcomeEmailHTML(name, trialEndDate)
-      })
-    });
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'Examentrainer.nl <noreply@examentrainer.nl>',
+      to: email,
+      subject: 'Welkom bij Examentrainer.nl - Je 7 Dagen Trial is Gestart!',
+      html: generateWelcomeEmailHTML(name, trialEndDate)
+    })
+  });
 
-    if (!response.ok) {
-      const error = await response.json();
-      console.error('Failed to send welcome email:', error);
-      throw new Error('Email send failed');
-    }
-
-    console.log('✅ Welcome email sent to:', email);
-  } catch (error) {
-    console.error('Error sending welcome email:', error);
-    // Don't throw - email failure shouldn't block registration
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
   }
+
+  console.log('Welcome email sent to:', email);
 }
 
 /**
@@ -75,30 +70,31 @@ export async function sendTrialEndingEmail(data: TrialEndingEmailData): Promise<
   const { name, email, daysRemaining } = data;
 
   if (process.env.NODE_ENV === 'development' || !process.env.RESEND_API_KEY) {
-    console.log('📧 [DEV] Trial ending email would be sent to:', email);
+    console.log('[DEV] Trial ending email would be sent to:', email);
     console.log(`Subject: Je trial loopt over ${daysRemaining} dagen af`);
     return;
   }
 
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Examentrainer.nl <noreply@examentrainer.nl>',
-        to: email,
-        subject: `Je trial loopt over ${daysRemaining} dagen af ⏰`,
-        html: generateTrialEndingEmailHTML(name, daysRemaining)
-      })
-    });
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'Examentrainer.nl <noreply@examentrainer.nl>',
+      to: email,
+      subject: `Je trial loopt over ${daysRemaining} dagen af`,
+      html: generateTrialEndingEmailHTML(name, daysRemaining)
+    })
+  });
 
-    console.log('✅ Trial ending email sent to:', email);
-  } catch (error) {
-    console.error('Error sending trial ending email:', error);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
   }
+
+  console.log('Trial ending email sent to:', email);
 }
 
 /**
@@ -108,30 +104,31 @@ export async function sendTrialExpiredEmail(data: TrialExpiredEmailData): Promis
   const { name, email } = data;
 
   if (process.env.NODE_ENV === 'development' || !process.env.RESEND_API_KEY) {
-    console.log('📧 [DEV] Trial expired email would be sent to:', email);
+    console.log('[DEV] Trial expired email would be sent to:', email);
     console.log('Subject: Je trial is verlopen');
     return;
   }
 
-  try {
-    await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'Examentrainer.nl <noreply@examentrainer.nl>',
-        to: email,
-        subject: 'Je trial is verlopen - Upgrade je account',
-        html: generateTrialExpiredEmailHTML(name)
-      })
-    });
+  const response = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      from: 'Examentrainer.nl <noreply@examentrainer.nl>',
+      to: email,
+      subject: 'Je trial is verlopen - Upgrade je account',
+      html: generateTrialExpiredEmailHTML(name)
+    })
+  });
 
-    console.log('✅ Trial expired email sent to:', email);
-  } catch (error) {
-    console.error('Error sending trial expired email:', error);
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
   }
+
+  console.log('Trial expired email sent to:', email);
 }
 
 // Email HTML templates
@@ -151,7 +148,7 @@ function generateWelcomeEmailHTML(name: string, trialEndDate: string): string {
 
     <!-- Header -->
     <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); padding: 40px 30px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">🎉 Welkom bij Examentrainer.nl!</h1>
+      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">Welkom bij Examentrainer.nl!</h1>
     </div>
 
     <!-- Content -->
@@ -176,12 +173,12 @@ function generateWelcomeEmailHTML(name: string, trialEndDate: string): string {
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);">
-          Start met Oefenen →
+          Start met Oefenen
         </a>
       </div>
 
       <p style="font-size: 14px; color: #6b7280; margin: 30px 0 0; padding-top: 30px; border-top: 1px solid #e5e7eb;">
-        Na je trial periode gaat je abonnement automatisch door voor €12,50 per maand. Je kunt op elk moment opzeggen in je accountinstellingen.
+        Na je trial periode gaat je abonnement automatisch door voor 12,50 per maand. Je kunt op elk moment opzeggen in je accountinstellingen.
       </p>
     </div>
 
@@ -210,7 +207,7 @@ function generateTrialEndingEmailHTML(name: string, daysRemaining: number): stri
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f5f5f7;">
   <div style="max-width: 600px; margin: 40px auto; background-color: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
     <div style="background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); padding: 40px 30px; text-align: center;">
-      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">⏰ Je trial loopt bijna af</h1>
+      <h1 style="color: white; margin: 0; font-size: 28px; font-weight: 700;">Je trial loopt bijna af</h1>
     </div>
 
     <div style="padding: 40px 30px;">
@@ -222,13 +219,13 @@ function generateTrialEndingEmailHTML(name: string, daysRemaining: number): stri
 
       <div style="background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 20px; margin: 30px 0; border-radius: 8px;">
         <p style="margin: 0; font-size: 16px; color: #92400e;">
-          <strong>Wil je stoppen?</strong> Annuleer dan voor het einde van je trial in je account instellingen. Anders betaal je €12,50 per maand.
+          <strong>Wil je stoppen?</strong> Annuleer dan voor het einde van je trial in je account instellingen. Anders betaal je 12,50 per maand.
         </p>
       </div>
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px;">
-          Ga naar je Account →
+          Ga naar je Account
         </a>
       </div>
     </div>
@@ -263,7 +260,7 @@ function generateTrialExpiredEmailHTML(name: string): string {
 
       <div style="text-align: center; margin: 40px 0;">
         <a href="${loginUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; text-decoration: none; padding: 16px 40px; border-radius: 12px; font-weight: 600; font-size: 16px;">
-          Activeer je Account →
+          Activeer je Account
         </a>
       </div>
     </div>

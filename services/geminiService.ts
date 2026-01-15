@@ -433,50 +433,49 @@ export const generateExamSummary = async (
     Geef ALLEEN de JSON terug, geen extra tekst.
   `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash',
-      contents: prompt,
-    });
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.0-flash',
+    contents: prompt,
+  });
 
-    const responseText = response.text || '';
-    let jsonText = responseText.trim();
+  const responseText = response.text || '';
 
-    // Remove markdown code blocks with various formats
-    const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
-    const match = jsonText.match(codeBlockRegex);
-    if (match) {
-      jsonText = match[1].trim();
-    } else if (jsonText.startsWith('```')) {
-      jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
-    }
-
-    // Try to find JSON object if there's extra text
-    if (!jsonText.startsWith('{')) {
-      const objectMatch = jsonText.match(/\{[\s\S]*\}/);
-      if (objectMatch) {
-        jsonText = objectMatch[0];
-      }
-    }
-
-    const summary = JSON.parse(jsonText);
-
-    return {
-      overall: summary.overall || "Goed geprobeerd!",
-      strengths: Array.isArray(summary.strengths) ? summary.strengths : [],
-      improvements: Array.isArray(summary.improvements) ? summary.improvements : [],
-      studyTips: Array.isArray(summary.studyTips) ? summary.studyTips : []
-    };
-  } catch (error) {
-    console.error("Fout bij genereren examen samenvatting:", error);
-    // Fallback summary
-    return {
-      overall: `Je hebt ${score} van de ${totalQuestions} vragen goed beantwoord (${percentage}%). Blijf oefenen!`,
-      strengths: percentage >= 60 ? ["Je hebt de basis onder de knie"] : ["Je hebt je best gedaan"],
-      improvements: percentage < 60 ? ["Bestudeer de theorie nog eens", "Maak meer oefenexamens"] : ["Let goed op details"],
-      studyTips: ["Herhaal de stof regelmatig", "Maak aantekeningen", "Oefen met verschillende vraagtypen"]
-    };
+  if (!responseText.trim()) {
+    throw new Error("AI gaf een lege response terug voor examen samenvatting.");
   }
+
+  let jsonText = responseText.trim();
+
+  // Remove markdown code blocks with various formats
+  const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+  const match = jsonText.match(codeBlockRegex);
+  if (match) {
+    jsonText = match[1].trim();
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  // Try to find JSON object if there's extra text
+  if (!jsonText.startsWith('{')) {
+    const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      jsonText = objectMatch[0];
+    }
+  }
+
+  let summary;
+  try {
+    summary = JSON.parse(jsonText);
+  } catch (parseError) {
+    throw new Error("AI response voor examen samenvatting kon niet worden verwerkt als JSON.");
+  }
+
+  return {
+    overall: summary.overall || "Goed geprobeerd!",
+    strengths: Array.isArray(summary.strengths) ? summary.strengths : [],
+    improvements: Array.isArray(summary.improvements) ? summary.improvements : [],
+    studyTips: Array.isArray(summary.studyTips) ? summary.studyTips : []
+  };
 };
 
 // Generate AI flashcards for a subject
