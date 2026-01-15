@@ -234,11 +234,12 @@ const App: React.FC = () => {
   const startLookAlikeQuestions = async (
     subject: string,
     count: number = 10,
-    topic?: string
+    topic?: string,
+    timeLimit?: number
   ) => {
     if (!currentProfile) return;
 
-    console.log(`xAI genereert ${count} look-alike vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
+    console.log(`xAI genereert ${count} look-alike vragen voor ${subject}${topic ? ` over "${topic}"` : ''}${timeLimit ? ` met ${timeLimit} minuten tijdslimiet` : ''}...`);
 
     try {
       const questions = await generateLookAlikeQuestions(subject, currentProfile.level, count, topic);
@@ -255,7 +256,8 @@ const App: React.FC = () => {
         currentQuestionIndex: 0,
         answers: {},
         examType: 'ai_practice',
-        startTime: Date.now()
+        startTime: Date.now(),
+        timeLimit: timeLimit && timeLimit > 0 ? timeLimit : undefined
       });
       setView('EXAM');
     } catch (error: any) {

@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, Target, ListChecks, Play, Sparkles, Zap, Brain } from 'lucide-react';
+import { ArrowLeft, Target, ListChecks, Play, Sparkles, Zap, Brain, Clock } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
@@ -9,10 +9,17 @@ interface XAIGeneratorMenuProps {
   subject: string;
   studentLevel: StudentLevel;
   onBack: () => void;
-  onGenerate: (count: number, topic?: string) => void;
+  onGenerate: (count: number, topic?: string, timeLimit?: number) => void;
 }
 
 const QUESTION_COUNTS = [5, 10, 15, 20];
+const TIME_LIMITS = [
+  { label: 'Geen limiet', value: 0 },
+  { label: '30 min', value: 30 },
+  { label: '45 min', value: 45 },
+  { label: '60 min', value: 60 },
+  { label: '90 min', value: 90 }
+];
 
 export const XAIGeneratorMenu: React.FC<XAIGeneratorMenuProps> = ({
   subject,
@@ -23,6 +30,7 @@ export const XAIGeneratorMenu: React.FC<XAIGeneratorMenuProps> = ({
   const [topic, setTopic] = useState('');
   const [customTopic, setCustomTopic] = useState('');
   const [questionCount, setQuestionCount] = useState(10);
+  const [timeLimit, setTimeLimit] = useState(0);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const availableTopics = useMemo(() => getTopicsForSubject(subject, studentLevel), [subject, studentLevel]);
@@ -31,7 +39,7 @@ export const XAIGeneratorMenu: React.FC<XAIGeneratorMenuProps> = ({
   const handleStart = () => {
     setIsGenerating(true);
     const finalTopic = topic === 'custom' ? customTopic : topic;
-    onGenerate(questionCount, finalTopic.trim() || undefined);
+    onGenerate(questionCount, finalTopic.trim() || undefined, timeLimit);
   };
 
   return (
@@ -157,6 +165,36 @@ export const XAIGeneratorMenu: React.FC<XAIGeneratorMenuProps> = ({
                     <div className="absolute inset-0 bg-gradient-to-br from-cyan-400 to-emerald-500 rounded-2xl blur-xl opacity-40 animate-pulse" />
                   )}
                   <span className="relative">{count}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Time Limit */}
+          <div className="bg-slate-800/60 backdrop-blur-xl rounded-2xl p-7 shadow-xl border border-slate-700/50 hover:border-amber-500/20 transition-all duration-300">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center shadow-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-bold text-white text-lg">Tijdslimiet</h3>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              {TIME_LIMITS.map(({ label, value }) => (
+                <button
+                  key={value}
+                  onClick={() => setTimeLimit(value)}
+                  disabled={isGenerating}
+                  className={`relative p-4 rounded-2xl font-bold text-sm transition-all duration-300 ${
+                    timeLimit === value
+                      ? 'bg-gradient-to-br from-amber-500 to-orange-500 text-white shadow-2xl shadow-amber-500/30 scale-105'
+                      : 'bg-slate-900/50 text-slate-400 hover:bg-slate-900/70 hover:text-white hover:scale-102 border border-slate-700 hover:border-amber-500/30'
+                  }`}
+                >
+                  {timeLimit === value && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl blur-xl opacity-40 animate-pulse" />
+                  )}
+                  <span className="relative">{label}</span>
                 </button>
               ))}
             </div>
