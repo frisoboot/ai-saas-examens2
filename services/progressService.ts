@@ -88,6 +88,7 @@ export const getStudentProgress = async (studentName: string): Promise<StudentPr
     .eq('student_name', studentName);
 
   if (error) throw error;
+  if (!data) return [];
 
   return data.map(d => ({
     id: d.id,

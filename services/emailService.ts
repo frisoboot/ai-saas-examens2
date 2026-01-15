@@ -56,8 +56,8 @@ export async function sendWelcomeEmail(data: WelcomeEmailData): Promise<void> {
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
+    const errorText = await response.text();
+    throw new Error(`Email verzenden mislukt (${response.status}): ${errorText}`);
   }
 
   console.log('Welcome email sent to:', email);
@@ -90,8 +90,8 @@ export async function sendTrialEndingEmail(data: TrialEndingEmailData): Promise<
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
+    const errorText = await response.text();
+    throw new Error(`Email verzenden mislukt (${response.status}): ${errorText}`);
   }
 
   console.log('Trial ending email sent to:', email);
@@ -124,8 +124,8 @@ export async function sendTrialExpiredEmail(data: TrialExpiredEmailData): Promis
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    throw new Error(`Email verzenden mislukt: ${JSON.stringify(error)}`);
+    const errorText = await response.text();
+    throw new Error(`Email verzenden mislukt (${response.status}): ${errorText}`);
   }
 
   console.log('Trial expired email sent to:', email);

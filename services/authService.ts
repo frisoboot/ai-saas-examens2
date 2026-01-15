@@ -187,6 +187,10 @@ export const createStudentAccount = async (
     throw new Error(`Auth error: ${authError.message}`);
   }
 
+  if (!authData.user) {
+    throw new Error('Supabase Auth gaf geen user terug');
+  }
+
   // Stap 2: Maak student profiel in database
   const { error: profileError } = await supabaseAdmin
     .from('student_profiles')
@@ -344,7 +348,10 @@ export const getCurrentUser = async (): Promise<{ role: 'admin' | 'student'; dat
       }
     };
   } else if (role === 'student') {
-    const profile = await getStudentByName(user.user_metadata?.name);
+    const studentName = user.user_metadata?.name;
+    if (!studentName) return null;
+
+    const profile = await getStudentByName(studentName);
     if (!profile) return null;
 
     return {

@@ -4,14 +4,17 @@ import { Question, StudentProfile, Flashcard, StudentLevel } from "../types";
 // Fix: Use Vite's import.meta.env instead of process.env
 const apiKey = import.meta.env.VITE_GEMINI_API_KEY || '';
 
-if (!apiKey) {
-  console.warn('Gemini API key not found. Set VITE_GEMINI_API_KEY in your .env file.');
-}
+const requireGeminiApiKey = () => {
+  if (!apiKey) {
+    throw new Error('Gemini API key niet geconfigureerd. Voeg VITE_GEMINI_API_KEY toe aan je .env bestand.');
+  }
+};
 
 const ai = new GoogleGenAI({ apiKey });
 
 // Explanation for Exam Review
 export const getExplanation = async (question: Question, studentAnswer: number | string): Promise<string> => {
+  requireGeminiApiKey();
   let prompt = '';
 
   if (question.type === 'MULTIPLE_CHOICE') {
@@ -135,6 +138,7 @@ export const generateAIQuestions = async (
   count: number = 10,
   topic?: string
 ): Promise<Question[]> => {
+  requireGeminiApiKey();
   // Define level-specific exam requirements
   let levelInstructions = "";
   let exampleTypes = "";
@@ -384,6 +388,7 @@ export const generateExamSummary = async (
   improvements: string[];
   studyTips: string[];
 }> => {
+  requireGeminiApiKey();
   // Analyze answers
   const correctQuestions: string[] = [];
   const incorrectQuestions: string[] = [];
@@ -485,6 +490,7 @@ export const generateFlashcards = async (
   count: number = 10,
   topic?: string
 ): Promise<Flashcard[]> => {
+  requireGeminiApiKey();
   // Define level-specific complexity
   let levelInstructions = "";
 
