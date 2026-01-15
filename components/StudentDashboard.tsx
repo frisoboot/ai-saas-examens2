@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
-import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked } from 'lucide-react';
+import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked, Layers } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -11,6 +11,7 @@ interface StudentDashboardProps {
   onStartExam: (subject: string, year?: number) => void;
   onStartChat: (subject: string) => void;
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number) => void;
+  onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onLogout: () => void;
 }
 
@@ -26,6 +27,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartExam,
   onStartChat,
   onStartAIQuestions,
+  onStartFlashcards,
   onLogout
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -67,6 +69,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
           onStartAIQuestions(selectedSubject, count, topic, difficulty, questionTypeMix, timeLimit)
         }
         onStartExam={(year) => onStartExam(selectedSubject, year)}
+        onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
       />
     );
   }

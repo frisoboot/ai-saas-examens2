@@ -75,7 +75,7 @@ export interface StudentProfile {
   trialEndsAt?: string;
 }
 
-export type ViewState = 'HOME' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED';
+export type ViewState = 'HOME' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED' | 'FLASHCARD_STUDY';
 
 export interface ExamSession {
   studentName: string;
@@ -149,4 +149,38 @@ export interface YearExam {
   subjects: string[]; // Subjects available for this year
   questionCount: number;
   levels: StudentLevel[];
+}
+
+// Flashcard interfaces
+export interface Flashcard {
+  id: string;
+  subject: string;
+  level: StudentLevel;
+  front: string;  // Question/prompt side
+  back: string;   // Answer side
+  topic?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FlashcardProgress {
+  id: string;
+  studentName: string;
+  subject: string;
+  level: StudentLevel;
+  cardsStudied: number;
+  cardsMastered: number;  // Cards marked as "known"
+  totalCards: number;
+  lastStudied?: string;
+}
+
+export interface FlashcardSession {
+  studentName: string;
+  subject: string;
+  level: StudentLevel;
+  cards: Flashcard[];
+  currentCardIndex: number;
+  knownCards: string[];    // IDs of cards marked as "known"
+  unknownCards: string[];  // IDs of cards marked as "need practice"
+  startTime: number;
 }

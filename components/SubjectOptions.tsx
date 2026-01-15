@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, MessageCircle, Sparkles, Calendar } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
+import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
 interface SubjectOptionsProps {
@@ -13,6 +14,7 @@ interface SubjectOptionsProps {
   onStartChat: () => void;
   onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string, timeLimit?: number) => void;
   onStartExam: (year?: number) => void;
+  onStartFlashcards: (count: number, topic?: string) => void;
 }
 
 export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
@@ -21,11 +23,12 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   onBack,
   onStartChat,
   onStartAIQuestions,
-  onStartExam
+  onStartExam,
+  onStartFlashcards
 }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
-  const [view, setView] = useState<'default' | 'ai-setup'>('default');
+  const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup'>('default');
   
   const SubjectIcon = getSubjectIcon(subject);
   const subjectColorClass = getSubjectColor(subject);
@@ -58,6 +61,17 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
         studentLevel={student.level}
         onBack={() => setView('default')}
         onGenerate={onStartAIQuestions}
+      />
+    );
+  }
+
+  if (view === 'flashcard-setup') {
+    return (
+      <FlashcardGeneratorMenu
+        subject={subject}
+        studentLevel={student.level}
+        onBack={() => setView('default')}
+        onGenerate={onStartFlashcards}
       />
     );
   }
@@ -134,6 +148,30 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   <span>AI Toetsen</span>
                   <span className="text-slate-300">•</span>
                   <span>Altijd nieuwe vragen</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* AI Flashcards */}
+          <div
+            onClick={() => setView('flashcard-setup')}
+            className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-amber-500/30 transition-all duration-300 cursor-pointer"
+          >
+            <div className="flex items-start gap-6">
+              <div className={`w-14 h-14 rounded-2xl ${subjectColorClass} flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0`}>
+                <SubjectIcon className="w-7 h-7" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Flashcards</h3>
+                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+                  Leer de stof met AI-gegenereerde flashcards. Kies een onderwerp en oefen begrippen, definities en feiten.
+                </p>
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <Layers className="w-4 h-4" />
+                  <span>Flashcards</span>
+                  <span className="text-slate-300">•</span>
+                  <span>Snel leren</span>
                 </div>
               </div>
             </div>
