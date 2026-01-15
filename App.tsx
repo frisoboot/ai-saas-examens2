@@ -3,8 +3,6 @@ import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, Flashc
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
 import { generateAIQuestions, generateFlashcards } from './services/geminiService';
-import { generateLookAlikeQuestions } from './services/grokService';
-import { AIProvider } from './components/AIGeneratorMenu';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
@@ -138,31 +136,18 @@ const App: React.FC = () => {
     count: number = 10,
     topic?: string,
     difficulty?: string,
-    questionTypeMix?: string,
-    timeLimit?: number,
-    provider: AIProvider = 'gemini'
+    questionTypeMix?: string
   ) => {
     if (!currentProfile) return;
 
-    const isGrok = provider === 'grok';
-    const providerName = isGrok ? 'Grok' : 'Gemini';
-    const examTypeName = isGrok ? 'look-alike examen' : 'AI examen';
-
     // Show loading feedback
-    const loadingMessage = `${providerName} genereert ${count} ${currentProfile.level} ${examTypeName} vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`;
-    console.log(loadingMessage);
+    console.log(`Gemini genereert ${count} ${currentProfile.level} AI examen vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`);
 
     try {
-      // Generate questions using the selected provider
-      // Note: difficulty, questionTypeMix, and timeLimit are currently not used in generation
-      // but are available for future implementation
-      const aiQuestions = isGrok
-        ? await generateLookAlikeQuestions(subject, currentProfile.level, count, topic)
-        : await generateAIQuestions(subject, currentProfile.level, count, topic);
+      const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
-          const apiKeyName = isGrok ? 'AI_GATEWAY_API_KEY' : 'VITE_GEMINI_API_KEY';
-          alert(`❌ Kon geen ${examTypeName} vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige ${providerName} API key hebt (${apiKeyName})\n- Je internetverbinding werkt`);
+          alert(`❌ Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige Gemini API key hebt (VITE_GEMINI_API_KEY)\n- Je internetverbinding werkt`);
           return;
       }
 
@@ -173,18 +158,16 @@ const App: React.FC = () => {
         currentQuestionIndex: 0,
         answers: {},
         examType: 'ai_practice',
-        startTime: Date.now(),
-        timeLimit: isGrok && timeLimit ? timeLimit : undefined
+        startTime: Date.now()
       });
       setView('EXAM');
     } catch (error: any) {
-      console.error(`Fout bij genereren ${examTypeName} vragen:`, error);
+      console.error('Fout bij genereren AI examen vragen:', error);
 
-      let errorMessage = `❌ Er ging iets mis bij het genereren van de ${examTypeName} vragen.\n\n`;
+      let errorMessage = '❌ Er ging iets mis bij het genereren van de AI examen vragen.\n\n';
 
       if (error.message?.includes('API key')) {
-        const apiKeyName = isGrok ? 'AI_GATEWAY_API_KEY' : 'VITE_GEMINI_API_KEY';
-        errorMessage += `Controleer of je een geldige ${providerName} API key hebt ingesteld in je .env bestand:\n${apiKeyName}=jouw-api-key`;
+        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld in je .env bestand:\nVITE_GEMINI_API_KEY=jouw-api-key';
       } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
         errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
