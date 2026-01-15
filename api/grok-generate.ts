@@ -56,11 +56,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: 'grok-4-fast',
+        model: 'grok-4-1-fast-non-reasoning',
         messages: [
           {
             role: 'system',
-            content: 'Je bent een expert examinator van het College voor Toetsen en Examens. Je maakt authentieke Nederlandse eindexamenvragen die niet te onderscheiden zijn van echte examens. Antwoord altijd in valid JSON format.'
+            content: 'Je bent een expert examinator van het College voor Toetsen en Examens. Je maakt authentieke Nederlandse eindexamenvragen die niet te onderscheiden zijn van echte examens. BELANGRIJK: Antwoord ALLEEN met een JSON array, geen andere tekst. Geen uitleg, geen markdown code blocks, alleen pure JSON.'
           },
           {
             role: 'user',
@@ -82,9 +82,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
 
+      if (response.status === 400) {
+        return res.status(500).json({
+          success: false,
+          error: 'Ongeldige request naar Grok API. Probeer het opnieuw.'
+        });
+      }
+
+      if (response.status === 404) {
+        return res.status(500).json({
+          success: false,
+          error: 'Grok model niet gevonden. Neem contact op met de beheerder.'
+        });
+      }
+
+      if (response.status === 429) {
+        return res.status(500).json({
+          success: false,
+          error: 'Rate limit bereikt. Probeer het over een paar minuten opnieuw.'
+        });
+      }
+
       return res.status(500).json({
         success: false,
-        error: 'Er ging iets mis bij het genereren van vragen.'
+        error: `Grok API fout (${response.status}). Probeer het opnieuw.`
       });
     }
 
@@ -106,11 +127,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       questions
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Error in grok-generate API:', error);
+
+    // Provide more specific error messages based on error type
+    let errorMessage = 'Er ging iets mis bij het genereren van vragen.';
+
+    if (error.message?.includes('Geen geldige vragen')) {
+      errorMessage = 'De AI kon geen geldige examenvragen genereren. Probeer het opnieuw.';
+    } else if (error.message?.includes('JSON')) {
+      errorMessage = 'De AI response kon niet worden verwerkt. Probeer het opnieuw.';
+    } else if (error.name === 'TypeError' && error.message?.includes('fetch')) {
+      errorMessage = 'Kon geen verbinding maken met de Grok API. Controleer je internetverbinding.';
+    }
+
     return res.status(500).json({
       success: false,
-      error: 'Er ging iets mis bij het genereren van vragen.'
+      error: errorMessage
     });
   }
 }
@@ -245,6 +278,9 @@ function parseQuestions(responseText: string, subject: string, level: string): a
   // Extract JSON from response
   let jsonText = responseText.trim();
 
+  // Log the raw response for debugging (truncated)
+  console.log('📝 Raw AI response (first 500 chars):', jsonText.substring(0, 500));
+
   // Remove markdown code blocks
   const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
   const match = jsonText.match(codeBlockRegex);
@@ -262,7 +298,14 @@ function parseQuestions(responseText: string, subject: string, level: string): a
     }
   }
 
-  const questionsData = JSON.parse(jsonText);
+  let questionsData;
+  try {
+    questionsData = JSON.parse(jsonText);
+  } catch (parseError) {
+    console.error('❌ JSON parse error:', parseError);
+    console.error('❌ Attempted to parse:', jsonText.substring(0, 1000));
+    throw new Error('JSON parse error: de AI response bevatte geen geldige JSON');
+  }
 
   if (!Array.isArray(questionsData) || questionsData.length === 0) {
     throw new Error('Geen geldige vragen ontvangen');
