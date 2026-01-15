@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
-import { generateAIQuestions, generateFlashcards } from './services/geminiService';
+import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
@@ -230,6 +230,59 @@ const App: React.FC = () => {
     }
   };
 
+  const startLookalikeExam = async (
+    subject: string,
+    count: number = 10,
+    topic?: string,
+    examStyle?: string,
+    timeLimit?: number
+  ) => {
+    if (!currentProfile) return;
+
+    console.log(`Genereren van ${count} look-alike examenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
+
+    try {
+      const examQuestions = await generateLookalikeExamQuestions(
+        subject,
+        currentProfile.level,
+        count,
+        topic,
+        examStyle as 'tijdvak1' | 'tijdvak2' | 'mixed' | undefined
+      );
+
+      if (examQuestions.length === 0) {
+        alert(`Kon geen look-alike examenvragen genereren voor ${subject}. Probeer het opnieuw.`);
+        return;
+      }
+
+      setCurrentExamSession({
+        studentName: currentProfile.name,
+        subject,
+        questions: examQuestions,
+        currentQuestionIndex: 0,
+        answers: {},
+        examType: 'ai_practice',
+        startTime: Date.now(),
+        timeLimit: timeLimit || undefined // Time limit in minutes (0 = no limit)
+      });
+      setView('EXAM');
+    } catch (error: any) {
+      console.error('Fout bij genereren look-alike examenvragen:', error);
+
+      let errorMessage = 'Er ging iets mis bij het genereren van de look-alike examenvragen.\n\n';
+
+      if (error.message?.includes('API key')) {
+        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld.';
+      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+        errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
+      } else {
+        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
+      }
+
+      alert(errorMessage);
+    }
+  };
+
   const renderContent = () => {
     switch (view) {
       case 'HOME':
@@ -411,6 +464,7 @@ const App: React.FC = () => {
             onStartChat={startChat}
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
+            onStartLookalikeExam={startLookalikeExam}
             onLogout={() => {
               setStudentName('');
               setStudentPassword('');

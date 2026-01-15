@@ -12,6 +12,7 @@ interface StudentDashboardProps {
   onStartChat: (subject: string) => void;
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
+  onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
   onLogout: () => void;
 }
 
@@ -28,6 +29,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartChat,
   onStartAIQuestions,
   onStartFlashcards,
+  onStartLookalikeExam,
   onLogout
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
@@ -70,6 +72,9 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         }
         onStartExam={(year) => onStartExam(selectedSubject, year)}
         onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
+        onStartLookalikeExam={(count, topic, examStyle, timeLimit) =>
+          onStartLookalikeExam(selectedSubject, count, topic, examStyle, timeLimit)
+        }
       />
     );
   }

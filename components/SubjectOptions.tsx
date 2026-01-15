@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
+import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
 interface SubjectOptionsProps {
@@ -15,6 +16,7 @@ interface SubjectOptionsProps {
   onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartExam: (year?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
+  onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
 }
 
 export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
@@ -24,11 +26,12 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   onStartChat,
   onStartAIQuestions,
   onStartExam,
-  onStartFlashcards
+  onStartFlashcards,
+  onStartLookalikeExam
 }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
-  const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup'>('default');
+  const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup' | 'lookalike-setup'>('default');
   
   const SubjectIcon = getSubjectIcon(subject);
   const subjectColorClass = getSubjectColor(subject);
@@ -76,6 +79,16 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
     );
   }
 
+  if (view === 'lookalike-setup') {
+    return (
+      <LookalikeGeneratorMenu
+        subject={subject}
+        studentLevel={student.level}
+        onBack={() => setView('default')}
+        onGenerate={onStartLookalikeExam}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-6 md:p-10">
@@ -149,6 +162,41 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   <span>AI Toetsen</span>
                   <span className="text-slate-300">•</span>
                   <span>Altijd nieuwe vragen</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Look-alike Examenvragen */}
+          <div
+            onClick={() => setView('lookalike-setup')}
+            className="group bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] border border-slate-700 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer relative overflow-hidden"
+          >
+            {/* Background accent */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-full blur-2xl" />
+
+            <div className="flex items-start gap-6 relative z-10">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-emerald-500/30 flex-shrink-0">
+                <GraduationCap className="w-7 h-7 text-white" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-3 mb-2">
+                  <h3 className="text-xl font-bold text-white">Look-alike Examenvragen</h3>
+                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30">
+                    NIEUW
+                  </span>
+                </div>
+                <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                  Echte examensimulatie met authentieke vragen die niet te onderscheiden zijn van het centraal examen.
+                  {['Nederlands', 'Engels', 'Duits', 'Frans', 'Spaans'].includes(subject) && ' Inclusief leesteksten!'}
+                </p>
+                <div className="flex items-center gap-2 text-sm text-slate-400">
+                  <GraduationCap className="w-4 h-4 text-emerald-400" />
+                  <span className="text-emerald-400">Examensimulatie</span>
+                  <span className="text-slate-600">•</span>
+                  <span>Met timer optie</span>
+                  <span className="text-slate-600">•</span>
+                  <span>Tijdvak 1 & 2</span>
                 </div>
               </div>
             </div>
