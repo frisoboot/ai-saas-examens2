@@ -71,7 +71,7 @@ export const getExplanation = async (question: Question, studentAnswer: number |
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
     return response.text || "Geen uitleg beschikbaar.";
@@ -132,7 +132,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile): Cha
   `;
 
   return getAI().chats.create({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     config: {
       systemInstruction: systemInstruction
     }
@@ -286,7 +286,7 @@ export const generateAIQuestions = async (
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
 
@@ -468,7 +468,7 @@ export const generateExamSummary = async (
   `;
 
   const response = await getAI().models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-3-flash-preview',
     contents: prompt,
   });
 
@@ -591,7 +591,7 @@ export const generateFlashcards = async (
 
   try {
     const response = await getAI().models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
     });
 
