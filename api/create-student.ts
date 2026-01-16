@@ -8,6 +8,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
+// SECURITY: Sanitize text to prevent XSS - removes all HTML tags and script content
+function sanitizeInput(text: string): string {
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '') // Remove script tags and content
+    .replace(/<[^>]*>/g, '') // Remove all HTML tags
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+\s*=/gi, '') // Remove event handlers like onclick=
+    .trim();
+}
+
 interface CreateStudentRequest {
   adminUsername: string;
   name: string;
@@ -18,9 +28,21 @@ interface CreateStudentRequest {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers voor je frontend
+  // CORS headers - restrict to allowed origins
+  const allowedOrigins = [
+    process.env.VITE_APP_URL,
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ].filter(Boolean);
+
+  const origin = req.headers.origin as string | undefined;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'development') {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+
   res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 
@@ -80,6 +102,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missende vereiste velden' });
     }
 
+    // SECURITY: Validate and sanitize name
+    const trimmedName = String(name).trim();
+    if (trimmedName.length < 2 || trimmedName.length > 100) {
+      return res.status(400).json({ error: 'Naam moet tussen 2 en 100 karakters zijn' });
+    }
+    const nameRegex = /^[\p{L}\p{N}\s\-'.]+$/u;
+    if (!nameRegex.test(trimmedName)) {
+      return res.status(400).json({ error: 'Naam bevat ongeldige karakters' });
+    }
+
+    // SECURITY: Sanitize strugglePoints to prevent XSS
+    const sanitizedStrugglePoints = sanitizeInput(String(strugglePoints));
+    if (sanitizedStrugglePoints.length > 500) {
+      return res.status(400).json({ error: 'Focuspunten te lang (max 500 karakters)' });
+    }
+
     // Maak admin client met service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -109,7 +147,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email_confirm: true,
       user_metadata: {
         role: 'student',
-        name: name,
+        name: trimmedName, // SECURITY: Use validated name
         level: level,
         created_by: adminUsername
       }
@@ -126,9 +164,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('student_profiles')
       .insert({
-        name: name,
+        name: trimmedName,
         level: level,
-        struggle_points: strugglePoints,
+        struggle_points: sanitizedStrugglePoints, // SECURITY: Use sanitized input
         email: email || authEmail,
         created_by_admin: adminUsername,
         is_active: true,
@@ -158,9 +196,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error) {
     console.error('Unexpected error:', error);
+    // SECURITY: Don't expose internal error details
     return res.status(500).json({
-      error: 'Er ging iets mis bij het aanmaken van de student',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis bij het aanmaken van de student'
     });
   }
 }
