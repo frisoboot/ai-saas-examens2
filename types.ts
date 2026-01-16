@@ -64,21 +64,9 @@ export interface StudentProfile {
   email?: string;
   createdByAdmin?: string; // Admin username who created this account
   isActive?: boolean;
-
-  // Subscription fields (Mollie integration)
-  subscriptionStatus?: 'trial' | 'active' | 'inactive' | 'expired' | 'cancelled';
-  subscriptionStartedAt?: string;
-  subscriptionExpiresAt?: string;
-  mollieCustomerId?: string;
-  mollieSubscriptionId?: string;
-  trialStartedAt?: string;
-  trialEndsAt?: string;
-
-  // Runtime flag set by auth when subscription is expired
-  subscriptionExpired?: boolean;
 }
 
-export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED' | 'FLASHCARD_STUDY';
+export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'FLASHCARD_STUDY';
 
 export interface ExamSession {
   studentName: string;
