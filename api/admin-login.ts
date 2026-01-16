@@ -1,6 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
+import { AuditLogger, getClientInfo } from './utils/auditLogger';
+import { secureCompare } from './utils/securityUtils';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
@@ -103,8 +105,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Check credentials
-    if (username === adminUsername && password === adminPassword) {
+    // Get client info for audit logging
+    const clientInfo = getClientInfo(req);
+
+    // SECURITY: Use timing-safe comparison to prevent timing attacks
+    const usernameMatch = secureCompare(username, adminUsername);
+    const passwordMatch = secureCompare(password, adminPassword);
+
+    if (usernameMatch && passwordMatch) {
       console.log('✅ Admin credentials verified via API endpoint');
 
       // Haal Supabase credentials op
@@ -196,6 +204,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Return success met admin user info en instructie om via Supabase in te loggen
       console.log('✅ Admin login SUCCESS - user exists in Supabase Auth');
 
+      // Audit log the successful login
+      AuditLogger.adminLogin(adminUsername, true, clientInfo);
+
       return res.status(200).json({
         success: true,
         admin: {
@@ -209,10 +220,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Wrong credentials - gebruik constante tijd voor response (prevent timing attacks)
+    // Wrong credentials - we already used timing-safe comparison
+    // Add a small delay to prevent timing-based username enumeration
     await new Promise(resolve => setTimeout(resolve, 100));
 
     console.log('❌ Admin login FAILED - wrong credentials');
+
+    // Audit log the failed login attempt
+    AuditLogger.adminLogin(username, false, clientInfo, 'Invalid credentials');
+
     return res.status(401).json({
       success: false,
       error: 'Gebruikersnaam of wachtwoord onjuist'

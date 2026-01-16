@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createMollieClient, type Payment } from '@mollie/api-client';
 import { sendWelcomeEmail } from '../services/emailService';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
+import { validateStudentPassword } from './utils/securityUtils';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Register student endpoint called');
@@ -65,8 +66,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Ongeldig emailadres' });
   }
 
-  if (password.length < 8) {
-    return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 karakters zijn' });
+  // SECURITY: Enhanced password validation
+  const passwordValidation = validateStudentPassword(password);
+  if (!passwordValidation.isValid) {
+    return res.status(400).json({ error: passwordValidation.error });
   }
 
   if (!['VMBO-TL', 'HAVO', 'VWO'].includes(level)) {

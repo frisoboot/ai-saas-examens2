@@ -7,6 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { AuditLogger, getClientInfo } from './utils/auditLogger';
+import { validateStudentPassword } from './utils/securityUtils';
 
 interface CreateStudentRequest {
   adminUsername: string;
@@ -80,6 +82,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missende vereiste velden' });
     }
 
+    // SECURITY: Enhanced password validation
+    const passwordValidation = validateStudentPassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ error: passwordValidation.error });
+    }
+
+    // Get client info for audit logging
+    const clientInfo = getClientInfo(req);
+
     // Maak admin client met service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -145,6 +156,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('Student profile created:', profileData);
+
+    // Audit log the student creation
+    AuditLogger.studentCreated(adminUsername || user.user_metadata?.username || 'unknown_admin', name, clientInfo);
 
     // Success!
     return res.status(200).json({

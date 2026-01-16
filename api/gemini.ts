@@ -1,11 +1,15 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
+import { AuditLogger, getClientInfo } from './utils/auditLogger';
 
 /**
  * Gemini API Endpoint - Server-side AI calls
  *
- * SECURITY: De Gemini API key blijft op de server en wordt NIET
- * geëxposeerd naar de browser. Alle AI calls gaan via deze endpoint.
+ * SECURITY:
+ * - De Gemini API key blijft op de server en wordt NIET geëxposeerd naar de browser
+ * - Rate limiting voorkomt misbruik en kostenoverschrijding
+ * - Alle AI calls gaan via deze endpoint
  *
  * Environment variabele (server-side only, GEEN VITE_ prefix):
  * - GEMINI_API_KEY: De Gemini API key
@@ -26,10 +30,12 @@ const getAI = (): GoogleGenAI => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - restrict to same origin in production
+  const allowedOrigin = process.env.VITE_APP_URL || '*';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -38,6 +44,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // SECURITY: Rate limiting to prevent API abuse
+  const clientIP = getClientIP(req);
+  const rateLimitKey = `gemini:${clientIP}`;
+  const rateLimit = checkRateLimit(rateLimitKey, rateLimits.aiApi);
+
+  if (!rateLimit.allowed) {
+    const clientInfo = getClientInfo(req);
+    AuditLogger.rateLimited(clientIP, '/api/gemini');
+
+    res.setHeader('X-RateLimit-Limit', rateLimits.aiApi.maxRequests.toString());
+    res.setHeader('X-RateLimit-Remaining', '0');
+    res.setHeader('X-RateLimit-Reset', rateLimit.resetTime.toString());
+    res.setHeader('Retry-After', (rateLimit.retryAfter || 60).toString());
+
+    return res.status(429).json({
+      error: 'Te veel verzoeken. Probeer het over een minuut opnieuw.',
+      retryAfter: rateLimit.retryAfter
+    });
+  }
+
+  // Add rate limit headers to response
+  res.setHeader('X-RateLimit-Limit', rateLimits.aiApi.maxRequests.toString());
+  res.setHeader('X-RateLimit-Remaining', rateLimit.remaining.toString());
+  res.setHeader('X-RateLimit-Reset', rateLimit.resetTime.toString());
 
   try {
     const { action, payload } = req.body;

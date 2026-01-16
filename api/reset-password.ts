@@ -6,6 +6,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { validateStudentPassword } from './utils/securityUtils';
+import { AuditLogger, getClientInfo } from './utils/auditLogger';
 
 interface ResetPasswordRequest {
   studentName: string;
@@ -73,10 +75,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missende vereiste velden' });
     }
 
-    // Password strength validation (consistent with register-student.ts)
-    if (newPassword.length < 8) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 karakters zijn' });
+    // SECURITY: Enhanced password validation (consistent with register-student.ts)
+    const passwordValidation = validateStudentPassword(newPassword);
+    if (!passwordValidation.isValid) {
+      return res.status(400).json({ error: passwordValidation.error });
     }
+
+    // Get client info for audit logging
+    const clientInfo = getClientInfo(req);
 
     // Maak admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -110,6 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     console.log('Password reset successful for:', studentName);
+
+    // Audit log the password reset
+    AuditLogger.studentPasswordReset(user.user_metadata?.username || 'unknown_admin', studentName, clientInfo);
 
     // Success!
     return res.status(200).json({

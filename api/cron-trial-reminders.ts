@@ -20,6 +20,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { sendTrialEndingEmail } from '../services/emailService';
+import { secureCompare } from './utils/securityUtils';
+import { AuditLogger } from './utils/auditLogger';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -40,9 +42,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Server misconfigured' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  const authHeader = req.headers.authorization || '';
+  const expectedHeader = `Bearer ${CRON_SECRET}`;
+
+  // SECURITY: Use timing-safe comparison to prevent timing attacks
+  if (!secureCompare(authHeader, expectedHeader)) {
     console.log('[CRON] Unauthorized request');
+    AuditLogger.securityAlert('Unauthorized cron request to trial-reminders', {
+      providedHeader: authHeader.substring(0, 20) + '...'
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -112,6 +120,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`[CRON] Completed: ${results.sent.length} sent, ${results.errors.length} errors`);
 
+    // Audit log the cron execution
+    AuditLogger.cronJobExecuted('trial-reminders', true, {
+      emailsSent: results.sent.length,
+      errors: results.errors.length,
+      total: endingTrials.length
+    });
+
     return res.status(200).json({
       success: true,
       emailsSent: results.sent,
@@ -121,6 +136,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error: any) {
     console.error('[CRON] Unexpected error:', error);
+
+    // Audit log the failure
+    AuditLogger.cronJobExecuted('trial-reminders', false, undefined, error.message);
+
     return res.status(500).json({
       error: 'Cron job failed',
       message: error.message

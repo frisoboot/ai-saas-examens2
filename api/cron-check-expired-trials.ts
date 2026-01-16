@@ -21,6 +21,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { sendTrialExpiredEmail } from '../services/emailService';
+import { secureCompare } from './utils/securityUtils';
+import { AuditLogger } from './utils/auditLogger';
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -42,9 +44,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(500).json({ error: 'Server misconfigured' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (authHeader !== `Bearer ${CRON_SECRET}`) {
+  const authHeader = req.headers.authorization || '';
+  const expectedHeader = `Bearer ${CRON_SECRET}`;
+
+  // SECURITY: Use timing-safe comparison to prevent timing attacks
+  if (!secureCompare(authHeader, expectedHeader)) {
     console.log('[CRON] Unauthorized request');
+    AuditLogger.securityAlert('Unauthorized cron request to check-expired-trials', {
+      providedHeader: authHeader.substring(0, 20) + '...'
+    });
     return res.status(401).json({ error: 'Unauthorized' });
   }
 
@@ -120,6 +128,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log(`[CRON] Completed: ${results.deactivated.length} deactivated, ${results.errors.length} errors`);
 
+    // Audit log the cron execution
+    AuditLogger.cronJobExecuted('check-expired-trials', true, {
+      deactivated: results.deactivated.length,
+      errors: results.errors.length,
+      total: expiredTrials.length
+    });
+
     return res.status(200).json({
       success: true,
       deactivated: results.deactivated,
@@ -129,6 +144,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   } catch (error: any) {
     console.error('[CRON] Unexpected error:', error);
+
+    // Audit log the failure
+    AuditLogger.cronJobExecuted('check-expired-trials', false, undefined, error.message);
+
     return res.status(500).json({
       error: 'Cron job failed',
       message: error.message

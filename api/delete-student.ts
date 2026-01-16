@@ -10,6 +10,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { AuditLogger, getClientInfo } from './utils/auditLogger';
 
 interface DeleteStudentRequest {
   studentName: string;
@@ -77,6 +78,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (!studentName) {
       return res.status(400).json({ error: 'Studentnaam is verplicht' });
     }
+
+    // Get client info for audit logging
+    const clientInfo = getClientInfo(req);
 
     // Maak admin client met service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -181,6 +185,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Auth user deleted:', authUserId);
       }
     }
+
+    // Audit log the student deletion
+    AuditLogger.studentDeleted(user.user_metadata?.username || 'unknown_admin', studentName, clientInfo);
 
     // Success!
     return res.status(200).json({
