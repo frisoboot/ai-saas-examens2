@@ -10,6 +10,16 @@ interface ChatInterface {
 }
 import ReactMarkdown from 'react-markdown';
 
+// Sanitize user input to prevent XSS attacks
+const sanitizeText = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 interface SubjectChatProps {
   subject: string;
   student: StudentProfile;
@@ -32,10 +42,10 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
     // Initialize chat
     chatRef.current = createSubjectChat(subject, student);
     
-    // Initial greeting
+    // Initial greeting (sanitize user input to prevent XSS)
     setMessages([{
       role: 'model',
-      text: `Hoi ${student.name}! Ik ben je AI-expert voor **${subject}** (${student.level}). \n\nJe gaf aan dat je moeite hebt met: *${student.strugglePoints}*. \n\nWaar zullen we mee beginnen?`
+      text: `Hoi ${sanitizeText(student.name)}! Ik ben je AI-expert voor **${sanitizeText(subject)}** (${sanitizeText(student.level)}). \n\nJe gaf aan dat je moeite hebt met: *${sanitizeText(student.strugglePoints)}*. \n\nWaar zullen we mee beginnen?`
     }]);
   }, [subject, student]);
 
@@ -100,7 +110,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
                   ? 'bg-indigo-600 text-white rounded-tr-none' 
                   : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
               }`}>
-                <ReactMarkdown 
+                <ReactMarkdown
                   components={{
                     // Style basic markdown elements to look good in chat
                     p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -108,6 +118,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
                     ol: ({children}) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
                     strong: ({children}) => <strong className="font-bold">{children}</strong>,
                   }}
+                  skipHtml={true}
                 >
                   {msg.text}
                 </ReactMarkdown>
