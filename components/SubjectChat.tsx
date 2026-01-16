@@ -3,7 +3,11 @@ import { StudentProfile } from '../types';
 import { createSubjectChat } from '../services/geminiService';
 import { Button } from './Button';
 import { Send, ArrowLeft, Bot, User, Sparkles } from 'lucide-react';
-import { Chat, GenerateContentResponse } from "@google/genai";
+// Chat interface returned by createSubjectChat (server-side wrapper)
+interface ChatInterface {
+  sessionId: string;
+  sendMessage: (message: string) => Promise<string>;
+}
 import ReactMarkdown from 'react-markdown';
 
 interface SubjectChatProps {
@@ -21,7 +25,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const chatRef = useRef<Chat | null>(null);
+  const chatRef = useRef<ChatInterface | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,10 +57,9 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
     setIsTyping(true);
 
     try {
-      const result: GenerateContentResponse = await chatRef.current.sendMessage({ message: userMsg });
-      const responseText = result.text || "Sorry, ik begreep dat niet helemaal.";
-      
-      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+      const responseText = await chatRef.current.sendMessage(userMsg);
+
+      setMessages(prev => [...prev, { role: 'model', text: responseText || "Sorry, ik begreep dat niet helemaal." }]);
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { role: 'model', text: "Er ging iets mis met de verbinding. Probeer het opnieuw." }]);
