@@ -17,11 +17,9 @@ const requireSupabase = () => {
   }
 };
 
-// Admin authentication - via API die admin user aanmaakt in Supabase Auth
+// Admin authentication - via server-side API
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  requireSupabase();
-
-  // Stap 1: API aanroepen om admin user aan te maken/updaten in Supabase Auth
+  // Verify credentials via secure server-side API
   const response = await fetch('/api/admin-login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -34,33 +32,12 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
     throw new Error(apiResult.error || 'Admin login mislukt');
   }
 
-  // Stap 2: Nu inloggen via Supabase Auth (user bestaat nu)
-  const email = `${username}@admin.example.com`;
-  const { data, error } = await supabase!.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    throw new Error(`Supabase Auth login mislukt: ${error.message}`);
-  }
-
-  if (!data.user) {
-    throw new Error('Geen user data ontvangen van Supabase Auth');
-  }
-
-  // Stap 3: Controleer of user admin role heeft
-  if (data.user.user_metadata?.role !== 'admin') {
-    await supabase!.auth.signOut();
-    throw new Error('User is geen admin');
-  }
-
+  // Credentials verified by server - return admin user
   return {
-    id: data.user.id,
-    username: data.user.user_metadata?.username || username,
+    id: 'admin',
+    username: apiResult.admin?.username || username,
     passwordHash: '',
-    email: data.user.email,
-    lastLogin: new Date().toISOString()
+    lastLogin: apiResult.admin?.lastLogin || new Date().toISOString()
   };
 };
 
