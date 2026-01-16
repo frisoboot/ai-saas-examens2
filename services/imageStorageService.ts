@@ -2,6 +2,11 @@ import { supabase } from './supabaseService';
 
 const STORAGE_BUCKET = 'exam-image';
 
+// SECURITY: Allowed file types and max size
+const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
 /**
  * Service voor het uploaden en beheren van afbeeldingen in Supabase Storage
  */
@@ -17,13 +22,29 @@ export const imageStorage = {
       throw new Error('Supabase niet geconfigureerd. Check je .env.local bestand.');
     }
 
+    // SECURITY: Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      throw new Error('Bestand is te groot. Maximum grootte is 5MB.');
+    }
+
+    // SECURITY: Validate MIME type
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      throw new Error('Ongeldig bestandstype. Alleen JPG, PNG, WebP en GIF zijn toegestaan.');
+    }
+
+    // SECURITY: Validate file extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
+      throw new Error('Ongeldige bestandsextensie. Alleen jpg, jpeg, png, webp en gif zijn toegestaan.');
+    }
+
     // Genereer unieke bestandsnaam
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 9);
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+    const safeExt = fileExt || 'jpg';
     const fileName = questionId
-      ? `${questionId}-${timestamp}.${fileExt}`
-      : `question-${timestamp}-${randomString}.${fileExt}`;
+      ? `${questionId}-${timestamp}.${safeExt}`
+      : `question-${timestamp}-${randomString}.${safeExt}`;
 
     // Upload naar Supabase Storage
     const { data, error } = await supabase.storage
