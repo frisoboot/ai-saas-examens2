@@ -2,12 +2,25 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { createMollieClient, type Payment } from '@mollie/api-client';
 import { sendWelcomeEmail } from '../services/emailService';
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Register student endpoint called');
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // SECURITY: Rate limiting to prevent spam registrations
+  const clientIP = getClientIP(req);
+  const rateLimitKey = `registration:${clientIP}`;
+  const rateLimit = checkRateLimit(rateLimitKey, rateLimits.registration);
+
+  if (!rateLimit.allowed) {
+    console.log(`[RATE LIMIT] Registration blocked for IP: ${clientIP}`);
+    return res.status(429).json({
+      error: 'Te veel registraties. Probeer het later opnieuw.'
+    });
   }
 
   // Validate environment variables
@@ -33,6 +46,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Validation
   if (!name || !email || !password || !level) {
     return res.status(400).json({ error: 'Ontbrekende velden' });
+  }
+
+  // SECURITY: Validate name to prevent injection attacks
+  const trimmedName = String(name).trim();
+  if (trimmedName.length < 2 || trimmedName.length > 100) {
+    return res.status(400).json({ error: 'Naam moet tussen 2 en 100 karakters zijn' });
+  }
+  // Only allow letters, numbers, spaces, hyphens, apostrophes, and common accented characters
+  const nameRegex = /^[\p{L}\p{N}\s\-'.]+$/u;
+  if (!nameRegex.test(trimmedName)) {
+    return res.status(400).json({ error: 'Naam bevat ongeldige karakters' });
+  }
+
+  // SECURITY: Validate email format
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email) || email.length > 254) {
+    return res.status(400).json({ error: 'Ongeldig emailadres' });
   }
 
   if (password.length < 8) {

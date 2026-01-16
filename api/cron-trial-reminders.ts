@@ -25,12 +25,21 @@ const supabaseUrl = process.env.VITE_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-const CRON_SECRET = process.env.CRON_SECRET || 'dev-secret-change-in-production';
+// SECURITY: No default fallback - CRON_SECRET must be configured
+const CRON_SECRET = process.env.CRON_SECRET;
+if (!CRON_SECRET) {
+  console.error('CRITICAL: CRON_SECRET environment variable not configured');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('[CRON] Trial reminders check started');
 
-  // Verify cron secret
+  // Verify cron secret - must be configured
+  if (!CRON_SECRET) {
+    console.error('[CRON] CRON_SECRET not configured - rejecting request');
+    return res.status(500).json({ error: 'Server misconfigured' });
+  }
+
   const authHeader = req.headers.authorization;
   if (authHeader !== `Bearer ${CRON_SECRET}`) {
     console.log('[CRON] Unauthorized request');
@@ -59,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (fetchError) {
       console.error('[CRON] Error fetching ending trials:', fetchError);
-      return res.status(500).json({ error: 'Database error', details: fetchError.message });
+      return res.status(500).json({ error: 'Database error' });
     }
 
     if (!endingTrials || endingTrials.length === 0) {

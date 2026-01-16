@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
@@ -16,10 +17,25 @@ import { createClient } from '@supabase/supabase-js';
  */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers voor local development
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CORS headers - restrict to allowed origins
+  const allowedOrigins = [
+    process.env.VITE_APP_URL,
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ].filter(Boolean);
+
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV === 'development') {
+    // Allow any origin in development only
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
+  }
+  // In production without matching origin, no CORS header is set (request blocked)
+
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
@@ -29,6 +45,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Only allow POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // SECURITY: Rate limiting to prevent brute force attacks
+  const clientIP = getClientIP(req);
+  const rateLimitKey = `admin-login:${clientIP}`;
+  const rateLimit = checkRateLimit(rateLimitKey, rateLimits.adminLogin);
+
+  if (!rateLimit.allowed) {
+    console.log(`[RATE LIMIT] Admin login blocked for IP: ${clientIP}`);
+    res.setHeader('Retry-After', String(rateLimit.retryAfter));
+    return res.status(429).json({
+      success: false,
+      error: `Te veel inlogpogingen. Probeer het over ${rateLimit.retryAfter} seconden opnieuw.`
+    });
   }
 
   try {
