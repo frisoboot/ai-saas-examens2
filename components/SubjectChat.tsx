@@ -10,14 +10,9 @@ interface ChatInterface {
 }
 import ReactMarkdown from 'react-markdown';
 
-// Sanitize user input to prevent XSS attacks
+// Sanitize user input to prevent XSS attacks - strips HTML tags entirely
 const sanitizeText = (text: string): string => {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+  return text.replace(/<[^>]*>/g, '');
 };
 
 interface SubjectChatProps {
