@@ -1,10 +1,14 @@
 import { StudentProfile, AdminUser, StudentLevel } from '../types';
-import { supabase, supabaseAdmin } from './supabaseService';
+import { supabase } from './supabaseService';
 import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiService';
 
 // ============================================================================
 // SUPABASE AUTH INTEGRATIE - GEEN FALLBACKS
 // Database en Supabase Auth zijn VEREIST
+//
+// SECURITY: Alle admin operaties (student aanmaken, wachtwoord resetten, etc.)
+// gaan via server-side API endpoints. Dit voorkomt dat de service role key
+// in de browser wordt geladen.
 // ============================================================================
 
 const requireSupabase = () => {
@@ -174,7 +178,7 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
   };
 };
 
-// Admin creates student account - gebruikt API of supabaseAdmin
+// Admin creates student account - via server-side API voor veiligheid
 export const createStudentAccount = async (
   adminUsername: string,
   name: string,
@@ -191,51 +195,8 @@ export const createStudentAccount = async (
     return { success: false, error: 'Student met deze naam bestaat al' };
   }
 
-  // PRODUCTIE: Gebruik veilige API endpoint
-  if (!supabaseAdmin) {
-    return await apiCreateStudent(adminUsername, name, password, level, strugglePoints, email);
-  }
-
-  // DEVELOPMENT: Gebruik supabaseAdmin direct
-  const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
-
-  // Stap 1: Maak Supabase Auth user aan met admin client
-  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
-    email: authEmail,
-    password: password,
-    email_confirm: true,
-    user_metadata: {
-      role: 'student',
-      name: name,
-      level: level,
-      created_by: adminUsername
-    }
-  });
-
-  if (authError) {
-    throw new Error(`Auth error: ${authError.message}`);
-  }
-
-  // Stap 2: Maak student profiel in database
-  const { error: profileError } = await supabaseAdmin
-    .from('student_profiles')
-    .insert({
-      name: name,
-      level: level,
-      struggle_points: strugglePoints,
-      email: email || authEmail,
-      created_by_admin: adminUsername,
-      is_active: true,
-      auth_user_id: authData.user.id
-    });
-
-  if (profileError) {
-    // Rollback: verwijder auth user
-    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-    throw new Error(`Database error: ${profileError.message}`);
-  }
-
-  return { success: true };
+  // Gebruik veilige server-side API endpoint
+  return await apiCreateStudent(adminUsername, name, password, level, strugglePoints, email);
 };
 
 // Get all students (for admin management)
@@ -292,41 +253,15 @@ export const activateStudent = async (name: string): Promise<{ success: boolean;
   return updateStudent(name, { isActive: true });
 };
 
-// Reset student password - gebruikt API of supabaseAdmin
+// Reset student password - via server-side API voor veiligheid
 export const resetStudentPassword = async (
   name: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
   requireSupabase();
 
-  // PRODUCTIE: Gebruik veilige API endpoint
-  if (!supabaseAdmin) {
-    return await apiResetPassword(name, newPassword);
-  }
-
-  // DEVELOPMENT: Gebruik supabaseAdmin direct
-  // Haal student profiel op om auth_user_id te krijgen
-  const { data: profileData, error: profileError } = await supabaseAdmin
-    .from('student_profiles')
-    .select('auth_user_id')
-    .eq('name', name)
-    .single();
-
-  if (profileError || !profileData?.auth_user_id) {
-    throw new Error('Student niet gevonden');
-  }
-
-  // Update wachtwoord via admin API
-  const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-    profileData.auth_user_id,
-    { password: newPassword }
-  );
-
-  if (updateError) {
-    throw new Error(updateError.message);
-  }
-
-  return { success: true };
+  // Gebruik veilige server-side API endpoint
+  return await apiResetPassword(name, newPassword);
 };
 
 // Helper to get student by name
@@ -391,91 +326,12 @@ export const signOut = async (): Promise<void> => {
   await supabase.auth.signOut();
 };
 
-// Delete student account - gebruikt API of supabaseAdmin
+// Delete student account - via server-side API voor veiligheid
 export const deleteStudent = async (
   name: string
 ): Promise<{ success: boolean; error?: string }> => {
   requireSupabase();
 
-  // PRODUCTIE: Gebruik veilige API endpoint
-  if (!supabaseAdmin) {
-    return await apiDeleteStudent(name);
-  }
-
-  // DEVELOPMENT: Gebruik supabaseAdmin direct
-  // Haal student profiel op om auth_user_id te krijgen
-  const { data: profileData, error: profileError } = await supabaseAdmin
-    .from('student_profiles')
-    .select('auth_user_id')
-    .eq('name', name)
-    .maybeSingle();
-
-  if (profileError) {
-    throw new Error('Student niet gevonden');
-  }
-
-  if (!profileData) {
-    throw new Error('Student niet gevonden');
-  }
-
-  const authUserId = profileData.auth_user_id;
-
-  // Stap 1: Verwijder exam results
-  const { error: resultsError } = await supabaseAdmin
-    .from('exam_results')
-    .delete()
-    .eq('student_name', name);
-
-  if (resultsError) throw resultsError;
-
-  // Stap 2: Verwijder student progress
-  const { error: progressError } = await supabaseAdmin
-    .from('student_progress')
-    .delete()
-    .eq('student_name', name);
-
-  if (progressError) throw progressError;
-
-  // Stap 2b: Verwijder flashcard progress
-  const { error: flashcardProgressError } = await supabaseAdmin
-    .from('flashcard_progress')
-    .delete()
-    .eq('student_name', name);
-
-  // Non-critical, log but don't throw
-  if (flashcardProgressError) {
-    console.error('Error deleting flashcard progress:', flashcardProgressError);
-  }
-
-  // Stap 2c: Verwijder subscription events
-  const { error: subscriptionEventsError } = await supabaseAdmin
-    .from('subscription_events')
-    .delete()
-    .eq('student_name', name);
-
-  // Non-critical, log but don't throw
-  if (subscriptionEventsError) {
-    console.error('Error deleting subscription events:', subscriptionEventsError);
-  }
-
-  // Stap 3: Verwijder student profiel
-  const { error: deleteProfileError } = await supabaseAdmin
-    .from('student_profiles')
-    .delete()
-    .eq('name', name);
-
-  if (deleteProfileError) {
-    throw new Error(deleteProfileError.message);
-  }
-
-  // Stap 4: Verwijder Supabase Auth user (als die bestaat)
-  if (authUserId) {
-    const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(authUserId);
-
-    if (authDeleteError) {
-      throw new Error(`Auth user kon niet worden verwijderd: ${authDeleteError.message}`);
-    }
-  }
-
-  return { success: true };
+  // Gebruik veilige server-side API endpoint
+  return await apiDeleteStudent(name);
 };
