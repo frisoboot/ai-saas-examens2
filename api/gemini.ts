@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
+import { setCorsHeaders, handlePreflight } from './utils/cors';
 
 /**
  * Gemini API Endpoint - Server-side AI calls
@@ -26,13 +27,12 @@ const getAI = (): GoogleGenAI => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  // SECURITY: Set secure CORS headers (no wildcard in production)
+  const origin = req.headers.origin as string | undefined;
+  setCorsHeaders(res, origin, { methods: ['POST', 'OPTIONS'], credentials: false });
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return handlePreflight(res, origin, { methods: ['POST', 'OPTIONS'] });
   }
 
   if (req.method !== 'POST') {

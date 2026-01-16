@@ -4,6 +4,79 @@ import { createMollieClient, type Payment } from '@mollie/api-client';
 import { sendWelcomeEmail } from '../services/emailService';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
 
+/**
+ * SECURITY: Validates webhook URL to prevent SSRF attacks
+ * - Only allows configured app domain
+ * - Blocks private IP ranges, localhost, and internal networks
+ * - Ensures HTTPS in production
+ */
+function isValidWebhookUrl(url: string): boolean {
+  try {
+    const urlObj = new URL(url);
+    const hostname = urlObj.hostname.toLowerCase();
+
+    // SECURITY: Block private IP ranges and localhost
+    const privatePatterns = [
+      /^127\./,                          // Loopback IPv4
+      /^localhost$/i,                     // Localhost
+      /^192\.168\./,                      // RFC 1918 Class C
+      /^10\./,                            // RFC 1918 Class A
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,  // RFC 1918 Class B
+      /^169\.254\./,                      // Link-local
+      /^0\./,                             // Current network
+      /^::1$/,                            // IPv6 loopback
+      /^fe80:/i,                          // IPv6 link-local
+      /^fc00:/i,                          // IPv6 unique local
+      /^fd[0-9a-f]{2}:/i,                // IPv6 unique local
+      /\.local$/i,                        // mDNS/local domains
+      /\.internal$/i,                     // Internal domains
+      /\.localhost$/i,                    // Localhost subdomains
+      /^modem\./i,                        // Common router names
+      /^router\./i,
+      /^gateway\./i,
+      /^admin\./i,
+    ];
+
+    for (const pattern of privatePatterns) {
+      if (pattern.test(hostname)) {
+        console.warn(`[SECURITY] Blocked private/internal URL: ${hostname}`);
+        return false;
+      }
+    }
+
+    // SECURITY: Block non-standard ports commonly used by routers/modems
+    const blockedPorts = [80, 8080, 8000, 8443, 443, 22, 23, 25, 53, 110, 143, 445, 3389, 5900];
+    const port = urlObj.port ? parseInt(urlObj.port) : (urlObj.protocol === 'https:' ? 443 : 80);
+    // Allow standard HTTPS (443) and HTTP (80), but block other common service ports
+    if (![80, 443].includes(port) && blockedPorts.includes(port)) {
+      console.warn(`[SECURITY] Blocked suspicious port: ${port}`);
+      return false;
+    }
+
+    // SECURITY: In production, require HTTPS
+    if (process.env.NODE_ENV === 'production' && urlObj.protocol !== 'https:') {
+      console.warn(`[SECURITY] Blocked non-HTTPS URL in production: ${url}`);
+      return false;
+    }
+
+    // SECURITY: Whitelist allowed domains
+    const allowedDomains = [
+      process.env.VITE_APP_URL ? new URL(process.env.VITE_APP_URL).hostname : null,
+      // Add any other allowed domains here
+    ].filter(Boolean) as string[];
+
+    if (allowedDomains.length > 0 && !allowedDomains.includes(hostname)) {
+      console.warn(`[SECURITY] Domain not in whitelist: ${hostname}. Allowed: ${allowedDomains.join(', ')}`);
+      return false;
+    }
+
+    return true;
+  } catch (e) {
+    console.error('[SECURITY] Invalid URL:', url, e);
+    return false;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log('Register student endpoint called');
 
@@ -156,17 +229,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Mollie customer created:', customer.id);
 
     // Step 4: Create first payment (iDEAL mandate for trial)
-    // Construct webhook URL robustly
-    let baseUrl = req.headers.origin as string | undefined;
-    if (!baseUrl && req.headers.host) {
-      const protocol = req.headers['x-forwarded-proto'] || 'https';
-      baseUrl = `${protocol}://${req.headers.host}`;
-    }
-    if (!baseUrl) {
-      console.error('Could not determine base URL for webhook');
+    // SECURITY: Use only configured app URL for webhooks to prevent SSRF
+    const configuredAppUrl = process.env.VITE_APP_URL;
+    if (!configuredAppUrl) {
+      console.error('[SECURITY] VITE_APP_URL environment variable not set');
       return res.status(500).json({ error: 'Server configuratie fout: kon webhook URL niet bepalen.' });
     }
-    const webhookUrl = `${baseUrl}/api/mollie-webhook`;
+
+    // Construct webhook URL from configured app URL only (never from request headers)
+    const webhookUrl = `${configuredAppUrl.replace(/\/$/, '')}/api/mollie-webhook`;
+
+    // SECURITY: Validate the webhook URL before using it
+    if (!isValidWebhookUrl(webhookUrl)) {
+      console.error(`[SECURITY] Invalid webhook URL rejected: ${webhookUrl}`);
+      return res.status(500).json({ error: 'Server configuratie fout: ongeldige webhook URL.' });
+    }
+
     console.log('Creating Mollie payment with webhook:', webhookUrl);
 
     const payment = (await mollieClient.payments.create({

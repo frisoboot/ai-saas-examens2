@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createClient } from '@supabase/supabase-js';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
+import { setCorsHeaders, handlePreflight } from './utils/cors';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
@@ -17,29 +18,13 @@ import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
  */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers - restrict to allowed origins
-  const allowedOrigins = [
-    process.env.VITE_APP_URL,
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ].filter(Boolean);
-
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV === 'development') {
-    // Allow any origin in development only
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  // In production without matching origin, no CORS header is set (request blocked)
-
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // SECURITY: Set secure CORS headers (uses whitelist, no wildcard bypass)
+  const origin = req.headers.origin as string | undefined;
+  setCorsHeaders(res, origin, { methods: ['POST', 'OPTIONS'] });
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return handlePreflight(res, origin, { methods: ['POST', 'OPTIONS'] });
   }
 
   // Only allow POST

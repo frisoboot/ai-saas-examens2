@@ -7,6 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { setCorsHeaders, handlePreflight } from './utils/cors';
 
 interface CreateStudentRequest {
   adminUsername: string;
@@ -18,15 +19,13 @@ interface CreateStudentRequest {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers voor je frontend
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  // SECURITY: Set secure CORS headers (no wildcard in production)
+  const origin = req.headers.origin as string | undefined;
+  setCorsHeaders(res, origin, { methods: ['POST', 'OPTIONS'] });
 
   // Handle OPTIONS preflight
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return handlePreflight(res, origin, { methods: ['POST', 'OPTIONS'] });
   }
 
   // Alleen POST requests toestaan
