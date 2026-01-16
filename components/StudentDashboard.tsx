@@ -6,6 +6,11 @@ import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMar
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
+// Sanitize user input to prevent XSS attacks - strips HTML tags entirely
+const sanitizeText = (text: string): string => {
+  return text.replace(/<[^>]*>/g, '');
+};
+
 interface StudentDashboardProps {
   student: StudentProfile;
   onStartExam: (subject: string, year?: number) => void;
@@ -102,7 +107,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-2">
                   <Target className="w-3 h-3" /> Focuspunt
                 </div>
-                <p className="text-sm text-slate-700 font-medium leading-relaxed">"{student.strugglePoints}"</p>
+                <p className="text-sm text-slate-700 font-medium leading-relaxed">"{sanitizeText(student.strugglePoints)}"</p>
               </div>
            </div>
         </div>
