@@ -3,8 +3,17 @@ import { StudentProfile } from '../types';
 import { createSubjectChat } from '../services/geminiService';
 import { Button } from './Button';
 import { Send, ArrowLeft, Bot, User, Sparkles } from 'lucide-react';
-import { Chat, GenerateContentResponse } from "@google/genai";
+// Chat interface returned by createSubjectChat (server-side wrapper)
+interface ChatInterface {
+  sessionId: string;
+  sendMessage: (message: string) => Promise<string>;
+}
 import ReactMarkdown from 'react-markdown';
+
+// Sanitize user input to prevent XSS attacks - strips HTML tags entirely
+const sanitizeText = (text: string): string => {
+  return text.replace(/<[^>]*>/g, '');
+};
 
 interface SubjectChatProps {
   subject: string;
@@ -21,17 +30,17 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const chatRef = useRef<Chat | null>(null);
+  const chatRef = useRef<ChatInterface | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Initialize chat
     chatRef.current = createSubjectChat(subject, student);
     
-    // Initial greeting
+    // Initial greeting (sanitize user input to prevent XSS)
     setMessages([{
       role: 'model',
-      text: `Hoi ${student.name}! Ik ben je AI-expert voor **${subject}** (${student.level}). \n\nJe gaf aan dat je moeite hebt met: *${student.strugglePoints}*. \n\nWaar zullen we mee beginnen?`
+      text: `Hoi ${sanitizeText(student.name)}! Ik ben je AI-expert voor **${sanitizeText(subject)}** (${sanitizeText(student.level)}). \n\nJe gaf aan dat je moeite hebt met: *${sanitizeText(student.strugglePoints)}*. \n\nWaar zullen we mee beginnen?`
     }]);
   }, [subject, student]);
 
@@ -53,10 +62,9 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
     setIsTyping(true);
 
     try {
-      const result: GenerateContentResponse = await chatRef.current.sendMessage({ message: userMsg });
-      const responseText = result.text || "Sorry, ik begreep dat niet helemaal.";
-      
-      setMessages(prev => [...prev, { role: 'model', text: responseText }]);
+      const responseText = await chatRef.current.sendMessage(userMsg);
+
+      setMessages(prev => [...prev, { role: 'model', text: responseText || "Sorry, ik begreep dat niet helemaal." }]);
     } catch (error) {
       console.error(error);
       setMessages(prev => [...prev, { role: 'model', text: "Er ging iets mis met de verbinding. Probeer het opnieuw." }]);
@@ -97,7 +105,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
                   ? 'bg-indigo-600 text-white rounded-tr-none' 
                   : 'bg-white text-slate-800 border border-slate-100 rounded-tl-none'
               }`}>
-                <ReactMarkdown 
+                <ReactMarkdown
                   components={{
                     // Style basic markdown elements to look good in chat
                     p: ({children}) => <p className="mb-2 last:mb-0">{children}</p>,
@@ -105,6 +113,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
                     ol: ({children}) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
                     strong: ({children}) => <strong className="font-bold">{children}</strong>,
                   }}
+                  skipHtml={true}
                 >
                   {msg.text}
                 </ReactMarkdown>
