@@ -8,15 +8,14 @@ import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
-import { LandingPage } from './components/LandingPage';
 import { StudentRegistration } from './components/StudentRegistration';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { SubscriptionExpired } from './components/SubscriptionExpired';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, Lock, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { GraduationCap, UserCog, ArrowRight, Lock, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('HOME');
+  const [view, setView] = useState<ViewState>('LANDING');
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -285,21 +284,6 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (view) {
-      case 'HOME':
-        return (
-          <LandingPage
-            onAdminLogin={() => {
-              setShowAdminLogin(true);
-              setView('LANDING');
-            }}
-            onStudentLogin={() => {
-              setShowAdminLogin(false);
-              setView('LANDING');
-            }}
-            onRegister={() => setView('REGISTRATION')}
-          />
-        );
-
       case 'LANDING':
         return (
           <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
@@ -326,14 +310,6 @@ const App: React.FC = () => {
               </div>
 
               <div className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
-                <button 
-                  onClick={() => setView('HOME')} 
-                  className="group flex items-center text-sm font-medium text-gray-400 hover:text-gray-900 transition-colors mb-8"
-                >
-                  <ArrowLeft className="w-4 h-4 mr-1.5 group-hover:-translate-x-1 transition-transform" />
-                  Terug naar home
-                </button>
-
                 {!showAdminLogin ? (
                   <form onSubmit={handleStudentAuth} className="space-y-6">
                     <div>
@@ -453,7 +429,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('HOME')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={() => setView('LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -507,7 +483,7 @@ const App: React.FC = () => {
       case 'REGISTRATION':
         return (
           <StudentRegistration
-            onBack={() => setView('HOME')}
+            onBack={() => setView('LANDING')}
           />
         );
 
