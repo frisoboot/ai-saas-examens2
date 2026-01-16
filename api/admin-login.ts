@@ -127,7 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       });
 
-      const adminEmail = `${adminUsername}@admin.examentrainer.internal`;
+      const adminEmail = `${adminUsername}@admin.example.com`;
 
       // Check of admin user al bestaat in Supabase Auth
       const { data: existingUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers();

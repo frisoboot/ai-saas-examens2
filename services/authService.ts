@@ -35,7 +35,7 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
   }
 
   // Stap 2: Nu inloggen via Supabase Auth (user bestaat nu)
-  const email = `${username}@admin.examentrainer.internal`;
+  const email = `${username}@admin.example.com`;
   const { data, error } = await supabase!.auth.signInWithPassword({
     email,
     password
