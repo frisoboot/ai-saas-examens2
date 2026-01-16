@@ -14,16 +14,47 @@ import { GoogleGenAI } from "@google/genai";
 // Lazy initialization
 let _ai: GoogleGenAI | null = null;
 
+// Model configuration - use stable model with preview fallback
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash';
+
 const getAI = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
+    console.error('[Gemini API] GEMINI_API_KEY environment variable not set');
     throw new Error('GEMINI_API_KEY environment variable not set');
   }
+  // Log that we have an API key (don't log the key itself for security)
+  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL);
   if (!_ai) {
     _ai = new GoogleGenAI({ apiKey });
   }
   return _ai;
 };
+
+// Helper function to generate content with fallback model
+async function generateWithFallback(
+  ai: GoogleGenAI,
+  contents: string,
+  config?: { systemInstruction?: string }
+): Promise<string> {
+  try {
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents,
+      config,
+    });
+    return response.text || '';
+  } catch (error: any) {
+    console.warn(`[Gemini API] Primary model ${GEMINI_MODEL} failed, trying fallback ${GEMINI_MODEL_FALLBACK}:`, error.message);
+    const response = await ai.models.generateContent({
+      model: GEMINI_MODEL_FALLBACK,
+      contents,
+      config,
+    });
+    return response.text || '';
+  }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -89,9 +120,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
   } catch (error: any) {
-    console.error('Gemini API error:', error);
+    console.error('[Gemini API] Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack?.split('\n').slice(0, 3).join('\n'),
+      response: error.response?.data || error.response?.statusText,
+    });
+
+    // Provide more specific error messages
+    let errorMessage = 'Er ging iets mis met de AI service';
+    if (error.message?.includes('API_KEY')) {
+      errorMessage = 'API key configuratie probleem';
+    } else if (error.message?.includes('quota') || error.message?.includes('rate')) {
+      errorMessage = 'API limiet bereikt, probeer het later opnieuw';
+    } else if (error.message?.includes('model')) {
+      errorMessage = 'Model niet beschikbaar: ' + error.message;
+    } else if (error.message) {
+      errorMessage = error.message;
+    }
+
     return res.status(500).json({
-      error: error.message || 'Er ging iets mis met de AI service'
+      error: errorMessage
     });
   }
 }
@@ -147,7 +196,7 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
   }
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
   return response.text || "Geen uitleg beschikbaar.";
@@ -282,7 +331,7 @@ async function generateAIQuestions(
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
 
@@ -441,7 +490,7 @@ async function generateLookalikeExamQuestions(
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
 
@@ -565,7 +614,7 @@ async function generateExamSummary(
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
 
@@ -647,7 +696,7 @@ async function generateFlashcards(
   `;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
+    model: GEMINI_MODEL,
     contents: prompt,
   });
 
@@ -704,12 +753,6 @@ async function generateFlashcards(
 }
 
 async function chat(ai: GoogleGenAI, message: string, systemInstruction: string): Promise<string> {
-  const response = await ai.models.generateContent({
-    model: 'gemini-3-flash-preview',
-    contents: message,
-    config: {
-      systemInstruction: systemInstruction
-    }
-  });
-  return response.text || "Geen antwoord.";
+  const result = await generateWithFallback(ai, message, { systemInstruction });
+  return result || "Geen antwoord.";
 }
