@@ -78,7 +78,7 @@ export interface StudentProfile {
   subscriptionExpired?: boolean;
 }
 
-export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'EXAM_REVIEW' | 'SUBJECT_CHAT' | 'PROGRESS_DASHBOARD' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED' | 'FLASHCARD_STUDY';
+export type ViewState = 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'REGISTRATION' | 'PAYMENT_SUCCESS' | 'SUBSCRIPTION_EXPIRED' | 'FLASHCARD_STUDY';
 
 export interface ExamSession {
   studentName: string;
