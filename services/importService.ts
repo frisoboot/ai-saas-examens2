@@ -327,8 +327,8 @@ export const generateCSVTemplate = (): string => {
 };
 
 // Validate import file type
-export const validateFileType = (file: File): { valid: boolean; error?: string } => {
-  const validExtensions = ['.csv', '.json'];
+export const validateFileType = (file: File, allowPDF: boolean = false): { valid: boolean; error?: string } => {
+  const validExtensions = allowPDF ? ['.csv', '.json', '.pdf'] : ['.csv', '.json'];
   const fileName = file.name.toLowerCase();
 
   const hasValidExtension = validExtensions.some(ext => fileName.endsWith(ext));
@@ -336,16 +336,21 @@ export const validateFileType = (file: File): { valid: boolean; error?: string }
   if (!hasValidExtension) {
     return {
       valid: false,
-      error: `Ongeldig bestandstype. Gebruik .csv of .json bestanden.`
+      error: allowPDF
+        ? `Ongeldig bestandstype. Gebruik .csv, .json of .pdf bestanden.`
+        : `Ongeldig bestandstype. Gebruik .csv of .json bestanden.`
     };
   }
 
-  // Check file size (max 5MB)
-  const maxSize = 5 * 1024 * 1024; // 5MB
+  // Check file size (max 5MB for CSV/JSON, 20MB for PDF)
+  const isPDF = fileName.endsWith('.pdf');
+  const maxSize = isPDF ? 20 * 1024 * 1024 : 5 * 1024 * 1024;
   if (file.size > maxSize) {
     return {
       valid: false,
-      error: `Bestand te groot. Maximum grootte is 5MB.`
+      error: isPDF
+        ? `PDF bestand te groot. Maximum grootte is 20MB.`
+        : `Bestand te groot. Maximum grootte is 5MB.`
     };
   }
 
