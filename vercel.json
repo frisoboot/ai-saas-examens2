@@ -3,15 +3,5 @@
     "api/**/*.ts": {
       "runtime": "@vercel/node@5.5.17"
     }
-  },
-  "crons": [
-    {
-      "path": "/api/cron-check-expired-trials",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron-trial-reminders",
-      "schedule": "0 10 * * *"
-    }
-  ]
+  }
 }

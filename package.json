@@ -10,7 +10,6 @@
   },
   "dependencies": {
     "@google/genai": "^1.35.0",
-    "@mollie/api-client": "^4.3.3",
     "@supabase/supabase-js": "^2.90.1",
     "@types/bcryptjs": "^2.4.6",
     "@vercel/analytics": "^1.6.1",

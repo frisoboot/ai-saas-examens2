@@ -15,7 +15,6 @@ export const Button: React.FC<ButtonProps> = ({
   const baseStyles = "inline-flex items-center justify-center font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98]";
   
   // Apple-style: rounded-xl to rounded-2xl dependent on size usually, but stick to fixed consistent curve
-  // LandingPage uses rounded-[14px]
   
   const variants = {
     // Apple Blue: #0071e3 - approximated with blue-600 for Tailwind consistency or custom hex

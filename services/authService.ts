@@ -127,54 +127,13 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
     throw new Error('Student profiel niet gevonden in database. Neem contact op met de beheerder.');
   }
 
-  // Check subscription status
-  const now = new Date();
-  const expiresAt = profileData.subscription_expires_at
-    ? new Date(profileData.subscription_expires_at)
-    : null;
-
-  const hasValidSubscriptionStatus =
-    profileData.subscription_status === 'trial' ||
-    profileData.subscription_status === 'active';
-
-  // Subscription is expired if:
-  // 1. There's an expiration date AND it has passed, OR
-  // 2. The subscription status is explicitly 'expired' or 'cancelled' or 'inactive'
-  const isExpired = expiresAt !== null && expiresAt <= now;
-  const hasInvalidStatus =
-    profileData.subscription_status === 'expired' ||
-    profileData.subscription_status === 'cancelled' ||
-    profileData.subscription_status === 'inactive';
-
-  // Determine if subscription should be considered expired
-  const subscriptionExpired = !profileData.created_by_admin && (isExpired || hasInvalidStatus || !hasValidSubscriptionStatus);
-
-  // If subscription expired, return profile with flag
-  if (subscriptionExpired) {
-    return {
-      name: profileData.name,
-      level: profileData.level,
-      strugglePoints: profileData.struggle_points,
-      email: profileData.email,
-      createdByAdmin: profileData.created_by_admin,
-      isActive: profileData.is_active,
-      subscriptionStatus: profileData.subscription_status,
-      subscriptionExpiresAt: profileData.subscription_expires_at,
-      subscriptionExpired: true
-    } as any;
-  }
-
   return {
     name: profileData.name,
     level: profileData.level,
     strugglePoints: profileData.struggle_points,
     email: profileData.email,
     createdByAdmin: profileData.created_by_admin,
-    isActive: profileData.is_active,
-    subscriptionStatus: profileData.subscription_status,
-    subscriptionExpiresAt: profileData.subscription_expires_at,
-    mollieCustomerId: profileData.mollie_customer_id,
-    mollieSubscriptionId: profileData.mollie_subscription_id
+    isActive: profileData.is_active
   };
 };
 
