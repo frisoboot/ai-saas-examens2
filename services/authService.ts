@@ -11,6 +11,17 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 // in de browser wordt geladen.
 // ============================================================================
 
+// SECURITY: Sanitize text to prevent XSS attacks (client-side backup)
+// Note: Server-side sanitization is the primary defense
+const sanitizeText = (text: string): string => {
+  return text
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<[^>]*>/g, '')
+    .replace(/javascript:/gi, '')
+    .replace(/on\w+\s*=/gi, '')
+    .trim();
+};
+
 const requireSupabase = () => {
   if (!supabase) {
     throw new Error('Supabase niet beschikbaar. Controleer je configuratie.');
@@ -229,7 +240,10 @@ export const updateStudent = async (
 
   const dbUpdates: any = {};
   if (updates.level) dbUpdates.level = updates.level;
-  if (updates.strugglePoints !== undefined) dbUpdates.struggle_points = updates.strugglePoints;
+  // SECURITY: Sanitize strugglePoints to prevent XSS
+  if (updates.strugglePoints !== undefined) {
+    dbUpdates.struggle_points = sanitizeText(updates.strugglePoints);
+  }
   if (updates.email !== undefined) dbUpdates.email = updates.email;
   if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
