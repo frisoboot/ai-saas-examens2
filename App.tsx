@@ -77,8 +77,10 @@ const App: React.FC = () => {
       } else {
         setLoginError("Gebruikersnaam of wachtwoord onjuist.");
       }
-    } catch (error) {
-      setLoginError("Er ging iets mis bij het inloggen.");
+    } catch (error: any) {
+      // Show the actual error message from the API/auth service
+      const errorMessage = error?.message || "Er ging iets mis bij het inloggen.";
+      setLoginError(errorMessage);
     }
   };
 
