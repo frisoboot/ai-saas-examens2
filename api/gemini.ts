@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
-import { setCorsHeaders } from './utils/cors';
+import { setCorsHeaders } from '../lib/api-utils/cors';
 
 /**
  * Gemini API Endpoint - Server-side AI calls

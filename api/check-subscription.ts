@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from './utils/cors';
+import { setCorsHeaders } from '../lib/api-utils/cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost

@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
-import { setCorsHeaders } from './utils/cors';
+import { checkRateLimit, getClientIP, rateLimits } from '../lib/api-utils/rateLimiter';
+import { setCorsHeaders } from '../lib/api-utils/cors';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
