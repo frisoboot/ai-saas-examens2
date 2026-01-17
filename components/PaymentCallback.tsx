@@ -13,7 +13,7 @@ import {
 import { checkPaymentStatus } from '../services/subscriptionService';
 
 interface PaymentCallbackProps {
-  onLogin: (username: string) => void;
+  onLogin: () => void;
   onRetry: () => void;
 }
 
@@ -104,8 +104,8 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
         setCountdown(countdown - 1);
       }, 1000);
       return () => clearTimeout(timer);
-    } else if (state === 'paid' && accountReady && countdown === 0 && username) {
-      onLogin(username);
+    } else if (state === 'paid' && accountReady && countdown === 0) {
+      onLogin();
     }
   }, [state, accountReady, countdown, username, onLogin]);
 
@@ -187,11 +187,11 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
                   </div>
 
                   <Button
-                    onClick={() => username && onLogin(username)}
+                    onClick={() => onLogin()}
                     className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20"
                     size="lg"
                   >
-                    Ga naar inloggen
+                    Ga naar dashboard
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
 

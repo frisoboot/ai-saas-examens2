@@ -17,7 +17,7 @@ import { createCheckout } from '../services/subscriptionService';
 
 interface CheckoutFormProps {
   onBack: () => void;
-  onSuccess: (username: string) => void;
+  onSuccess: () => void;
 }
 
 type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
@@ -75,7 +75,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
       // Als er al een actieve subscription is
       if (result.subscription) {
-        onSuccess(username);
+        onSuccess();
         return;
       }
 
@@ -89,7 +89,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
         window.location.href = result.checkoutUrl;
       } else {
         // Trial direct geactiveerd (geen betaling nodig voor trial start)
-        onSuccess(username);
+        onSuccess();
       }
     } catch (err) {
       console.error('Checkout error:', err);
