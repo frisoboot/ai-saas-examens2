@@ -14,9 +14,10 @@ const getApiBaseUrl = (): string => {
   if (import.meta.env.DEV) {
     return 'http://localhost:3001/api';
   }
-  // In production: gebruik absolute URL om "The string did not match the expected pattern" error te voorkomen
-  // Dit kan gebeuren in Vercel bij relatieve URLs in bepaalde contexten
-  return new URL('/api', window.location.origin).toString();
+  // In production: gebruik string concatenatie i.p.v. URL constructor
+  // De URL constructor kan "The string did not match the expected pattern" geven in Safari
+  // of andere browsers bij bepaalde edge cases
+  return `${window.location.origin}/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();

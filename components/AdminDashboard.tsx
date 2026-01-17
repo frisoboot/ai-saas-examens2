@@ -4,9 +4,8 @@ import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageS
 import { AdminStudentManagement } from './AdminStudentManagement';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
-import { ExamPDFImporter } from './ExamPDFImporter';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Sparkles } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { Loader2 } from 'lucide-react';
 
@@ -15,7 +14,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder' | 'pdf-import';
+type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
@@ -306,17 +305,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <Upload className="w-4 h-4" />
                   CSV/JSON Import
                 </button>
-                <button
-                  onClick={() => setActiveTab('pdf-import')}
-                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === 'pdf-import'
-                      ? 'bg-indigo-600 text-white'
-                      : 'text-slate-600 hover:bg-slate-50'
-                  }`}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  AI PDF Import
-                </button>
              </div>
          </div>
 
@@ -396,10 +384,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'import' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <BulkImportQuestions />
-           </div>
-        ) : activeTab === 'pdf-import' ? (
-           <div className="flex-1 overflow-y-auto p-6">
-             <ExamPDFImporter />
            </div>
         ) : (
           <>
