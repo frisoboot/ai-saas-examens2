@@ -1,0 +1,14 @@
+# AI Examentrainer - robots.txt
+# https://ai-examentrainer.nl
+
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://ai-examentrainer.nl/sitemap.xml
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Disallow internal app routes (these are handled client-side anyway)
+# The app is an SPA, so all content is on the main page
