@@ -117,6 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       password: password,
       email_confirm: true,
       user_metadata: {
+        role: 'student',  // CRITICAL: nodig voor login verificatie
         name: username.toLowerCase(),
         level: level,
         real_email: email.toLowerCase()
