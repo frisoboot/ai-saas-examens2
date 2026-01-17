@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import createMollieClient from '@mollie/api-client';
+import { createMollieClient } from '@mollie/api-client';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
