@@ -377,34 +377,74 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Eenvoudige prijzen voor scholen
+              Kies jouw pakket
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              AI Examentrainer wordt aangeboden via scholen. Neem contact op voor schoollicenties.
+              Start met 3 dagen gratis proefperiode. Geen creditcard nodig.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {/* School License */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100 relative overflow-hidden lg:col-span-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Individual Subscription */}
+            <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-500 relative overflow-hidden">
               <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-medium rounded-bl-xl">
-                Populair
+                Meest gekozen
               </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Individueel</h3>
+              <p className="text-gray-600 mb-6">Voor leerlingen die zelfstandig willen oefenen</p>
+
+              <div className="mb-2">
+                <span className="text-5xl font-extrabold text-gray-900">€12,50</span>
+                <span className="text-gray-500 ml-2">/ maand</span>
+              </div>
+              <p className="text-green-600 font-medium mb-8 flex items-center gap-2">
+                <Sparkles className="w-4 h-4" />
+                Eerste 3 dagen gratis proberen
+              </p>
+
+              <ul className="space-y-4 mb-8">
+                {[
+                  'Onbeperkt AI-oefenvragen',
+                  'Alle 16 vakken beschikbaar',
+                  'VMBO, HAVO & VWO niveau',
+                  'Persoonlijke AI-tutor',
+                  'Flashcards generator',
+                  'Look-alike examens',
+                  'Voortgang bijhouden',
+                  'Maandelijks opzegbaar'
+                ].map((feature) => (
+                  <li key={feature} className="flex items-center gap-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
+                    <span className="text-gray-700">{feature}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <Button onClick={onLogin} className="w-full justify-center shadow-lg shadow-blue-600/25" size="lg">
+                Start gratis proefperiode
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+            </div>
+
+            {/* School License */}
+            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Schoollicentie</h3>
               <p className="text-gray-600 mb-6">Voor docenten en hun klassen</p>
 
-              <div className="flex items-baseline gap-2 mb-8">
+              <div className="mb-2">
                 <span className="text-4xl font-extrabold text-gray-900">Op aanvraag</span>
               </div>
+              <p className="text-gray-500 mb-8">Prijs afhankelijk van aantal leerlingen</p>
 
               <ul className="space-y-4 mb-8">
                 {[
                   'Onbeperkt aantal leerlingen',
                   'Alle vakken en niveaus',
-                  'AI-gegenereerde vragen',
                   'Voortgangsrapportages voor docenten',
                   'Eigen vragen toevoegen',
-                  'Prioriteit support'
+                  'Klasbeheer dashboard',
+                  'Prioriteit support',
+                  'Facturatie op maat'
                 ].map((feature) => (
                   <li key={feature} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
@@ -413,38 +453,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
 
-              <Button onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'} className="w-full justify-center" size="lg">
+              <Button onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'} variant="outline" className="w-full justify-center" size="lg">
                 Neem contact op
                 <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
-
-            {/* Individual */}
-            <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-100">
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Leerling</h3>
-              <p className="text-gray-600 mb-6">Via je school</p>
-
-              <div className="flex items-baseline gap-2 mb-8">
-                <span className="text-4xl font-extrabold text-gray-900">Gratis</span>
-              </div>
-
-              <ul className="space-y-4 mb-8">
-                {[
-                  'Toegang via schoolaccount',
-                  'AI-oefenvragen',
-                  'Flashcards',
-                  'Voortgang bijhouden',
-                  'AI-chat hulp'
-                ].map((feature) => (
-                  <li key={feature} className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0" />
-                    <span className="text-gray-700">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button onClick={onLogin} variant="outline" className="w-full justify-center" size="lg">
-                Inloggen
               </Button>
             </div>
           </div>
@@ -479,7 +490,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               },
               {
                 question: 'Is AI Examentrainer beschikbaar voor individuele leerlingen?',
-                answer: 'AI Examentrainer wordt momenteel aangeboden via scholen. Als leerling krijg je toegang via je docent, die een account voor je aanmaakt. Neem contact op met je school als je geïnteresseerd bent.'
+                answer: 'Ja! Je kunt een individueel abonnement nemen voor €12,50 per maand. Je krijgt eerst 3 dagen gratis om het platform uit te proberen. Je kunt ook toegang krijgen via je school als zij een schoollicentie hebben.'
               },
               {
                 question: 'Hoe betrouwbaar zijn de AI-gegenereerde vragen?',
@@ -495,7 +506,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               },
               {
                 question: 'Hoeveel kost AI Examentrainer?',
-                answer: 'Voor leerlingen is het platform gratis toegankelijk via hun school. Scholen betalen een licentie afhankelijk van het aantal gebruikers. Neem contact met ons op voor een prijsopgave.'
+                answer: 'Een individueel abonnement kost €12,50 per maand, met de eerste 3 dagen gratis om te proberen. Je kunt maandelijks opzeggen. Voor scholen bieden we licenties op maat aan, afhankelijk van het aantal leerlingen. Neem contact met ons op voor een prijsopgave.'
               }
             ].map((faq, index) => (
               <details key={index} className="group bg-white rounded-xl border border-gray-200 overflow-hidden">
