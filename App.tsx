@@ -74,9 +74,9 @@ const App: React.FC = () => {
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
   // Input State
-  const [studentName, setStudentName] = useState('');
+  const [studentEmail, setStudentEmail] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
-  const [adminUsername, setAdminUsername] = useState('');
+  const [adminEmail, setAdminEmail] = useState('');
   const [adminPassword, setAdminPassword] = useState('');
 
   const [currentProfile, setCurrentProfile] = useState<StudentProfile | null>(null);
@@ -90,13 +90,13 @@ const App: React.FC = () => {
     e.preventDefault();
     setLoginError('');
 
-    if (!studentName.trim() || !studentPassword.trim()) {
-      setLoginError("Vul naam en wachtwoord in.");
+    if (!studentEmail.trim() || !studentPassword.trim()) {
+      setLoginError("Vul email en wachtwoord in.");
       return;
     }
 
     try {
-      const profile = await verifyStudentLogin(studentName, studentPassword);
+      const profile = await verifyStudentLogin(studentEmail, studentPassword);
       if (profile) {
         if (profile.isActive === false) {
           setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
@@ -106,10 +106,10 @@ const App: React.FC = () => {
         setCurrentProfile(profile);
         setView('STUDENT_DASHBOARD');
       } else {
-        setLoginError("Naam of wachtwoord onjuist.");
+        setLoginError("Email of wachtwoord onjuist.");
       }
-    } catch (error) {
-      setLoginError("Er ging iets mis bij het inloggen.");
+    } catch (error: any) {
+      setLoginError(error?.message || "Er ging iets mis bij het inloggen.");
     }
   };
 
@@ -117,26 +117,24 @@ const App: React.FC = () => {
     e.preventDefault();
     setLoginError('');
 
-    if (!adminUsername.trim() || !adminPassword.trim()) {
-      setLoginError("Vul gebruikersnaam en wachtwoord in.");
+    if (!adminEmail.trim() || !adminPassword.trim()) {
+      setLoginError("Vul email en wachtwoord in.");
       return;
     }
 
     try {
-      const admin = await verifyAdminLogin(adminUsername, adminPassword);
+      const admin = await verifyAdminLogin(adminEmail, adminPassword);
       if (admin) {
         setCurrentAdmin(admin);
         setView('ADMIN');
         setShowAdminLogin(false);
-        setAdminUsername('');
+        setAdminEmail('');
         setAdminPassword('');
       } else {
-        setLoginError("Gebruikersnaam of wachtwoord onjuist.");
+        setLoginError("Email of wachtwoord onjuist.");
       }
     } catch (error: any) {
-      // Show the actual error message from the API/auth service
-      const errorMessage = error?.message || "Er ging iets mis bij het inloggen.";
-      setLoginError(errorMessage);
+      setLoginError(error?.message || "Er ging iets mis bij het inloggen.");
     }
   };
 
@@ -356,9 +354,9 @@ const App: React.FC = () => {
         return (
           <CheckoutForm
             onBack={() => setView('PUBLIC_LANDING')}
-            onSuccess={(username) => {
-              // Na succesvolle registratie, vul username in en ga naar login
-              setStudentName(username);
+            onSuccess={(email) => {
+              // Na succesvolle registratie, vul email in en ga naar login
+              setStudentEmail(email);
               setStudentPassword('');
               setLoginError('');
               setView('LANDING');
@@ -369,8 +367,8 @@ const App: React.FC = () => {
       case 'PAYMENT_CALLBACK':
         return (
           <PaymentCallback
-            onLogin={(username) => {
-              setStudentName(username);
+            onLogin={(email) => {
+              setStudentEmail(email);
               setStudentPassword('');
               setLoginError('');
               setView('LANDING');
@@ -385,8 +383,8 @@ const App: React.FC = () => {
         return (
           <PaymentSuccess
             username={paymentUsername || ''}
-            onLogin={(username) => {
-              setStudentName(username);
+            onLogin={(email) => {
+              setStudentEmail(email);
               setStudentPassword('');
               setLoginError('');
               setView('LANDING');
@@ -432,14 +430,14 @@ const App: React.FC = () => {
                 {!showAdminLogin ? (
                   <form onSubmit={handleStudentAuth} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Gebruikersnaam</label>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Email</label>
                       <input
-                        type="text"
+                        type="email"
                         required
                         className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Je naam..."
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
+                        placeholder="naam@student.example.com"
+                        value={studentEmail}
+                        onChange={(e) => setStudentEmail(e.target.value)}
                       />
                     </div>
 
@@ -470,14 +468,14 @@ const App: React.FC = () => {
                 ) : (
                   <form onSubmit={handleAdminLogin} className="space-y-6">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Admin Gebruikersnaam</label>
+                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Admin Email</label>
                       <input
-                        type="text"
+                        type="email"
                         required
                         className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Gebruikersnaam"
-                        value={adminUsername}
-                        onChange={(e) => setAdminUsername(e.target.value)}
+                        placeholder="admin@admin.example.com"
+                        value={adminEmail}
+                        onChange={(e) => setAdminEmail(e.target.value)}
                       />
                     </div>
 
@@ -537,7 +535,7 @@ const App: React.FC = () => {
         return <AdminDashboard onBack={async () => {
           await logout();
           setCurrentAdmin(null);
-          setAdminUsername('');
+          setAdminEmail('');
           setAdminPassword('');
           setView('PUBLIC_LANDING');
         }} adminUsername={currentAdmin?.username || 'admin'} />;
@@ -554,7 +552,7 @@ const App: React.FC = () => {
             onStartLookalikeExam={startLookalikeExam}
             onLogout={async () => {
               await logout();
-              setStudentName('');
+              setStudentEmail('');
               setStudentPassword('');
               setCurrentProfile(null);
               setView('PUBLIC_LANDING');
