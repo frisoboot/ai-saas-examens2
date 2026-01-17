@@ -18,9 +18,35 @@ const VERCEL_PROJECT_NAME = 'ai-saas-examens2';
 export function isAllowedOrigin(origin: string | undefined): boolean {
   if (!origin) return false;
 
-  // Altijd toegestaan: productie URL
-  if (process.env.VITE_APP_URL && origin === process.env.VITE_APP_URL) {
-    return true;
+  // Altijd toegestaan: productie URL (inclusief www variant)
+  if (process.env.VITE_APP_URL) {
+    const appUrl = process.env.VITE_APP_URL;
+
+    // Exacte match
+    if (origin === appUrl) {
+      return true;
+    }
+
+    // Check www/non-www variant automatisch
+    // Als VITE_APP_URL = https://ai-examentrainer.nl, sta ook https://www.ai-examentrainer.nl toe
+    // Als VITE_APP_URL = https://www.ai-examentrainer.nl, sta ook https://ai-examentrainer.nl toe
+    try {
+      const appUrlParsed = new URL(appUrl);
+      const originParsed = new URL(origin);
+
+      // Zelfde protocol en path vereist
+      if (appUrlParsed.protocol === originParsed.protocol) {
+        const appHost = appUrlParsed.hostname;
+        const originHost = originParsed.hostname;
+
+        // Check of het de www/non-www variant is
+        if (appHost === `www.${originHost}` || `www.${appHost}` === originHost) {
+          return true;
+        }
+      }
+    } catch {
+      // URL parsing failed, skip www check
+    }
   }
 
   // Localhost development
