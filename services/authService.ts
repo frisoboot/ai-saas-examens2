@@ -1,153 +1,129 @@
 import { StudentProfile, AdminUser, StudentLevel } from '../types';
 import { supabase } from './supabaseService';
-import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiService';
 
 // ============================================================================
-// SUPABASE AUTH INTEGRATIE - GEEN FALLBACKS
-// Database en Supabase Auth zijn VEREIST
-//
-// SECURITY: Alle admin operaties (student aanmaken, wachtwoord resetten, etc.)
-// gaan via server-side API endpoints. Dit voorkomt dat de service role key
-// in de browser wordt geladen.
+// AUTHENTICATION SERVICE
+// - Admin: server-side token authenticatie
+// - Student: Supabase Auth
 // ============================================================================
 
-const requireSupabase = () => {
-  if (!supabase) {
-    throw new Error('Supabase niet beschikbaar. Controleer je configuratie.');
+const ADMIN_TOKEN_KEY = 'admin_token';
+const ADMIN_USER_KEY = 'admin_user';
+
+// Admin token management
+export const getAdminToken = (): string | null => {
+  return localStorage.getItem(ADMIN_TOKEN_KEY);
+};
+
+export const setAdminToken = (token: string, username: string): void => {
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  localStorage.setItem(ADMIN_USER_KEY, JSON.stringify({ username }));
+};
+
+export const clearAdminToken = (): void => {
+  localStorage.removeItem(ADMIN_TOKEN_KEY);
+  localStorage.removeItem(ADMIN_USER_KEY);
+};
+
+export const getStoredAdmin = (): AdminUser | null => {
+  const data = localStorage.getItem(ADMIN_USER_KEY);
+  if (!data) return null;
+  try {
+    const { username } = JSON.parse(data);
+    return {
+      id: 'admin',
+      username,
+      passwordHash: '',
+      lastLogin: new Date().toISOString()
+    };
+  } catch {
+    return null;
   }
 };
 
-// Admin authentication - via Supabase Auth (zelfde als studenten)
+// API base URL
+const getApiBaseUrl = (): string => {
+  if (import.meta.env.DEV) {
+    return 'http://localhost:3001/api';
+  }
+  return `${window.location.origin}/api`;
+};
+
+// Admin login via server-side API
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  requireSupabase();
-
-  // Gebruik username@admin.example.com als email format voor admins
-  // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.example.com`;
-
-  const { data, error } = await supabase!.auth.signInWithPassword({
-    email,
-    password
+  const response = await fetch(`${getApiBaseUrl()}/admin-login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password })
   });
 
-  if (error) {
-    throw new Error(`Admin login mislukt: ${error.message}`);
+  const data = await response.json();
+
+  if (!response.ok || !data.success) {
+    throw new Error(data.error || 'Login mislukt');
   }
 
-  if (!data.user) {
-    throw new Error('Geen user data ontvangen van Supabase Auth');
-  }
+  // Sla token op
+  setAdminToken(data.token, data.admin.username);
 
-  // Email eindigt op @admin.example.com = admin (geen metadata nodig)
   return {
-    id: data.user.id,
-    username: username,
+    id: 'admin',
+    username: data.admin.username,
     passwordHash: '',
-    email: data.user.email,
     lastLogin: new Date().toISOString()
   };
 };
 
-// Student authentication met Supabase Auth
+// Student login via Supabase Auth
 export const verifyStudentLogin = async (name: string, password: string): Promise<StudentProfile | null> => {
-  requireSupabase();
+  if (!supabase) {
+    throw new Error('Supabase niet beschikbaar');
+  }
 
-  // Gebruik name@student.example.com als email format voor studenten
-  // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
   const email = `${name.toLowerCase().replace(/\s+/g, '_')}@student.example.com`;
 
-  const { data, error } = await supabase!.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   });
 
   if (error) {
-    throw new Error(`Student login mislukt: ${error.message}`);
+    throw new Error('Naam of wachtwoord onjuist');
   }
 
   if (!data.user) {
-    throw new Error('Geen user data ontvangen van Supabase Auth');
+    throw new Error('Login mislukt');
   }
 
-  // Controleer of user student role heeft
-  const role = data.user.user_metadata?.role;
-  if (role !== 'student') {
-    await supabase!.auth.signOut();
-    throw new Error('User is geen student');
-  }
+  // Haal student profiel op
+  const { data: profile, error: profileError } = await supabase
+    .from('student_profiles')
+    .select('*')
+    .eq('name', data.user.user_metadata?.name || name)
+    .maybeSingle();
 
-  // Haal student profiel op uit database
-  // Try by name from metadata first, fallback to auth_user_id for robustness
-  const studentName = data.user.user_metadata?.name;
-  let profileData = null;
-  let profileError = null;
-
-  if (studentName) {
-    const result = await supabase!
-      .from('student_profiles')
-      .select('*')
-      .eq('name', studentName)
-      .maybeSingle();
-    profileData = result.data;
-    profileError = result.error;
-  }
-
-  // Fallback: try to find by auth_user_id if name lookup failed
-  if (!profileData && !profileError) {
-    const fallbackResult = await supabase!
-      .from('student_profiles')
-      .select('*')
-      .eq('auth_user_id', data.user.id)
-      .maybeSingle();
-    profileData = fallbackResult.data;
-    profileError = fallbackResult.error;
-  }
-
-  if (profileError) {
-    throw new Error(`Fout bij ophalen student profiel: ${profileError.message}`);
-  }
-
-  if (!profileData) {
-    await supabase!.auth.signOut();
-    throw new Error('Student profiel niet gevonden in database. Neem contact op met de beheerder.');
+  if (profileError || !profile) {
+    await supabase.auth.signOut();
+    throw new Error('Profiel niet gevonden');
   }
 
   return {
-    name: profileData.name,
-    level: profileData.level,
-    strugglePoints: profileData.struggle_points,
-    email: profileData.email,
-    createdByAdmin: profileData.created_by_admin,
-    isActive: profileData.is_active
+    name: profile.name,
+    level: profile.level,
+    strugglePoints: profile.struggle_points,
+    email: profile.email,
+    createdByAdmin: profile.created_by_admin,
+    isActive: profile.is_active
   };
 };
 
-// Admin creates student account - via server-side API voor veiligheid
-export const createStudentAccount = async (
-  adminUsername: string,
-  name: string,
-  password: string,
-  level: StudentLevel,
-  strugglePoints: string,
-  email?: string
-): Promise<{ success: boolean; error?: string }> => {
-  requireSupabase();
-
-  // Check if student already exists
-  const existing = await getStudentByName(name);
-  if (existing) {
-    return { success: false, error: 'Student met deze naam bestaat al' };
+// Get all students (admin only)
+export const getAllStudents = async (): Promise<StudentProfile[]> => {
+  if (!supabase) {
+    throw new Error('Supabase niet beschikbaar');
   }
 
-  // Gebruik veilige server-side API endpoint
-  return await apiCreateStudent(adminUsername, name, password, level, strugglePoints, email);
-};
-
-// Get all students (for admin management)
-export const getAllStudents = async (): Promise<StudentProfile[]> => {
-  requireSupabase();
-
-  const { data, error } = await supabase!
+  const { data, error } = await supabase
     .from('student_profiles')
     .select('*')
     .order('name');
@@ -164,118 +140,144 @@ export const getAllStudents = async (): Promise<StudentProfile[]> => {
   }));
 };
 
+// Create student account via API
+export const createStudentAccount = async (
+  adminUsername: string,
+  name: string,
+  password: string,
+  level: StudentLevel,
+  strugglePoints: string,
+  email?: string
+): Promise<{ success: boolean; error?: string }> => {
+  const token = getAdminToken();
+  if (!token) {
+    return { success: false, error: 'Niet ingelogd als admin' };
+  }
+
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/create-student`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ name, password, level, strugglePoints, email })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Fout bij aanmaken' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Netwerkfout' };
+  }
+};
+
 // Update student
 export const updateStudent = async (
   name: string,
   updates: Partial<StudentProfile>
 ): Promise<{ success: boolean; error?: string }> => {
-  requireSupabase();
+  if (!supabase) {
+    return { success: false, error: 'Supabase niet beschikbaar' };
+  }
 
-  const dbUpdates: any = {};
+  const dbUpdates: Record<string, unknown> = {};
   if (updates.level) dbUpdates.level = updates.level;
   if (updates.strugglePoints !== undefined) dbUpdates.struggle_points = updates.strugglePoints;
   if (updates.email !== undefined) dbUpdates.email = updates.email;
   if (updates.isActive !== undefined) dbUpdates.is_active = updates.isActive;
 
-  const { error } = await supabase!
+  const { error } = await supabase
     .from('student_profiles')
     .update(dbUpdates)
     .eq('name', name);
 
-  if (error) throw error;
+  if (error) {
+    return { success: false, error: error.message };
+  }
 
   return { success: true };
 };
 
-// Deactivate student account
+// Deactivate student
 export const deactivateStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
   return updateStudent(name, { isActive: false });
 };
 
-// Activate student account
+// Activate student
 export const activateStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
   return updateStudent(name, { isActive: true });
 };
 
-// Reset student password - via server-side API voor veiligheid
+// Reset student password via API
 export const resetStudentPassword = async (
   name: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
-  requireSupabase();
-
-  // Gebruik veilige server-side API endpoint
-  return await apiResetPassword(name, newPassword);
-};
-
-// Helper to get student by name
-const getStudentByName = async (name: string): Promise<StudentProfile | null> => {
-  requireSupabase();
-
-  const { data, error } = await supabase!
-    .from('student_profiles')
-    .select('*')
-    .eq('name', name)
-    .maybeSingle();
-
-  if (error) throw error;
-
-  return data ? {
-    name: data.name,
-    level: data.level,
-    strugglePoints: data.struggle_points,
-    email: data.email,
-    createdByAdmin: data.created_by_admin,
-    isActive: data.is_active
-  } : null;
-};
-
-// Get current session user
-export const getCurrentUser = async (): Promise<{ role: 'admin' | 'student'; data: AdminUser | StudentProfile } | null> => {
-  if (!supabase) return null;
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const role = user.user_metadata?.role;
-
-  if (role === 'admin') {
-    return {
-      role: 'admin',
-      data: {
-        id: user.id,
-        username: user.user_metadata?.username || 'admin',
-        passwordHash: '',
-        email: user.email,
-        lastLogin: new Date().toISOString()
-      }
-    };
-  } else if (role === 'student') {
-    const profile = await getStudentByName(user.user_metadata?.name);
-    if (!profile) return null;
-
-    return {
-      role: 'student',
-      data: profile
-    };
+  const token = getAdminToken();
+  if (!token) {
+    return { success: false, error: 'Niet ingelogd als admin' };
   }
 
-  return null;
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/reset-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ studentName: name, newPassword })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Fout bij resetten' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Netwerkfout' };
+  }
+};
+
+// Delete student via API
+export const deleteStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
+  const token = getAdminToken();
+  if (!token) {
+    return { success: false, error: 'Niet ingelogd als admin' };
+  }
+
+  try {
+    const response = await fetch(`${getApiBaseUrl()}/delete-student`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ studentName: name })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, error: data.error || 'Fout bij verwijderen' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: 'Netwerkfout' };
+  }
 };
 
 // Sign out
 export const signOut = async (): Promise<void> => {
-  if (!supabase) return;
-  await supabase.auth.signOut();
-};
-
-// Delete student account - via server-side API voor veiligheid
-export const deleteStudent = async (
-  name: string
-): Promise<{ success: boolean; error?: string }> => {
-  requireSupabase();
-
-  // Gebruik veilige server-side API endpoint
-  return await apiDeleteStudent(name);
+  clearAdminToken();
+  if (supabase) {
+    await supabase.auth.signOut();
+  }
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
+import { verifyStudentLogin, verifyAdminLogin, signOut } from './services/authService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
@@ -493,7 +493,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('PUBLIC_LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={() => { signOut(); setCurrentAdmin(null); setView('PUBLIC_LANDING'); }} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
