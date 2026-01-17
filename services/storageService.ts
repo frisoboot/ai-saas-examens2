@@ -1,5 +1,5 @@
-import { Question, ExamResult, StudentProfile, StudentLevel } from '../types';
-import { supabase, dbQuestions, dbResults, dbStudents } from './supabaseService';
+import { Question, ExamResult, StudentLevel } from '../types';
+import { supabase, dbQuestions, dbResults } from './supabaseService';
 
 // Database is VEREIST - geen fallbacks meer
 const requireDatabase = () => {
@@ -23,24 +23,9 @@ export const deleteQuestion = async (id: string): Promise<void> => {
   await dbQuestions.delete(id);
 };
 
-export const getResults = async (): Promise<ExamResult[]> => {
-  requireDatabase();
-  return await dbResults.getAll();
-};
-
 export const saveResult = async (result: ExamResult): Promise<void> => {
   requireDatabase();
   await dbResults.save(result);
-};
-
-export const saveStudentProfile = async (profile: StudentProfile): Promise<void> => {
-  requireDatabase();
-  await dbStudents.save(profile);
-};
-
-export const getStudentProfile = async (name: string): Promise<StudentProfile | undefined> => {
-  requireDatabase();
-  return await dbStudents.getByName(name) || undefined;
 };
 
 // ============================================================================
@@ -63,25 +48,6 @@ export const getAvailableYears = async (): Promise<number[]> => {
     .filter((year): year is number => year !== undefined && year !== null);
 
   return [...new Set(years)].sort((a, b) => b - a);
-};
-
-export const getQuestionsByYearAndSubject = async (
-  year: number,
-  subject: string,
-  level: StudentLevel
-): Promise<Question[]> => {
-  const questions = await getQuestions();
-  return questions.filter(q =>
-    q.examYear === year &&
-    q.subject === subject &&
-    q.level === level
-  );
-};
-
-export const getSubjectsForYear = async (year: number, level?: StudentLevel): Promise<string[]> => {
-  const questions = await getQuestionsByYear(year, level);
-  const subjects = [...new Set(questions.map(q => q.subject))];
-  return subjects.sort();
 };
 
 export const getQuestionCountByYear = async (year: number, level?: StudentLevel): Promise<number> => {

@@ -171,7 +171,12 @@ export const updateStudent = async (
 ): Promise<{ success: boolean; error?: string }> => {
   requireSupabase();
 
-  const dbUpdates: any = {};
+  const dbUpdates: {
+    level?: StudentLevel;
+    struggle_points?: string;
+    email?: string;
+    is_active?: boolean;
+  } = {};
   if (updates.level) dbUpdates.level = updates.level;
   if (updates.strugglePoints !== undefined) dbUpdates.struggle_points = updates.strugglePoints;
   if (updates.email !== undefined) dbUpdates.email = updates.email;
@@ -228,46 +233,6 @@ const getStudentByName = async (name: string): Promise<StudentProfile | null> =>
     createdByAdmin: data.created_by_admin,
     isActive: data.is_active
   } : null;
-};
-
-// Get current session user
-export const getCurrentUser = async (): Promise<{ role: 'admin' | 'student'; data: AdminUser | StudentProfile } | null> => {
-  if (!supabase) return null;
-
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) return null;
-
-  const role = user.user_metadata?.role;
-
-  if (role === 'admin') {
-    return {
-      role: 'admin',
-      data: {
-        id: user.id,
-        username: user.user_metadata?.username || 'admin',
-        passwordHash: '',
-        email: user.email,
-        lastLogin: new Date().toISOString()
-      }
-    };
-  } else if (role === 'student') {
-    const profile = await getStudentByName(user.user_metadata?.name);
-    if (!profile) return null;
-
-    return {
-      role: 'student',
-      data: profile
-    };
-  }
-
-  return null;
-};
-
-// Sign out
-export const signOut = async (): Promise<void> => {
-  if (!supabase) return;
-  await supabase.auth.signOut();
 };
 
 // Delete student account - via server-side API voor veiligheid

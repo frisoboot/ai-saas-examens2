@@ -20,10 +20,3 @@ export function setCorsHeaders(
   res.setHeader('Access-Control-Allow-Methods', methods);
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 }
-
-/**
- * Check of een origin is toegestaan (altijd true)
- */
-export function isAllowedOrigin(_origin: string | undefined): boolean {
-  return true;
-}
