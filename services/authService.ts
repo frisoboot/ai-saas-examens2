@@ -3,7 +3,7 @@ import { supabase } from './supabaseService';
 
 // ============================================================================
 // AUTHENTICATION SERVICE
-// - Admin: server-side token authenticatie
+// - Admin: server-side token authenticatie via /api/admin
 // - Student: Supabase Auth
 // ============================================================================
 
@@ -25,22 +25,6 @@ export const clearAdminToken = (): void => {
   localStorage.removeItem(ADMIN_USER_KEY);
 };
 
-export const getStoredAdmin = (): AdminUser | null => {
-  const data = localStorage.getItem(ADMIN_USER_KEY);
-  if (!data) return null;
-  try {
-    const { username } = JSON.parse(data);
-    return {
-      id: 'admin',
-      username,
-      passwordHash: '',
-      lastLogin: new Date().toISOString()
-    };
-  } catch {
-    return null;
-  }
-};
-
 // API base URL
 const getApiBaseUrl = (): string => {
   if (import.meta.env.DEV) {
@@ -49,21 +33,28 @@ const getApiBaseUrl = (): string => {
   return `${window.location.origin}/api`;
 };
 
-// Admin login via server-side API
-export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  const response = await fetch(`${getApiBaseUrl()}/admin-login`, {
+// Admin API call helper
+const adminApiCall = async (action: string, data: Record<string, unknown> = {}) => {
+  const token = getAdminToken();
+  const response = await fetch(`${getApiBaseUrl()}/admin`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password })
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ action, ...data })
   });
+  return response.json();
+};
 
-  const data = await response.json();
+// Admin login
+export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
+  const data = await adminApiCall('login', { username, password });
 
-  if (!response.ok || !data.success) {
+  if (!data.success) {
     throw new Error(data.error || 'Login mislukt');
   }
 
-  // Sla token op
   setAdminToken(data.token, data.admin.username);
 
   return {
@@ -95,7 +86,6 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
     throw new Error('Login mislukt');
   }
 
-  // Haal student profiel op
   const { data: profile, error: profileError } = await supabase
     .from('student_profiles')
     .select('*')
@@ -117,7 +107,7 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
   };
 };
 
-// Get all students (admin only)
+// Get all students
 export const getAllStudents = async (): Promise<StudentProfile[]> => {
   if (!supabase) {
     throw new Error('Supabase niet beschikbaar');
@@ -140,40 +130,17 @@ export const getAllStudents = async (): Promise<StudentProfile[]> => {
   }));
 };
 
-// Create student account via API
+// Create student
 export const createStudentAccount = async (
-  adminUsername: string,
+  _adminUsername: string,
   name: string,
   password: string,
   level: StudentLevel,
   strugglePoints: string,
   email?: string
 ): Promise<{ success: boolean; error?: string }> => {
-  const token = getAdminToken();
-  if (!token) {
-    return { success: false, error: 'Niet ingelogd als admin' };
-  }
-
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/create-student`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ name, password, level, strugglePoints, email })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { success: false, error: data.error || 'Fout bij aanmaken' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Netwerkfout' };
-  }
+  const data = await adminApiCall('create-student', { name, password, level, strugglePoints, email });
+  return data.success ? { success: true } : { success: false, error: data.error };
 };
 
 // Update student
@@ -213,65 +180,19 @@ export const activateStudent = async (name: string): Promise<{ success: boolean;
   return updateStudent(name, { isActive: true });
 };
 
-// Reset student password via API
+// Reset password
 export const resetStudentPassword = async (
   name: string,
   newPassword: string
 ): Promise<{ success: boolean; error?: string }> => {
-  const token = getAdminToken();
-  if (!token) {
-    return { success: false, error: 'Niet ingelogd als admin' };
-  }
-
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/reset-password`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ studentName: name, newPassword })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { success: false, error: data.error || 'Fout bij resetten' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Netwerkfout' };
-  }
+  const data = await adminApiCall('reset-password', { studentName: name, newPassword });
+  return data.success ? { success: true } : { success: false, error: data.error };
 };
 
-// Delete student via API
+// Delete student
 export const deleteStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
-  const token = getAdminToken();
-  if (!token) {
-    return { success: false, error: 'Niet ingelogd als admin' };
-  }
-
-  try {
-    const response = await fetch(`${getApiBaseUrl()}/delete-student`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ studentName: name })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return { success: false, error: data.error || 'Fout bij verwijderen' };
-    }
-
-    return { success: true };
-  } catch (error) {
-    return { success: false, error: 'Netwerkfout' };
-  }
+  const data = await adminApiCall('delete-student', { studentName: name });
+  return data.success ? { success: true } : { success: false, error: data.error };
 };
 
 // Sign out
