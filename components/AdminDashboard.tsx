@@ -4,8 +4,9 @@ import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageS
 import { AdminStudentManagement } from './AdminStudentManagement';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
+import { AdminStatus } from './AdminStatus';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Activity } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { Loader2 } from 'lucide-react';
 
@@ -14,7 +15,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder';
+type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder' | 'status';
 
 const SUBJECTS = [
   'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
@@ -305,6 +306,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <Upload className="w-4 h-4" />
                   CSV/JSON Import
                 </button>
+                <button
+                  onClick={() => setActiveTab('status')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'status'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Activity className="w-4 h-4" />
+                  Systeem Status
+                </button>
              </div>
          </div>
 
@@ -384,6 +396,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'import' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <BulkImportQuestions />
+           </div>
+        ) : activeTab === 'status' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <AdminStatus />
            </div>
         ) : (
           <>
