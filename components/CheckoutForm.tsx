@@ -82,6 +82,10 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
       // Redirect naar Mollie checkout of direct success
       if (result.checkoutUrl) {
         setStep('redirect');
+        // Sla payment ID op in localStorage voor status check na redirect
+        if (result.paymentId) {
+          localStorage.setItem('pending_payment_id', result.paymentId);
+        }
         window.location.href = result.checkoutUrl;
       } else {
         // Trial direct geactiveerd (geen betaling nodig voor trial start)
@@ -127,7 +131,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
             3 dagen gratis proberen, daarna €12,50/maand
           </p>
           <p className="text-gray-400 mt-1 text-sm">
-            Eenmalig €0,01 voor betaalverificatie
+            Eenmalig €1,00 voor betaalverificatie
           </p>
         </div>
 
@@ -255,7 +259,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Ga naar betalen (€0,01)
+                    Ga naar betalen (€1,00)
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}

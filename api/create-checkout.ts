@@ -159,7 +159,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customerId: customer.id,
       sequenceType: SequenceType.first, // Dit creëert een mandaat voor recurring payments
       description: 'AI Examentrainer - Verificatie voor proefperiode',
-      redirectUrl: `${appUrl}?payment=success&username=${encodeURIComponent(username.toLowerCase())}`,
+      // Redirect naar payment callback pagina met payment_id (niet hardcoded success)
+      // De frontend checkt vervolgens de werkelijke betalingsstatus via de API
+      redirectUrl: `${appUrl}?payment_callback=true`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
       metadata: {
         type: 'verification',
@@ -192,10 +194,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Probeer toch door te gaan - payment metadata bevat ook de gegevens
     }
 
-    // Return checkout URL
+    // Return checkout URL en payment ID
+    // Payment ID wordt opgeslagen in localStorage zodat we na redirect de status kunnen checken
     return res.status(200).json({
       success: true,
       checkoutUrl: payment.getCheckoutUrl(),
+      paymentId: payment.id,
       message: 'Redirect naar betaalpagina...'
     });
 

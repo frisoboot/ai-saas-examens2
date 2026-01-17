@@ -18,12 +18,23 @@ export interface SubscriptionStatus {
 export interface CheckoutResponse {
   success: boolean;
   checkoutUrl?: string;
+  paymentId?: string;
   message?: string;
   subscription?: {
     status: string;
     trialEndsAt?: string;
     periodEnd?: string;
   };
+}
+
+export interface PaymentStatusResponse {
+  success: boolean;
+  status: 'paid' | 'pending' | 'failed' | 'canceled' | 'expired' | 'open';
+  message: string;
+  username: string | null;
+  accountReady: boolean;
+  paymentMethod?: string;
+  error?: string;
 }
 
 /**
@@ -142,4 +153,35 @@ export function formatSubscriptionDate(dateString: string): string {
     month: 'long',
     year: 'numeric'
   });
+}
+
+/**
+ * Check betaalstatus bij Mollie
+ */
+export async function checkPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
+  try {
+    const response = await fetch(`${API_BASE}/api/check-payment-status?payment_id=${encodeURIComponent(paymentId)}`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        status: 'failed',
+        message: data.error || 'Kon betaalstatus niet ophalen',
+        username: null,
+        accountReady: false
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Check payment status error:', error);
+    return {
+      success: false,
+      status: 'failed',
+      message: 'Netwerk fout bij ophalen betaalstatus',
+      username: null,
+      accountReady: false
+    };
+  }
 }
