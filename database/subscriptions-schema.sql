@@ -111,3 +111,50 @@ BEGIN
   RETURN FALSE;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================================
+-- PENDING REGISTRATIONS TABLE
+-- Tijdelijke opslag voor registraties tijdens Mollie checkout
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS pending_registrations (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- User gegevens
+  email TEXT NOT NULL,
+  username TEXT NOT NULL,
+  password_encrypted TEXT NOT NULL, -- Base64 encoded (wordt verwijderd na activatie)
+  level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
+
+  -- Mollie IDs
+  mollie_customer_id TEXT,
+  mollie_payment_id TEXT UNIQUE,
+
+  -- Status
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'expired', 'failed')),
+
+  -- Timestamps
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  expires_at TIMESTAMP WITH TIME ZONE NOT NULL -- 24 uur na aanmaken
+);
+
+-- Indexen
+CREATE INDEX IF NOT EXISTS idx_pending_email ON pending_registrations(email);
+CREATE INDEX IF NOT EXISTS idx_pending_username ON pending_registrations(username);
+CREATE INDEX IF NOT EXISTS idx_pending_mollie_payment ON pending_registrations(mollie_payment_id);
+CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_registrations(status);
+CREATE INDEX IF NOT EXISTS idx_pending_expires ON pending_registrations(expires_at);
+
+-- RLS
+ALTER TABLE pending_registrations ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Service role full access pending" ON pending_registrations
+    FOR ALL USING (true);
+
+-- Automatische cleanup van verlopen registraties (optioneel, kan via cron job)
+-- DELETE FROM pending_registrations WHERE expires_at < NOW();
+
+-- Update subscriptions status om 'payment_failed' toe te voegen
+ALTER TABLE subscriptions DROP CONSTRAINT IF EXISTS subscriptions_status_check;
+ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_status_check
+    CHECK (status IN ('trial', 'active', 'cancelled', 'expired', 'pending', 'payment_failed'));

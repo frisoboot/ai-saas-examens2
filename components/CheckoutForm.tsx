@@ -122,7 +122,10 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
             Start je gratis proefperiode
           </h2>
           <p className="text-gray-500 mt-3 text-lg">
-            3 dagen gratis, daarna €12,50/maand
+            3 dagen gratis proberen, daarna €12,50/maand
+          </p>
+          <p className="text-gray-400 mt-1 text-sm">
+            Eenmalig €0,01 voor betaalverificatie
           </p>
         </div>
 
@@ -250,7 +253,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Start gratis proefperiode
+                    Ga naar betalen (€0,01)
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
@@ -259,7 +262,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               <p className="text-center text-xs text-gray-500">
                 Door te registreren ga je akkoord met onze voorwaarden.
                 <br />
-                Je wordt pas na 3 dagen gefactureerd.
+                Na je proefperiode wordt €12,50/maand automatisch afgeschreven.
               </p>
             </form>
           )}

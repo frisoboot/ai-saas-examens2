@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
@@ -10,11 +10,27 @@ import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
 import { LandingPage } from './components/LandingPage';
 import { CheckoutForm } from './components/CheckoutForm';
+import { PaymentSuccess } from './components/PaymentSuccess';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
+  const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
+
+  // Check voor payment callback van Mollie
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const username = params.get('username');
+
+    if (payment === 'success' && username) {
+      setPaymentUsername(username);
+      setView('PAYMENT_SUCCESS' as ViewState);
+      // Verwijder query params uit URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -292,6 +308,19 @@ const App: React.FC = () => {
             onBack={() => setView('PUBLIC_LANDING')}
             onSuccess={(username) => {
               // Na succesvolle registratie, vul username in en ga naar login
+              setStudentName(username);
+              setStudentPassword('');
+              setLoginError('');
+              setView('LANDING');
+            }}
+          />
+        );
+
+      case 'PAYMENT_SUCCESS':
+        return (
+          <PaymentSuccess
+            username={paymentUsername || ''}
+            onLogin={(username) => {
               setStudentName(username);
               setStudentPassword('');
               setLoginError('');
