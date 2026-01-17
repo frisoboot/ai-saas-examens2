@@ -255,7 +255,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // VERIFICATIE BETALING - Failed/Cancelled
     // ========================================================================
     if (metadata.type === 'verification' &&
-        (payment.status === 'failed' || payment.status === 'cancelled' || payment.status === 'expired')) {
+        (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
       console.log('Verification payment failed for:', metadata.username);
 
       // Verwijder pending registration
@@ -311,7 +311,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // RECURRING PAYMENT FAILED
     // ========================================================================
     if (metadata.type === 'subscription_payment' &&
-        (payment.status === 'failed' || payment.status === 'cancelled' || payment.status === 'expired')) {
+        (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
       console.log('Subscription payment failed for:', metadata.email);
 
       // Markeer subscription als expired
