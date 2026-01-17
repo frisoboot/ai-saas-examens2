@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Deze gebruikersnaam is al in gebruik' });
+      return res.status(400).json({ error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.' });
     }
 
     // Check of email al een actieve subscription heeft
@@ -110,13 +110,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Dit e-mailadres heeft al een actieve proefperiode'
+            error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
           });
         }
       }
       if (existingSubscription.status === 'active') {
         return res.status(400).json({
-          error: 'Dit e-mailadres heeft al een actief abonnement'
+          error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
         });
       }
     }
