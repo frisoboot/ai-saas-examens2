@@ -8,26 +8,11 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
+import { setCorsHeaders } from './utils/cors';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers - restrict to allowed origins
-  const allowedOrigins = [
-    process.env.VITE_APP_URL,
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ].filter(Boolean);
-
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV === 'development') {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  // In production without matching origin, no CORS header is set (request blocked)
-
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  // CORS headers - ondersteunt productie, Vercel previews, en localhost
+  setCorsHeaders(res, req.headers.origin, 'GET,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
