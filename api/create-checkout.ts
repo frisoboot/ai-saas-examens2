@@ -4,7 +4,7 @@
  * Flow:
  * 1. Valideer input en check of username/email beschikbaar is
  * 2. Maak Mollie customer aan
- * 3. Maak €0.01 verificatiebetaling aan (creëert mandaat voor toekomstige incasso's)
+ * 3. Maak €1.00 verificatiebetaling aan (creëert mandaat voor toekomstige incasso's)
  * 4. Sla pending registratie op in database
  * 5. Redirect gebruiker naar Mollie checkout
  * 6. Na succesvolle betaling: webhook activeert account en start trial
@@ -150,11 +150,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Mollie customer created:', customer.id);
 
-    // Maak €0.01 verificatiebetaling aan (first payment voor mandaat)
+    // Maak €1.00 verificatiebetaling aan (first payment voor mandaat)
     const payment = (await mollie.payments.create({
       amount: {
         currency: 'EUR',
-        value: '0.01'
+        value: '1.00'
       },
       customerId: customer.id,
       sequenceType: SequenceType.first, // Dit creëert een mandaat voor recurring payments
