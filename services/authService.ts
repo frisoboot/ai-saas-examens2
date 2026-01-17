@@ -17,34 +17,31 @@ const requireSupabase = () => {
   }
 };
 
-// Admin authentication - via Supabase Auth (zelfde als studenten)
+// Admin authentication - via server-side API endpoint
+// Dit is veiliger omdat het admin wachtwoord nooit naar de browser gaat
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  requireSupabase();
-
-  // Gebruik username@admin.example.com als email format voor admins
-  // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.example.com`;
-
-  const { data, error } = await supabase!.auth.signInWithPassword({
-    email,
-    password
+  // Roep de server-side API aan die de env vars checkt
+  const response = await fetch('/api/admin-login', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
   });
 
-  if (error) {
-    throw new Error(`Admin login mislukt: ${error.message}`);
+  const result = await response.json();
+
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Admin login mislukt');
   }
 
-  if (!data.user) {
-    throw new Error('Geen user data ontvangen van Supabase Auth');
-  }
-
-  // Email eindigt op @admin.example.com = admin (geen metadata nodig)
+  // Return admin user object
   return {
-    id: data.user.id,
-    username: username,
+    id: 'admin',
+    username: result.admin.username,
     passwordHash: '',
-    email: data.user.email,
-    lastLogin: new Date().toISOString()
+    email: `${result.admin.username}@admin.example.com`,
+    lastLogin: result.admin.lastLogin
   };
 };
 
