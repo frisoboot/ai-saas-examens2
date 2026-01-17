@@ -20,9 +20,17 @@ import {
 
 interface LandingPageProps {
   onLogin: () => void;
+  onCheckout?: () => void;
 }
 
-export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
+export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout }) => {
+  const handleStartTrial = () => {
+    if (onCheckout) {
+      onCheckout();
+    } else {
+      onLogin();
+    }
+  };
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -84,7 +92,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-              <Button onClick={onLogin} size="xl" className="w-full sm:w-auto shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all hover:-translate-y-1">
+              <Button onClick={handleStartTrial} size="xl" className="w-full sm:w-auto shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all hover:-translate-y-1">
                 Start 3 dagen gratis
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
@@ -473,7 +481,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
 
-              <Button onClick={onLogin} className="w-full justify-center shadow-lg shadow-blue-600/25" size="lg">
+              <Button onClick={handleStartTrial} className="w-full justify-center shadow-lg shadow-blue-600/25" size="lg">
                 Start gratis proefperiode
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>

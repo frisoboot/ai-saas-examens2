@@ -9,6 +9,7 @@ import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
 import { LandingPage } from './components/LandingPage';
+import { CheckoutForm } from './components/CheckoutForm';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 
@@ -279,7 +280,22 @@ const App: React.FC = () => {
     switch (view) {
       case 'PUBLIC_LANDING':
         return (
-          <LandingPage onLogin={() => setView('LANDING')} />
+          <LandingPage
+            onLogin={() => setView('LANDING')}
+            onCheckout={() => setView('CHECKOUT')}
+          />
+        );
+
+      case 'CHECKOUT':
+        return (
+          <CheckoutForm
+            onBack={() => setView('PUBLIC_LANDING')}
+            onSuccess={(email) => {
+              // Na succesvolle checkout, toon login pagina
+              alert(`Welkom! Je kunt nu inloggen met je email: ${email}`);
+              setView('LANDING');
+            }}
+          />
         );
 
       case 'LANDING':
