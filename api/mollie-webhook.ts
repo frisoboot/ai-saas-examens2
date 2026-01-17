@@ -202,36 +202,51 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
 
       // Maak Mollie subscription aan die start na de trial (€12.50/maand)
+      // BELANGRIJK: Check eerst of er een geldig mandaat is aangemaakt door de eerste betaling
       if (customerId) {
         try {
-          const startDate = trialEnds.toISOString().split('T')[0]; // YYYY-MM-DD format
+          // Haal mandaten op voor deze klant
+          const mandates = await mollie.customerMandates.page({ customerId: customerId });
+          const validMandate = mandates.find(m => m.status === 'valid' || m.status === 'pending');
 
-          const mollieSubscription = await mollie.customerSubscriptions.create({
-            customerId: customerId,
-            amount: {
-              value: '12.50',
-              currency: 'EUR'
-            },
-            interval: '1 month',
-            description: 'AI Examentrainer - Maandelijks abonnement',
-            startDate: startDate,
-            webhookUrl: `${appUrl}/api/mollie-webhook`,
-            metadata: {
-              type: 'subscription_payment',
-              email: email,
-              username: username
-            }
-          });
+          if (!validMandate) {
+            console.error('No valid mandate found for customer:', customerId);
+            console.log('Available mandates:', mandates.map(m => ({ id: m.id, status: m.status, method: m.method })));
+            // Geen mandaat = geen recurring subscription mogelijk
+            // De gebruiker krijgt wel trial, maar subscription kan niet automatisch worden verlengd
+            // Dit kan gebeuren als de betaalmethode geen mandaten ondersteunt
+          } else {
+            console.log('Found valid mandate:', validMandate.id, 'method:', validMandate.method, 'status:', validMandate.status);
 
-          console.log('Created Mollie subscription:', mollieSubscription.id, 'starts:', startDate);
+            const startDate = trialEnds.toISOString().split('T')[0]; // YYYY-MM-DD format
 
-          // Update subscription met Mollie subscription ID
-          await supabase
-            .from('subscriptions')
-            .update({
-              mollie_subscription_id: mollieSubscription.id
-            })
-            .eq('user_email', email);
+            const mollieSubscription = await mollie.customerSubscriptions.create({
+              customerId: customerId,
+              amount: {
+                value: '12.50',
+                currency: 'EUR'
+              },
+              interval: '1 month',
+              description: 'AI Examentrainer - Maandelijks abonnement',
+              startDate: startDate,
+              webhookUrl: `${appUrl}/api/mollie-webhook`,
+              metadata: {
+                type: 'subscription_payment',
+                email: email,
+                username: username
+              }
+            });
+
+            console.log('Created Mollie subscription:', mollieSubscription.id, 'starts:', startDate);
+
+            // Update subscription met Mollie subscription ID
+            await supabase
+              .from('subscriptions')
+              .update({
+                mollie_subscription_id: mollieSubscription.id
+              })
+              .eq('user_email', email);
+          }
 
         } catch (subError) {
           console.error('Error creating Mollie subscription:', subError);
@@ -266,10 +281,96 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // RECURRING SUBSCRIPTION PAYMENT
+    // RECURRING SUBSCRIPTION PAYMENT (via subscriptionId - dit is de correcte manier!)
+    // Mollie subscription payments hebben een subscriptionId, NIET metadata.type
     // ========================================================================
-    if (metadata.type === 'subscription_payment' && payment.status === 'paid') {
-      console.log('Processing subscription payment for:', metadata.email);
+    const subscriptionId = payment.subscriptionId;
+
+    if (subscriptionId && payment.status === 'paid') {
+      console.log('Processing subscription payment via subscriptionId:', subscriptionId);
+
+      // Zoek de subscription in onze database via mollie_subscription_id
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('mollie_subscription_id', subscriptionId)
+        .maybeSingle();
+
+      if (subscription) {
+        console.log('Found subscription for user:', subscription.user_email);
+
+        const periodEnd = new Date();
+        periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'active',
+            current_period_start: new Date().toISOString(),
+            current_period_end: periodEnd.toISOString()
+          })
+          .eq('id', subscription.id);
+
+        // Log payment
+        await supabase
+          .from('payments')
+          .insert({
+            subscription_id: subscription.id,
+            mollie_payment_id: paymentId,
+            amount_cents: 1250,
+            currency: 'EUR',
+            status: 'paid',
+            description: 'Maandelijks abonnement',
+            payment_method: payment.method || null,
+            paid_at: payment.paidAt || new Date().toISOString()
+          });
+
+        console.log('Subscription payment processed for:', subscription.user_email);
+      } else {
+        console.error('No subscription found for mollie_subscription_id:', subscriptionId);
+      }
+    }
+
+    // ========================================================================
+    // RECURRING PAYMENT FAILED (via subscriptionId)
+    // ========================================================================
+    if (subscriptionId &&
+        (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
+      console.log('Subscription payment failed for subscriptionId:', subscriptionId);
+
+      // Zoek de subscription in onze database
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('*')
+        .eq('mollie_subscription_id', subscriptionId)
+        .maybeSingle();
+
+      if (subscription) {
+        // Markeer subscription als payment_failed
+        await supabase
+          .from('subscriptions')
+          .update({
+            status: 'payment_failed'
+          })
+          .eq('id', subscription.id);
+
+        // Deactiveer student account
+        await supabase
+          .from('student_profiles')
+          .update({
+            is_active: false
+          })
+          .eq('email', subscription.user_email);
+
+        console.log('Subscription marked as failed for:', subscription.user_email);
+      }
+    }
+
+    // ========================================================================
+    // LEGACY: RECURRING SUBSCRIPTION PAYMENT (via metadata - voor oude payments)
+    // ========================================================================
+    if (!subscriptionId && metadata?.type === 'subscription_payment' && payment.status === 'paid') {
+      console.log('Processing LEGACY subscription payment for:', metadata.email);
 
       const periodEnd = new Date();
       periodEnd.setMonth(periodEnd.getMonth() + 1);
@@ -304,15 +405,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paid_at: payment.paidAt || new Date().toISOString()
         });
 
-      console.log('Subscription payment processed for:', metadata.email);
+      console.log('LEGACY subscription payment processed for:', metadata.email);
     }
 
     // ========================================================================
-    // RECURRING PAYMENT FAILED
+    // LEGACY: RECURRING PAYMENT FAILED (via metadata)
     // ========================================================================
-    if (metadata.type === 'subscription_payment' &&
+    if (!subscriptionId && metadata?.type === 'subscription_payment' &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
-      console.log('Subscription payment failed for:', metadata.email);
+      console.log('LEGACY subscription payment failed for:', metadata.email);
 
       // Markeer subscription als expired
       await supabase
