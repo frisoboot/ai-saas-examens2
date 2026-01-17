@@ -14,9 +14,9 @@ import { GoogleGenAI } from "@google/genai";
 // Lazy initialization
 let _ai: GoogleGenAI | null = null;
 
-// Model configuration - use stable model with preview fallback
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
-const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash';
+// Model configuration - use Gemini 3 Flash for all AI operations
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash';
+const GEMINI_MODEL_FALLBACK = 'gemini-3-flash';
 
 const getAI = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
