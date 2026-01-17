@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (existingUser) {
-      return res.status(400).json({ error: 'Deze gebruikersnaam is al in gebruik' });
+      return res.status(400).json({ error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.' });
     }
 
     // Check of email al een actieve subscription heeft
@@ -110,13 +110,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Dit e-mailadres heeft al een actieve proefperiode'
+            error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
           });
         }
       }
       if (existingSubscription.status === 'active') {
         return res.status(400).json({
-          error: 'Dit e-mailadres heeft al een actief abonnement'
+          error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
         });
       }
     }
@@ -165,20 +165,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         type: 'verification',
         username: username.toLowerCase(),
         email: email.toLowerCase(),
-        level: level,
-        password_hash: Buffer.from(password).toString('base64') // Tijdelijk opslaan (wordt verwijderd na activatie)
+        level: level
+        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
       }
     })) as Payment;
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
-    // Sla pending registration op
+    // Sla pending registration op (zonder wachtwoord - security)
     const { error: pendingError } = await supabase
       .from('pending_registrations')
       .insert({
         email: email.toLowerCase(),
         username: username.toLowerCase(),
-        password_encrypted: Buffer.from(password).toString('base64'),
+        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
         level: level,
         mollie_customer_id: customer.id,
         mollie_payment_id: payment.id,

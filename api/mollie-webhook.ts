@@ -10,6 +10,14 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
+import crypto from 'crypto';
+
+/**
+ * Genereer een veilig random wachtwoord
+ */
+function generateSecurePassword(): string {
+  return crypto.randomBytes(32).toString('base64url');
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Mollie webhooks zijn altijd POST requests
@@ -59,7 +67,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       username?: string;
       email?: string;
       level?: string;
-      password_hash?: string;
     } | null;
 
     if (!metadata) {
@@ -84,15 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const username = pending?.username || metadata.username;
       const email = pending?.email || metadata.email;
       const level = pending?.level || metadata.level;
-      const passwordEncoded = pending?.password_encrypted || metadata.password_hash;
 
-      if (!username || !email || !level || !passwordEncoded) {
+      if (!username || !email || !level) {
         console.error('Missing registration data');
         return res.status(200).json({ received: true, error: 'Missing registration data' });
       }
 
-      // Decode password
-      const password = Buffer.from(passwordEncoded, 'base64').toString('utf-8');
+      // SECURITY: Genereer een veilig random wachtwoord
+      // Gebruiker krijgt een password reset email om zelf een wachtwoord in te stellen
+      const temporaryPassword = generateSecurePassword();
 
       // Check of account al bestaat (idempotency)
       const { data: existingProfile } = await supabase
@@ -113,12 +120,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Maak Supabase Auth user aan
+      // Maak Supabase Auth user aan met tijdelijk wachtwoord
       // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
       const studentEmail = `${username}@student.example.com`;
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: studentEmail,
-        password: password,
+        password: temporaryPassword,
         email_confirm: true,
         user_metadata: {
           role: 'student',
@@ -134,6 +141,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       console.log('Created auth user:', authUser.user?.id);
+
+      // Stuur password reset email naar het echte email adres
+      // Zodat de gebruiker zelf een wachtwoord kan instellen
+      try {
+        const { error: resetError } = await supabase.auth.admin.generateLink({
+          type: 'recovery',
+          email: studentEmail,
+          options: {
+            redirectTo: `${appUrl}/reset-password`
+          }
+        });
+
+        if (resetError) {
+          console.error('Password reset email error:', resetError);
+          // Niet fataal - gebruiker kan later alsnog reset aanvragen
+        } else {
+          console.log('Password reset link generated for:', email);
+        }
+      } catch (resetErr) {
+        console.error('Failed to send password reset:', resetErr);
+        // Niet fataal - account is aangemaakt
+      }
 
       // Maak student profile aan
       const { error: profileError } = await supabase
