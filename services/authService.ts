@@ -17,27 +17,33 @@ const requireSupabase = () => {
   }
 };
 
-// Admin authentication - via server-side API
+// Admin authentication - via Supabase Auth (zelfde als studenten)
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  // Verify credentials via secure server-side API
-  const response = await fetch('/api/admin-login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+  requireSupabase();
+
+  // Gebruik username@admin.local als email format voor admins
+  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.local`;
+
+  const { data, error } = await supabase!.auth.signInWithPassword({
+    email,
+    password
   });
 
-  const apiResult = await response.json();
-
-  if (!apiResult.success) {
-    throw new Error(apiResult.error || 'Admin login mislukt');
+  if (error) {
+    throw new Error(`Admin login mislukt: ${error.message}`);
   }
 
-  // Credentials verified by server - return admin user
+  if (!data.user) {
+    throw new Error('Geen user data ontvangen van Supabase Auth');
+  }
+
+  // Email eindigt op @admin.local = admin (geen metadata nodig)
   return {
-    id: 'admin',
-    username: apiResult.admin?.username || username,
+    id: data.user.id,
+    username: username,
     passwordHash: '',
-    lastLogin: apiResult.admin?.lastLogin || new Date().toISOString()
+    email: data.user.email,
+    lastLogin: new Date().toISOString()
   };
 };
 
