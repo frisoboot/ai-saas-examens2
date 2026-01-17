@@ -25,9 +25,12 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout }) => {
   const handleStartTrial = () => {
+    console.log('handleStartTrial called, onCheckout:', typeof onCheckout, onCheckout);
     if (onCheckout) {
+      console.log('Calling onCheckout...');
       onCheckout();
     } else {
+      console.log('No onCheckout, calling onLogin...');
       onLogin();
     }
   };
@@ -598,12 +601,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                 Begin vandaag nog met oefenen en verhoog je kansen op een goed examenresultaat.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button onClick={onLogin} variant="white" size="xl" className="w-full sm:w-auto">
-                  Inloggen
+                <Button onClick={handleStartTrial} variant="white" size="xl" className="w-full sm:w-auto">
+                  Start 3 dagen gratis
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </Button>
-                <Button onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'} variant="ghost" size="xl" className="w-full sm:w-auto text-white border-white/30 hover:bg-white/10">
-                  Contact opnemen
+                <Button onClick={onLogin} variant="ghost" size="xl" className="w-full sm:w-auto text-white border-white/30 hover:bg-white/10">
+                  Al een account? Inloggen
                 </Button>
               </div>
             </div>
