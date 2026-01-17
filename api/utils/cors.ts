@@ -13,6 +13,22 @@ import type { VercelResponse } from '@vercel/node';
 const VERCEL_PROJECT_NAME = 'ai-saas-examens2';
 
 /**
+ * Probeer een URL te parsen, voeg https:// toe als protocol ontbreekt
+ * Retourneert null als URL ongeldig is
+ */
+function safeParseUrl(urlString: string): URL | null {
+  try {
+    // Als de URL geen protocol heeft, voeg https:// toe
+    if (!urlString.startsWith('http://') && !urlString.startsWith('https://')) {
+      urlString = `https://${urlString}`;
+    }
+    return new URL(urlString);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Check of een origin is toegestaan
  */
 export function isAllowedOrigin(origin: string | undefined): boolean {
@@ -30,10 +46,10 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
     // Check www/non-www variant automatisch
     // Als VITE_APP_URL = https://ai-examentrainer.nl, sta ook https://www.ai-examentrainer.nl toe
     // Als VITE_APP_URL = https://www.ai-examentrainer.nl, sta ook https://ai-examentrainer.nl toe
-    try {
-      const appUrlParsed = new URL(appUrl);
-      const originParsed = new URL(origin);
+    const appUrlParsed = safeParseUrl(appUrl);
+    const originParsed = safeParseUrl(origin);
 
+    if (appUrlParsed && originParsed) {
       // Zelfde protocol en path vereist
       if (appUrlParsed.protocol === originParsed.protocol) {
         const appHost = appUrlParsed.hostname;
@@ -44,8 +60,6 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
           return true;
         }
       }
-    } catch {
-      // URL parsing failed, skip www check
     }
   }
 
@@ -57,8 +71,8 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
   // Vercel preview deployments: check of het een .vercel.app URL is
   // Format: https://<project>-<hash>-<team>.vercel.app of https://<project>-<hash>.vercel.app
   if (origin.endsWith('.vercel.app')) {
-    try {
-      const url = new URL(origin);
+    const url = safeParseUrl(origin);
+    if (url) {
       const hostname = url.hostname;
 
       // Check of de hostname begint met ons project naam
@@ -71,8 +85,6 @@ export function isAllowedOrigin(origin: string | undefined): boolean {
       if (process.env.VERCEL_URL && origin === `https://${process.env.VERCEL_URL}`) {
         return true;
       }
-    } catch {
-      return false;
     }
   }
 
