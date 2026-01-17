@@ -57,10 +57,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Unauthorized - invalid token' });
     }
 
-    // Check of user admin is
-    const role = user.user_metadata?.role;
-    if (role !== 'admin') {
-      console.error('User is not admin:', user.id, role);
+    // Check of user admin is via email domein (consistent met verifyAdminLogin)
+    if (!user.email?.endsWith('@admin.local')) {
+      console.error('User is not admin:', user.id, user.email);
       return res.status(403).json({ error: 'Forbidden - alleen admins kunnen wachtwoorden resetten' });
     }
 
