@@ -57,12 +57,9 @@ export interface ExamResult {
 
 export interface StudentProfile {
   name: string;
-  password?: string; // Deprecated - for migration only
-  passwordHash?: string; // Hashed password with bcrypt
   level: StudentLevel;
   strugglePoints: string;
   email?: string;
-  createdByAdmin?: string; // Admin username who created this account
   isActive?: boolean;
 }
 
@@ -82,14 +79,6 @@ export interface ExamSession {
   timeLimit?: number; // Time limit in minutes (0 = no limit)
 }
 
-// Admin user interface
-export interface AdminUser {
-  id: string;
-  username: string;
-  passwordHash: string;
-  email?: string;
-  lastLogin?: string;
-}
 
 // Progress tracking interface
 export interface StudentProgress {

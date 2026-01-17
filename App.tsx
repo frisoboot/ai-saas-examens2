@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
+import React, { useState } from 'react';
+import { ViewState, ExamSession, StudentProfile, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { login, logout, getCurrentSession } from './services/authService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
-import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
@@ -12,44 +10,27 @@ import { LandingPage } from './components/LandingPage';
 import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
-import { Button } from './components/Button';
-import { GraduationCap, ArrowRight, ArrowLeft, Lock } from 'lucide-react';
+
+// Default student profile - no login required
+const DEFAULT_STUDENT: StudentProfile = {
+  name: 'Student',
+  level: 'HAVO',
+  strugglePoints: 'Algemene examenvoorbereiding',
+  isActive: true
+};
 
 const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
+  const [view, setView] = useState<ViewState>('STUDENT_DASHBOARD');
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
-  const [isCheckingSession, setIsCheckingSession] = useState(true);
 
-  // Check voor bestaande sessie bij opstarten
-  useEffect(() => {
-    const checkExistingSession = async () => {
-      try {
-        const session = await getCurrentSession();
-
-        if (session) {
-          if (session.type === 'admin' && session.admin) {
-            setCurrentAdmin(session.admin);
-            setView('ADMIN');
-          } else if (session.type === 'student' && session.profile) {
-            setCurrentProfile(session.profile);
-            setView('STUDENT_DASHBOARD');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking session:', error);
-      } finally {
-        setIsCheckingSession(false);
-      }
-    };
-
-    checkExistingSession();
-  }, []);
+  // User State
+  const [currentProfile] = useState<StudentProfile>(DEFAULT_STUDENT);
+  const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
+  const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
+  const [chatSubject, setChatSubject] = useState<string | null>(null);
 
   // Check voor payment callback van Mollie
-  useEffect(() => {
-    // Wacht tot session check klaar is
-    if (isCheckingSession) return;
-
+  React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const paymentCallback = params.get('payment_callback');
     const payment = params.get('payment');
@@ -68,58 +49,7 @@ const App: React.FC = () => {
       // Verwijder query params uit URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, [isCheckingSession]);
-
-  // Input State
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loginError, setLoginError] = useState('');
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-
-  // User State
-  const [currentProfile, setCurrentProfile] = useState<StudentProfile | null>(null);
-  const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
-  const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
-  const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
-  const [chatSubject, setChatSubject] = useState<string | null>(null);
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-
-    if (!email.trim() || !password.trim()) {
-      setLoginError("Vul email en wachtwoord in.");
-      return;
-    }
-
-    setIsLoggingIn(true);
-
-    try {
-      const result = await login(email, password);
-
-      if (result?.type === 'admin') {
-        setCurrentAdmin(result.admin);
-        setView('ADMIN');
-        setEmail('');
-        setPassword('');
-      } else if (result?.type === 'student') {
-        if (result.profile.isActive === false) {
-          setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
-          return;
-        }
-        setCurrentProfile(result.profile);
-        setView('STUDENT_DASHBOARD');
-        setEmail('');
-        setPassword('');
-      } else {
-        setLoginError("Email of wachtwoord onjuist.");
-      }
-    } catch (error: any) {
-      setLoginError(error?.message || "Er ging iets mis bij het inloggen.");
-    } finally {
-      setIsLoggingIn(false);
-    }
-  };
+  }, []);
 
   const startExam = async (subject: string, year?: number) => {
     if (!currentProfile) return;
@@ -175,7 +105,7 @@ const App: React.FC = () => {
       const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
-          alert(`❌ Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige Gemini API key hebt (VITE_GEMINI_API_KEY)\n- Je internetverbinding werkt`);
+          alert(`Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige Gemini API key hebt (VITE_GEMINI_API_KEY)\n- Je internetverbinding werkt`);
           return;
       }
 
@@ -192,7 +122,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       console.error('Fout bij genereren AI examen vragen:', error);
 
-      let errorMessage = '❌ Er ging iets mis bij het genereren van de AI examen vragen.\n\n';
+      let errorMessage = 'Er ging iets mis bij het genereren van de AI examen vragen.\n\n';
 
       if (error.message?.includes('API key')) {
         errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld in je .env bestand:\nVITE_GEMINI_API_KEY=jouw-api-key';
@@ -312,23 +242,11 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
-    // Toon loading indicator tijdens session check
-    if (isCheckingSession) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-white">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-500">Even geduld...</p>
-          </div>
-        </div>
-      );
-    }
-
     switch (view) {
       case 'PUBLIC_LANDING':
         return (
           <LandingPage
-            onLogin={() => setView('LANDING')}
+            onLogin={() => setView('STUDENT_DASHBOARD')}
             onCheckout={() => setView('CHECKOUT')}
           />
         );
@@ -337,11 +255,8 @@ const App: React.FC = () => {
         return (
           <CheckoutForm
             onBack={() => setView('PUBLIC_LANDING')}
-            onSuccess={(userEmail) => {
-              setEmail(userEmail);
-              setPassword('');
-              setLoginError('');
-              setView('LANDING');
+            onSuccess={() => {
+              setView('STUDENT_DASHBOARD');
             }}
           />
         );
@@ -349,11 +264,8 @@ const App: React.FC = () => {
       case 'PAYMENT_CALLBACK':
         return (
           <PaymentCallback
-            onLogin={(userEmail) => {
-              setEmail(userEmail);
-              setPassword('');
-              setLoginError('');
-              setView('LANDING');
+            onLogin={() => {
+              setView('STUDENT_DASHBOARD');
             }}
             onRetry={() => {
               setView('CHECKOUT');
@@ -365,119 +277,23 @@ const App: React.FC = () => {
         return (
           <PaymentSuccess
             username={paymentUsername || ''}
-            onLogin={(userEmail) => {
-              setEmail(userEmail);
-              setPassword('');
-              setLoginError('');
-              setView('LANDING');
+            onLogin={() => {
+              setView('STUDENT_DASHBOARD');
             }}
           />
         );
 
       case 'LANDING':
-        return (
-          <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
-            {/* Back Button */}
-            <button
-              onClick={() => setView('PUBLIC_LANDING')}
-              className="absolute top-6 left-6 z-20 flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-sm font-medium">Terug</span>
-            </button>
-
-            {/* Background Elements */}
-            <div className="absolute inset-0 z-0">
-               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl opacity-60"></div>
-               <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-            </div>
-
-            <div className="w-full max-w-[440px] relative z-10">
-
-              <div className="text-center mb-10">
-                <div className="flex justify-center mb-6">
-                   <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform duration-300 border-2 border-white/20">
-                     <GraduationCap className="w-8 h-8 text-white" />
-                   </div>
-                </div>
-                <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                  Welkom terug
-                </h2>
-                <p className="text-gray-500 mt-3 text-lg">
-                  Log in om verder te gaan
-                </p>
-              </div>
-
-              <div className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
-                <form onSubmit={handleLogin} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Email</label>
-                    <input
-                      type="email"
-                      required
-                      className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                      placeholder="je@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      disabled={isLoggingIn}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
-                    <input
-                      type="password"
-                      required
-                      className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                      placeholder="Je wachtwoord..."
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      disabled={isLoggingIn}
-                    />
-                  </div>
-
-                  {loginError && (
-                    <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
-                      <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                      <span>{loginError}</span>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5"
-                    size="lg"
-                    disabled={isLoggingIn}
-                  >
-                    {isLoggingIn ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                        Inloggen...
-                      </>
-                    ) : (
-                      <>
-                        Inloggen
-                        <ArrowRight className="w-5 h-5 ml-2" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-              </div>
-            </div>
-          </div>
-        );
+        // Redirect to dashboard directly
+        setView('STUDENT_DASHBOARD');
+        return null;
 
       case 'ADMIN':
-        return <AdminDashboard onBack={async () => {
-          await logout();
-          setCurrentAdmin(null);
-          setEmail('');
-          setPassword('');
-          setView('PUBLIC_LANDING');
-        }} adminUsername={currentAdmin?.username || 'admin'} />;
+        // No admin anymore, redirect to dashboard
+        setView('STUDENT_DASHBOARD');
+        return null;
 
       case 'STUDENT_DASHBOARD':
-        if (!currentProfile) return null;
         return (
           <StudentDashboard
             student={currentProfile}
@@ -486,22 +302,15 @@ const App: React.FC = () => {
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
-            onLogout={async () => {
-              await logout();
-              setEmail('');
-              setPassword('');
-              setCurrentProfile(null);
-              setView('PUBLIC_LANDING');
-            }}
           />
         );
 
       case 'EXAM':
         if (!currentExamSession) return null;
         return (
-          <ExamTaker 
-            session={currentExamSession} 
-            onFinish={() => setView('STUDENT_DASHBOARD')} 
+          <ExamTaker
+            session={currentExamSession}
+            onFinish={() => setView('STUDENT_DASHBOARD')}
           />
         );
 

@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
-import { BookOpen, LogOut, Sparkles, MessageCircle, User, Award, Target, BookMarked, Layers } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Award, Target } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -18,7 +18,6 @@ interface StudentDashboardProps {
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
-  onLogout: () => void | Promise<void>;
 }
 
 // All available subjects - always shown to students
@@ -34,8 +33,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartChat,
   onStartAIQuestions,
   onStartFlashcards,
-  onStartLookalikeExam,
-  onLogout
+  onStartLookalikeExam
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -125,12 +123,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
            </div>
         </nav>
 
-        <div className="p-6 border-t border-slate-100">
-          <Button variant="ghost" className="w-full justify-start text-red-500 hover:text-red-600 hover:bg-red-50" onClick={onLogout}>
-            <LogOut className="w-4 h-4 mr-3" />
-            Uitloggen
-          </Button>
-        </div>
       </aside>
 
       {/* Main Content */}
@@ -143,9 +135,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               <span className="font-bold text-slate-800">{student.name}</span>
            </div>
-           <Button variant="ghost" size="sm" onClick={onLogout}>
-             <LogOut className="w-4 h-4" />
-           </Button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12">

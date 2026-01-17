@@ -11,7 +11,7 @@ import {
 
 interface PaymentSuccessProps {
   username: string;
-  onLogin: (username: string) => void;
+  onLogin: () => void;
 }
 
 export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ username, onLogin }) => {
@@ -35,7 +35,7 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ username, onLogi
       }, 1000);
       return () => clearTimeout(timer);
     } else if (isReady && countdown === 0) {
-      onLogin(username);
+      onLogin();
     }
   }, [isReady, countdown, username, onLogin]);
 
@@ -106,13 +106,13 @@ export const PaymentSuccess: React.FC<PaymentSuccessProps> = ({ username, onLogi
                 </ul>
               </div>
 
-              {/* Login Button */}
+              {/* Dashboard Button */}
               <Button
-                onClick={() => onLogin(username)}
+                onClick={() => onLogin()}
                 className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20"
                 size="lg"
               >
-                Ga naar inloggen
+                Ga naar dashboard
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
 
