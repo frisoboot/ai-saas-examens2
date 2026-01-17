@@ -8,7 +8,6 @@ import {
   BookOpen,
   MessageSquare,
   CheckCircle2,
-  Star,
   ArrowRight,
   Sparkles,
   Clock,
@@ -94,25 +93,19 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
               </Button>
             </div>
 
-            {/* Social Proof */}
+            {/* Platform highlights */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-500">
               <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className={`w-8 h-8 rounded-full border-2 border-white bg-gradient-to-br ${
-                      ['from-blue-400 to-blue-600', 'from-green-400 to-green-600', 'from-purple-400 to-purple-600', 'from-orange-400 to-orange-600'][i]
-                    } flex items-center justify-center text-white text-xs font-bold`}>
-                      {['L', 'S', 'M', 'J'][i]}
-                    </div>
-                  ))}
-                </div>
-                <span>500+ actieve leerlingen</span>
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <span>Onbeperkt oefenvragen</span>
               </div>
-              <div className="flex items-center gap-1">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                ))}
-                <span className="ml-1">4.9/5 beoordeling</span>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <span>Direct AI-feedback</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-500" />
+                <span>VMBO, HAVO & VWO</span>
               </div>
             </div>
           </div>
@@ -333,7 +326,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                   {
                     icon: Award,
                     title: 'Betere resultaten',
-                    description: 'Leerlingen die regelmatig oefenen scoren gemiddeld 1 punt hoger op hun eindexamen.'
+                    description: 'Hoe meer je oefent, hoe beter je wordt. Met onbeperkt vragen kun je net zo lang doorgaan als je wilt.'
                   }
                 ].map((benefit) => (
                   <div key={benefit.title} className="flex gap-4">
@@ -350,25 +343,27 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-8 sm:p-12 text-white">
               <div className="text-center">
-                <div className="text-6xl font-extrabold mb-2">93%</div>
-                <p className="text-blue-100 text-lg mb-8">van onze gebruikers haalt een voldoende</p>
+                <div className="text-4xl font-extrabold mb-2">Wat je krijgt</div>
+                <p className="text-blue-100 text-lg mb-8">Alles om optimaal voorbereid je examen in te gaan</p>
 
                 <div className="grid grid-cols-2 gap-6 pt-8 border-t border-white/20">
                   <div>
-                    <div className="text-3xl font-bold">10.000+</div>
-                    <p className="text-blue-100 text-sm">Gemaakte examens</p>
-                  </div>
-                  <div>
                     <div className="text-3xl font-bold">16</div>
                     <p className="text-blue-100 text-sm">Vakken beschikbaar</p>
+                  </div>
+                  <div>
+                    <div className="text-3xl font-bold">3</div>
+                    <p className="text-blue-100 text-sm">Niveaus (VMBO/HAVO/VWO)</p>
                   </div>
                   <div>
                     <div className="text-3xl font-bold">24/7</div>
                     <p className="text-blue-100 text-sm">Altijd beschikbaar</p>
                   </div>
                   <div>
-                    <div className="text-3xl font-bold">3</div>
-                    <p className="text-blue-100 text-sm">Niveaus (VMBO/HAVO/VWO)</p>
+                    <div className="text-3xl font-bold flex items-center justify-center gap-1">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <p className="text-blue-100 text-sm">Onbeperkt AI-vragen</p>
                   </div>
                 </div>
               </div>
