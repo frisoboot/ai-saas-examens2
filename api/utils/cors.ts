@@ -10,6 +10,7 @@ import type { VercelResponse } from '@vercel/node';
 const ALLOWED_ORIGINS = [
   'https://ai-examentrainer.nl',
   'https://www.ai-examentrainer.nl',
+  'https://ai-saas-examens2-git-claude-security-audit-7uhkg-b-9b220f12.vercel.app',
 ];
 
 // Regex patterns voor dynamische origins (Vercel previews, localhost, development)
