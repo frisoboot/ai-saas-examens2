@@ -2,7 +2,7 @@
  * Vercel Serverless Function - Mollie Webhook
  *
  * Ontvangt betalingsnotificaties van Mollie en:
- * 1. Bij verificatiebetaling (€0.01): activeert account en start trial
+ * 1. Bij verificatiebetaling (€1.00): activeert account en start trial
  * 2. Bij recurring payment: verlengt subscription
  * 3. Bij failed payment: markeert subscription als expired
  */
@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // VERIFICATIE BETALING (€0.01) - Account activatie
+    // VERIFICATIE BETALING (€1.00) - Account activatie
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
       console.log('Processing verification payment for:', metadata.username);
@@ -193,7 +193,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .insert({
           subscription_id: subscription?.id,
           mollie_payment_id: paymentId,
-          amount_cents: 1,
+          amount_cents: 100,
           currency: 'EUR',
           status: 'paid',
           description: 'Verificatiebetaling - Proefperiode',
