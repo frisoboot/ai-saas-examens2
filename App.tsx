@@ -11,6 +11,7 @@ import { FlashcardStudy } from './components/FlashcardStudy';
 import { LandingPage } from './components/LandingPage';
 import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
+import { PaymentCallback } from './components/PaymentCallback';
 import { Button } from './components/Button';
 import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 
@@ -21,10 +22,18 @@ const App: React.FC = () => {
   // Check voor payment callback van Mollie
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const paymentCallback = params.get('payment_callback');
     const payment = params.get('payment');
     const username = params.get('username');
 
-    if (payment === 'success' && username) {
+    // Nieuwe flow: payment_callback=true na Mollie redirect
+    if (paymentCallback === 'true') {
+      setView('PAYMENT_CALLBACK' as ViewState);
+      // Verwijder query params uit URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    // Legacy flow: voor oude redirects met payment=success
+    else if (payment === 'success' && username) {
       setPaymentUsername(username);
       setView('PAYMENT_SUCCESS' as ViewState);
       // Verwijder query params uit URL
@@ -312,6 +321,21 @@ const App: React.FC = () => {
               setStudentPassword('');
               setLoginError('');
               setView('LANDING');
+            }}
+          />
+        );
+
+      case 'PAYMENT_CALLBACK':
+        return (
+          <PaymentCallback
+            onLogin={(username) => {
+              setStudentName(username);
+              setStudentPassword('');
+              setLoginError('');
+              setView('LANDING');
+            }}
+            onRetry={() => {
+              setView('CHECKOUT');
             }}
           />
         );
