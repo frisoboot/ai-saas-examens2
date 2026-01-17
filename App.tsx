@@ -341,9 +341,8 @@ const AppContent: React.FC = () => {
         }
         return (
           <AdminDashboard
-            adminEmail={user?.email || ''}
-            onLogout={handleLogout}
-            onBackToStudent={() => setView('STUDENT_DASHBOARD')}
+            onBack={handleLogout}
+            adminUsername={user?.email || 'admin'}
           />
         );
 
