@@ -19,8 +19,12 @@ const requireSupabase = () => {
 
 // Admin authentication - via server-side API
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
+  // Build absolute URL to avoid "The string did not match the expected pattern" error
+  // This can happen in Vercel when using relative URLs in certain contexts
+  const apiUrl = new URL('/api/admin-login', window.location.origin).toString();
+
   // Verify credentials via secure server-side API
-  const response = await fetch('/api/admin-login', {
+  const response = await fetch(apiUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ username, password }),
