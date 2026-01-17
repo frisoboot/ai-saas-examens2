@@ -13,6 +13,7 @@ interface AuthState {
   profile: StudentProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 }
 
 interface AuthContextType extends AuthState {
@@ -20,6 +21,22 @@ interface AuthContextType extends AuthState {
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
+
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+// Check of email in admin lijst staat (via VITE_ADMIN_EMAILS env var)
+const getAdminEmails = (): string[] => {
+  const adminEmailsStr = import.meta.env?.VITE_ADMIN_EMAILS as string || '';
+  return adminEmailsStr.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
+};
+
+const isAdminEmail = (email: string | undefined): boolean => {
+  if (!email) return false;
+  const adminEmails = getAdminEmails();
+  return adminEmails.includes(email.toLowerCase());
+};
 
 // ============================================================================
 // CONTEXT
@@ -37,7 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session: null,
     profile: null,
     isLoading: true,
-    isAuthenticated: false
+    isAuthenticated: false,
+    isAdmin: false
   });
 
   // Laad profiel voor huidige user
@@ -61,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user: session.user,
           session,
           isAuthenticated: true,
+          isAdmin: isAdminEmail(session.user.email),
           isLoading: false
         }));
 
@@ -86,7 +105,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...prev,
           user: session.user,
           session,
-          isAuthenticated: true
+          isAuthenticated: true,
+          isAdmin: isAdminEmail(session.user.email)
         }));
 
         // Laad profiel bij login
@@ -100,7 +120,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           session: null,
           profile: null,
           isLoading: false,
-          isAuthenticated: false
+          isAuthenticated: false,
+          isAdmin: false
         });
       }
     });
@@ -134,7 +155,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       session: null,
       profile: null,
       isLoading: false,
-      isAuthenticated: false
+      isAuthenticated: false,
+      isAdmin: false
     });
   };
 

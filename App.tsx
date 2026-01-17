@@ -5,6 +5,7 @@ import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
@@ -15,7 +16,7 @@ import { PaymentCallback } from './components/PaymentCallback';
 
 // Inner app die useAuth kan gebruiken
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isLoading, profile, signIn, signOut } = useAuth();
+  const { isAuthenticated, isLoading, isAdmin, user, profile, signIn, signOut } = useAuth();
 
   const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
@@ -283,9 +284,9 @@ const AppContent: React.FC = () => {
 
     // Login view
     if (view === 'LOGIN' as ViewState) {
-      // Als al ingelogd, ga naar dashboard
+      // Als al ingelogd, ga naar juiste dashboard
       if (isAuthenticated) {
-        setView('STUDENT_DASHBOARD');
+        setView(isAdmin ? 'ADMIN' : 'STUDENT_DASHBOARD');
         return null;
       }
 
@@ -302,7 +303,7 @@ const AppContent: React.FC = () => {
     // Protected views - vereisen authenticatie
     if (!isAuthenticated && !isLoading) {
       // Als niet ingelogd en probeert protected view te openen
-      if (['STUDENT_DASHBOARD', 'EXAM', 'SUBJECT_CHAT', 'FLASHCARD_STUDY'].includes(view)) {
+      if (['ADMIN', 'STUDENT_DASHBOARD', 'EXAM', 'SUBJECT_CHAT', 'FLASHCARD_STUDY'].includes(view)) {
         return (
           <LoginPage
             onLogin={signIn}
@@ -333,9 +334,18 @@ const AppContent: React.FC = () => {
         return null;
 
       case 'ADMIN':
-        // No admin anymore, redirect to dashboard
-        setView('STUDENT_DASHBOARD');
-        return null;
+        // Admin dashboard - alleen voor admins
+        if (!isAdmin) {
+          setView('STUDENT_DASHBOARD');
+          return null;
+        }
+        return (
+          <AdminDashboard
+            adminEmail={user?.email || ''}
+            onLogout={handleLogout}
+            onBackToStudent={() => setView('STUDENT_DASHBOARD')}
+          />
+        );
 
       case 'STUDENT_DASHBOARD':
         return (

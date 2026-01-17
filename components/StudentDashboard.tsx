@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
-import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -19,6 +19,7 @@ interface StudentDashboardProps {
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
   onLogout?: () => void;
+  onAdminDashboard?: () => void;
 }
 
 // All available subjects - always shown to students
@@ -35,7 +36,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartAIQuestions,
   onStartFlashcards,
   onStartLookalikeExam,
-  onLogout
+  onLogout,
+  onAdminDashboard
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
