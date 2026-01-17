@@ -64,6 +64,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     try {
       const result = await createCheckout(email, username, password, level);
 
+      console.log('Checkout result:', result);
+
       if (!result.success) {
         setError(result.message || 'Er ging iets mis');
         setStep('form');

@@ -64,6 +64,8 @@ export async function createCheckout(
   level: 'VMBO-TL' | 'HAVO' | 'VWO'
 ): Promise<CheckoutResponse> {
   try {
+    console.log('Starting checkout for:', email, username, level);
+
     const response = await fetch(`${API_BASE}/api/create-checkout`, {
       method: 'POST',
       headers: {
@@ -72,12 +74,15 @@ export async function createCheckout(
       body: JSON.stringify({ email, username, password, level })
     });
 
+    console.log('Checkout response status:', response.status);
+
     const data = await response.json();
+    console.log('Checkout response data:', data);
 
     if (!response.ok) {
       return {
         success: false,
-        message: data.error || 'Checkout kon niet worden gestart'
+        message: data.error || data.details || `Server error: ${response.status}`
       };
     }
 
@@ -86,7 +91,7 @@ export async function createCheckout(
     console.error('Create checkout error:', error);
     return {
       success: false,
-      message: 'Netwerk fout bij starten checkout'
+      message: `Netwerk fout: ${error instanceof Error ? error.message : 'Onbekende fout'}`
     };
   }
 }
