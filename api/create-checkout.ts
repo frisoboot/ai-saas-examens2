@@ -12,7 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import createMollieClient from '@mollie/api-client';
+import createMollieClient, { SequenceType, type Payment } from '@mollie/api-client';
 
 interface CheckoutRequest {
   email: string;
@@ -151,13 +151,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Mollie customer created:', customer.id);
 
     // Maak €0.01 verificatiebetaling aan (first payment voor mandaat)
-    const payment = await mollie.payments.create({
+    const payment = (await mollie.payments.create({
       amount: {
         currency: 'EUR',
         value: '0.01'
       },
       customerId: customer.id,
-      sequenceType: 'first', // Dit creëert een mandaat voor recurring payments
+      sequenceType: SequenceType.first, // Dit creëert een mandaat voor recurring payments
       description: 'AI Examentrainer - Verificatie voor proefperiode',
       redirectUrl: `${appUrl}?payment=success&username=${encodeURIComponent(username.toLowerCase())}`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
@@ -168,7 +168,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         level: level,
         password_hash: Buffer.from(password).toString('base64') // Tijdelijk opslaan (wordt verwijderd na activatie)
       }
-    });
+    })) as Payment;
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
