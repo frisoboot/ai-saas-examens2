@@ -25,12 +25,9 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout }) => {
   const handleStartTrial = () => {
-    console.log('handleStartTrial called, onCheckout:', typeof onCheckout, onCheckout);
     if (onCheckout) {
-      console.log('Calling onCheckout...');
       onCheckout();
     } else {
-      console.log('No onCheckout, calling onLogin...');
       onLogin();
     }
   };
