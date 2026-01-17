@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { Button } from './Button';
-import { BookOpen, Sparkles, MessageCircle, Award, Target } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 
@@ -18,6 +18,7 @@ interface StudentDashboardProps {
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
+  onLogout?: () => void;
 }
 
 // All available subjects - always shown to students
@@ -33,7 +34,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartChat,
   onStartAIQuestions,
   onStartFlashcards,
-  onStartLookalikeExam
+  onStartLookalikeExam,
+  onLogout
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -112,7 +114,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
            <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Jouw Voortgang</div>
-           
+
            {/* Placeholder stats */}
            <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 text-indigo-700">
               <Award className="w-5 h-5" />
@@ -123,6 +125,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
            </div>
         </nav>
 
+        {/* Logout Button */}
+        {onLogout && (
+          <div className="p-6 border-t border-slate-100">
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="text-sm font-medium">Uitloggen</span>
+            </button>
+          </div>
+        )}
       </aside>
 
       {/* Main Content */}
@@ -135,6 +149,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               <span className="font-bold text-slate-800">{student.name}</span>
            </div>
+           {onLogout && (
+             <button
+               onClick={onLogout}
+               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+               title="Uitloggen"
+             >
+               <LogOut className="w-5 h-5" />
+             </button>
+           )}
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12">

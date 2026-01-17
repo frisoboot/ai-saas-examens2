@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User, Session } from '@supabase/supabase-js';
 import { Question, ExamResult, StudentProfile } from '../types';
 
 /**
@@ -297,5 +297,147 @@ export const dbStudents = {
     }
 
     return data || [];
+  },
+
+  async getByEmail(email: string): Promise<StudentProfile | null> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.STUDENTS)
+      .select('*')
+      .eq('email', email)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Fout bij ophalen student via email:', error);
+      throw error;
+    }
+
+    return data;
+  }
+};
+
+// ============================================================================
+// AUTHENTICATION - Supabase Auth functies
+// ============================================================================
+
+export const auth = {
+  /**
+   * Inloggen met email en wachtwoord
+   */
+  async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+    if (!supabase) {
+      return { user: null, error: 'Supabase niet geconfigureerd' };
+    }
+
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (error) {
+      console.error('Inlogfout:', error);
+      return { user: null, error: error.message };
+    }
+
+    return { user: data.user, error: null };
+  },
+
+  /**
+   * Uitloggen
+   */
+  async signOut(): Promise<{ error: string | null }> {
+    if (!supabase) {
+      return { error: 'Supabase niet geconfigureerd' };
+    }
+
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('Uitlogfout:', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  },
+
+  /**
+   * Huidige sessie ophalen
+   */
+  async getSession(): Promise<{ session: Session | null; error: string | null }> {
+    if (!supabase) {
+      return { session: null, error: 'Supabase niet geconfigureerd' };
+    }
+
+    const { data, error } = await supabase.auth.getSession();
+
+    if (error) {
+      console.error('Sessie ophalen mislukt:', error);
+      return { session: null, error: error.message };
+    }
+
+    return { session: data.session, error: null };
+  },
+
+  /**
+   * Huidige gebruiker ophalen
+   */
+  async getUser(): Promise<{ user: User | null; error: string | null }> {
+    if (!supabase) {
+      return { user: null, error: 'Supabase niet geconfigureerd' };
+    }
+
+    const { data, error } = await supabase.auth.getUser();
+
+    if (error) {
+      console.error('Gebruiker ophalen mislukt:', error);
+      return { user: null, error: error.message };
+    }
+
+    return { user: data.user, error: null };
+  },
+
+  /**
+   * Luister naar auth state changes (login/logout)
+   */
+  onAuthStateChange(callback: (event: string, session: Session | null) => void) {
+    if (!supabase) {
+      console.warn('Supabase niet geconfigureerd - auth listener niet actief');
+      return { data: { subscription: { unsubscribe: () => {} } } };
+    }
+
+    return supabase.auth.onAuthStateChange(callback);
+  }
+};
+
+// ============================================================================
+// USER PROFILE - Combineer auth user met student profile
+// ============================================================================
+
+export const userProfile = {
+  /**
+   * Haal volledig profiel op voor ingelogde gebruiker
+   * Combineert Supabase Auth user met student_profiles tabel
+   */
+  async getCurrentProfile(): Promise<StudentProfile | null> {
+    const { user, error: userError } = await auth.getUser();
+
+    if (userError || !user) {
+      return null;
+    }
+
+    // Probeer profiel te vinden via email
+    const profile = await dbStudents.getByEmail(user.email || '');
+
+    if (profile) {
+      return profile;
+    }
+
+    // Fallback: probeer via naam (voor oudere accounts)
+    const profileByName = await dbStudents.getByName(user.email?.split('@')[0] || '');
+
+    return profileByName;
   }
 };

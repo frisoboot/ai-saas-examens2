@@ -191,7 +191,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
                     className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20"
                     size="lg"
                   >
-                    Ga naar dashboard
+                    Inloggen en starten
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
 
