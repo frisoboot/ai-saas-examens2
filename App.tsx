@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
+import { verifyStudentLogin, verifyAdminLogin, logout, getCurrentSession } from './services/authService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
@@ -18,9 +18,38 @@ import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Check voor bestaande sessie bij opstarten
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        const session = await getCurrentSession();
+
+        if (session) {
+          if (session.type === 'admin' && session.admin) {
+            setCurrentAdmin(session.admin);
+            setView('ADMIN');
+          } else if (session.type === 'student' && session.profile) {
+            setCurrentProfile(session.profile);
+            setView('STUDENT_DASHBOARD');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkExistingSession();
+  }, []);
 
   // Check voor payment callback van Mollie
   useEffect(() => {
+    // Wacht tot session check klaar is
+    if (isCheckingSession) return;
+
     const params = new URLSearchParams(window.location.search);
     const paymentCallback = params.get('payment_callback');
     const payment = params.get('payment');
@@ -39,7 +68,7 @@ const App: React.FC = () => {
       // Verwijder query params uit URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
+  }, [isCheckingSession]);
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -302,6 +331,18 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    // Toon loading indicator tijdens session check
+    if (isCheckingSession) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Even geduld...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (view) {
       case 'PUBLIC_LANDING':
         return (
@@ -493,7 +534,13 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('PUBLIC_LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={async () => {
+          await logout();
+          setCurrentAdmin(null);
+          setAdminUsername('');
+          setAdminPassword('');
+          setView('PUBLIC_LANDING');
+        }} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -505,7 +552,8 @@ const App: React.FC = () => {
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
-            onLogout={() => {
+            onLogout={async () => {
+              await logout();
               setStudentName('');
               setStudentPassword('');
               setCurrentProfile(null);
