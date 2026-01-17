@@ -1,0 +1,345 @@
+/**
+ * Vercel Serverless Function - Mollie Webhook
+ *
+ * Ontvangt betalingsnotificaties van Mollie en:
+ * 1. Bij verificatiebetaling (€0.01): activeert account en start trial
+ * 2. Bij recurring payment: verlengt subscription
+ * 3. Bij failed payment: markeert subscription als expired
+ */
+
+import { createClient } from '@supabase/supabase-js';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+import createMollieClient from '@mollie/api-client';
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Mollie webhooks zijn altijd POST requests
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    // Environment variables check
+    const mollieApiKey = process.env.MOLLIE_API_KEY;
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    const appUrl = process.env.VITE_APP_URL || 'https://ai-examentrainer.nl';
+
+    if (!mollieApiKey || !supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing environment variables for webhook');
+      return res.status(500).json({ error: 'Server configuratie fout' });
+    }
+
+    // Mollie stuurt payment ID in de body
+    const paymentId = req.body?.id;
+
+    if (!paymentId) {
+      console.error('No payment ID in webhook body');
+      return res.status(400).json({ error: 'Missing payment ID' });
+    }
+
+    console.log('Mollie webhook received for payment:', paymentId);
+
+    // Initialize clients
+    const mollie = createMollieClient({ apiKey: mollieApiKey });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    // Haal payment details op van Mollie (dit valideert ook dat het een echte payment is)
+    const payment = await mollie.payments.get(paymentId);
+
+    console.log('Payment status:', payment.status);
+    console.log('Payment metadata:', payment.metadata);
+
+    const metadata = payment.metadata as {
+      type?: string;
+      username?: string;
+      email?: string;
+      level?: string;
+      password_hash?: string;
+    } | null;
+
+    if (!metadata) {
+      console.log('No metadata in payment, skipping');
+      return res.status(200).json({ received: true });
+    }
+
+    // ========================================================================
+    // VERIFICATIE BETALING (€0.01) - Account activatie
+    // ========================================================================
+    if (metadata.type === 'verification' && payment.status === 'paid') {
+      console.log('Processing verification payment for:', metadata.username);
+
+      // Haal pending registration op
+      const { data: pending } = await supabase
+        .from('pending_registrations')
+        .select('*')
+        .eq('mollie_payment_id', paymentId)
+        .maybeSingle();
+
+      // Gebruik data uit pending registration of fallback naar metadata
+      const username = pending?.username || metadata.username;
+      const email = pending?.email || metadata.email;
+      const level = pending?.level || metadata.level;
+      const passwordEncoded = pending?.password_encrypted || metadata.password_hash;
+
+      if (!username || !email || !level || !passwordEncoded) {
+        console.error('Missing registration data');
+        return res.status(200).json({ received: true, error: 'Missing registration data' });
+      }
+
+      // Decode password
+      const password = Buffer.from(passwordEncoded, 'base64').toString('utf-8');
+
+      // Check of account al bestaat (idempotency)
+      const { data: existingProfile } = await supabase
+        .from('student_profiles')
+        .select('name')
+        .eq('name', username)
+        .maybeSingle();
+
+      if (existingProfile) {
+        console.log('Account already exists, skipping creation');
+        // Verwijder pending registration
+        if (pending) {
+          await supabase
+            .from('pending_registrations')
+            .delete()
+            .eq('id', pending.id);
+        }
+        return res.status(200).json({ received: true, message: 'Account already exists' });
+      }
+
+      // Maak Supabase Auth user aan
+      const studentEmail = `${username}@student.local`;
+      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+        email: studentEmail,
+        password: password,
+        email_confirm: true,
+        user_metadata: {
+          role: 'student',
+          name: username,
+          level: level,
+          real_email: email
+        }
+      });
+
+      if (authError) {
+        console.error('Auth error:', authError);
+        return res.status(200).json({ received: true, error: authError.message });
+      }
+
+      console.log('Created auth user:', authUser.user?.id);
+
+      // Maak student profile aan
+      const { error: profileError } = await supabase
+        .from('student_profiles')
+        .insert({
+          name: username,
+          level: level,
+          struggle_points: '',
+          email: email,
+          is_active: true,
+          auth_user_id: authUser.user?.id
+        });
+
+      if (profileError) {
+        console.error('Profile error:', profileError);
+        // Cleanup auth user als profile aanmaken mislukt
+        if (authUser.user?.id) {
+          await supabase.auth.admin.deleteUser(authUser.user.id);
+        }
+        return res.status(200).json({ received: true, error: profileError.message });
+      }
+
+      console.log('Created student profile');
+
+      // Bereken trial periode (3 dagen)
+      const trialStarted = new Date();
+      const trialEnds = new Date(trialStarted);
+      trialEnds.setDate(trialEnds.getDate() + 3);
+
+      // Haal Mollie customer ID op
+      const customerId = payment.customerId;
+
+      // Maak subscription record aan
+      const { data: subscription, error: subscriptionError } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_email: email,
+          user_name: username,
+          status: 'trial',
+          plan_type: 'individual',
+          price_cents: 1250,
+          trial_started_at: trialStarted.toISOString(),
+          trial_ends_at: trialEnds.toISOString(),
+          mollie_customer_id: customerId
+        })
+        .select()
+        .single();
+
+      if (subscriptionError) {
+        console.error('Subscription error:', subscriptionError);
+      } else {
+        console.log('Created subscription:', subscription.id);
+      }
+
+      // Log verificatie payment
+      await supabase
+        .from('payments')
+        .insert({
+          subscription_id: subscription?.id,
+          mollie_payment_id: paymentId,
+          amount_cents: 1,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Verificatiebetaling - Proefperiode',
+          payment_method: payment.method || null,
+          paid_at: payment.paidAt || new Date().toISOString()
+        });
+
+      // Maak Mollie subscription aan die start na de trial (€12.50/maand)
+      if (customerId) {
+        try {
+          const startDate = trialEnds.toISOString().split('T')[0]; // YYYY-MM-DD format
+
+          const mollieSubscription = await mollie.customerSubscriptions.create({
+            customerId: customerId,
+            amount: {
+              value: '12.50',
+              currency: 'EUR'
+            },
+            interval: '1 month',
+            description: 'AI Examentrainer - Maandelijks abonnement',
+            startDate: startDate,
+            webhookUrl: `${appUrl}/api/mollie-webhook`,
+            metadata: {
+              type: 'subscription_payment',
+              email: email,
+              username: username
+            }
+          });
+
+          console.log('Created Mollie subscription:', mollieSubscription.id, 'starts:', startDate);
+
+          // Update subscription met Mollie subscription ID
+          await supabase
+            .from('subscriptions')
+            .update({
+              mollie_subscription_id: mollieSubscription.id
+            })
+            .eq('user_email', email);
+
+        } catch (subError) {
+          console.error('Error creating Mollie subscription:', subError);
+          // Trial is actief, subscription kan later handmatig worden aangemaakt
+        }
+      }
+
+      // Verwijder pending registration
+      if (pending) {
+        await supabase
+          .from('pending_registrations')
+          .delete()
+          .eq('id', pending.id);
+        console.log('Deleted pending registration');
+      }
+
+      console.log('Account activation complete for:', username);
+    }
+
+    // ========================================================================
+    // VERIFICATIE BETALING - Failed/Cancelled
+    // ========================================================================
+    if (metadata.type === 'verification' &&
+        (payment.status === 'failed' || payment.status === 'cancelled' || payment.status === 'expired')) {
+      console.log('Verification payment failed for:', metadata.username);
+
+      // Verwijder pending registration
+      await supabase
+        .from('pending_registrations')
+        .delete()
+        .eq('mollie_payment_id', paymentId);
+    }
+
+    // ========================================================================
+    // RECURRING SUBSCRIPTION PAYMENT
+    // ========================================================================
+    if (metadata.type === 'subscription_payment' && payment.status === 'paid') {
+      console.log('Processing subscription payment for:', metadata.email);
+
+      const periodEnd = new Date();
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+
+      await supabase
+        .from('subscriptions')
+        .update({
+          status: 'active',
+          current_period_start: new Date().toISOString(),
+          current_period_end: periodEnd.toISOString()
+        })
+        .eq('user_email', metadata.email);
+
+      // Haal subscription op voor payment logging
+      const { data: subscription } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_email', metadata.email)
+        .maybeSingle();
+
+      // Log payment
+      await supabase
+        .from('payments')
+        .insert({
+          subscription_id: subscription?.id,
+          mollie_payment_id: paymentId,
+          amount_cents: 1250,
+          currency: 'EUR',
+          status: 'paid',
+          description: 'Maandelijks abonnement',
+          payment_method: payment.method || null,
+          paid_at: payment.paidAt || new Date().toISOString()
+        });
+
+      console.log('Subscription payment processed for:', metadata.email);
+    }
+
+    // ========================================================================
+    // RECURRING PAYMENT FAILED
+    // ========================================================================
+    if (metadata.type === 'subscription_payment' &&
+        (payment.status === 'failed' || payment.status === 'cancelled' || payment.status === 'expired')) {
+      console.log('Subscription payment failed for:', metadata.email);
+
+      // Markeer subscription als expired
+      await supabase
+        .from('subscriptions')
+        .update({
+          status: 'payment_failed'
+        })
+        .eq('user_email', metadata.email);
+
+      // Deactiveer student account
+      await supabase
+        .from('student_profiles')
+        .update({
+          is_active: false
+        })
+        .eq('email', metadata.email);
+    }
+
+    // Mollie verwacht een 200 response
+    return res.status(200).json({ received: true });
+
+  } catch (error) {
+    console.error('Webhook error:', error);
+    // Return 200 anyway om Mollie te laten weten dat we de webhook hebben ontvangen
+    return res.status(200).json({
+      received: true,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+}

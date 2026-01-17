@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
 import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
@@ -8,11 +8,29 @@ import { StudentDashboard } from './components/StudentDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
+import { LandingPage } from './components/LandingPage';
+import { CheckoutForm } from './components/CheckoutForm';
+import { PaymentSuccess } from './components/PaymentSuccess';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, Lock, ShieldCheck } from 'lucide-react';
+import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('LANDING');
+  const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
+  const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
+
+  // Check voor payment callback van Mollie
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    const username = params.get('username');
+
+    if (payment === 'success' && username) {
+      setPaymentUsername(username);
+      setView('PAYMENT_SUCCESS' as ViewState);
+      // Verwijder query params uit URL
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, []);
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
@@ -276,9 +294,53 @@ const App: React.FC = () => {
 
   const renderContent = () => {
     switch (view) {
+      case 'PUBLIC_LANDING':
+        return (
+          <LandingPage
+            onLogin={() => setView('LANDING')}
+            onCheckout={() => setView('CHECKOUT')}
+          />
+        );
+
+      case 'CHECKOUT':
+        return (
+          <CheckoutForm
+            onBack={() => setView('PUBLIC_LANDING')}
+            onSuccess={(username) => {
+              // Na succesvolle registratie, vul username in en ga naar login
+              setStudentName(username);
+              setStudentPassword('');
+              setLoginError('');
+              setView('LANDING');
+            }}
+          />
+        );
+
+      case 'PAYMENT_SUCCESS':
+        return (
+          <PaymentSuccess
+            username={paymentUsername || ''}
+            onLogin={(username) => {
+              setStudentName(username);
+              setStudentPassword('');
+              setLoginError('');
+              setView('LANDING');
+            }}
+          />
+        );
+
       case 'LANDING':
         return (
           <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
+            {/* Back Button */}
+            <button
+              onClick={() => setView('PUBLIC_LANDING')}
+              className="absolute top-6 left-6 z-20 flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-medium">Terug</span>
+            </button>
+
             {/* Background Elements */}
             <div className="absolute inset-0 z-0">
                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full blur-3xl opacity-60"></div>
@@ -407,7 +469,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={() => setView('PUBLIC_LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -423,7 +485,7 @@ const App: React.FC = () => {
               setStudentName('');
               setStudentPassword('');
               setCurrentProfile(null);
-              setView('LANDING');
+              setView('PUBLIC_LANDING');
             }}
           />
         );
