@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
+import { verifyStudentLogin, verifyAdminLogin, getCurrentUser, signOut } from './services/authService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
@@ -9,15 +9,16 @@ import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, Lock, ShieldCheck } from 'lucide-react';
+import { GraduationCap, UserCog, ArrowRight, Lock, ShieldCheck, Loader2 } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('LANDING');
+  const [isLoading, setIsLoading] = useState(true);
 
   // Auth State
   const [showAdminLogin, setShowAdminLogin] = useState(false);
 
-  // Input State
+  // Input State (only used during login, cleared after)
   const [studentName, setStudentName] = useState('');
   const [studentPassword, setStudentPassword] = useState('');
   const [adminUsername, setAdminUsername] = useState('');
@@ -29,6 +30,41 @@ const App: React.FC = () => {
   const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
   const [loginError, setLoginError] = useState('');
+
+  // Restore session on app load
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        const user = await getCurrentUser();
+        if (user) {
+          if (user.role === 'admin') {
+            setCurrentAdmin(user.data as AdminUser);
+            setView('ADMIN');
+          } else if (user.role === 'student') {
+            const profile = user.data as StudentProfile;
+            if (profile.isActive !== false) {
+              setCurrentProfile(profile);
+              setView('STUDENT_DASHBOARD');
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error restoring session:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
+
+  // Logout helper
+  const handleLogout = async () => {
+    await signOut();
+    setCurrentProfile(null);
+    setCurrentAdmin(null);
+    setView('LANDING');
+  };
 
   const handleStudentAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,10 +79,13 @@ const App: React.FC = () => {
       const profile = await verifyStudentLogin(studentName, studentPassword);
       if (profile) {
         if (profile.isActive === false) {
+          await signOut();
           setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
           return;
         }
 
+        // Clear password from state immediately after successful login
+        setStudentPassword('');
         setCurrentProfile(profile);
         setView('STUDENT_DASHBOARD');
       } else {
@@ -69,11 +108,12 @@ const App: React.FC = () => {
     try {
       const admin = await verifyAdminLogin(adminUsername, adminPassword);
       if (admin) {
-        setCurrentAdmin(admin);
-        setView('ADMIN');
-        setShowAdminLogin(false);
+        // Clear credentials from state immediately after successful login
         setAdminUsername('');
         setAdminPassword('');
+        setShowAdminLogin(false);
+        setCurrentAdmin(admin);
+        setView('ADMIN');
       } else {
         setLoginError("Gebruikersnaam of wachtwoord onjuist.");
       }
@@ -407,7 +447,7 @@ const App: React.FC = () => {
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={handleLogout} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -419,12 +459,7 @@ const App: React.FC = () => {
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
-            onLogout={() => {
-              setStudentName('');
-              setStudentPassword('');
-              setCurrentProfile(null);
-              setView('LANDING');
-            }}
+            onLogout={handleLogout}
           />
         );
 
@@ -462,6 +497,15 @@ const App: React.FC = () => {
         return <div>Unknown view</div>;
     }
   };
+
+  // Show loading state while checking session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="font-sans antialiased text-gray-900 bg-white">
