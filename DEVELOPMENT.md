@@ -6,7 +6,7 @@ Dit systeem gebruikt **uitsluitend Supabase Auth** voor alle authenticatie. Er z
 
 ### Admin Account Aanmaken
 
-Admins moeten handmatig worden aangemaakt in de Supabase Auth dashboard:
+Admins worden bepaald op basis van email adres:
 
 1. Ga naar je Supabase project → Authentication → Users
 2. Klik "Add user" → "Create new user"
@@ -14,7 +14,7 @@ Admins moeten handmatig worden aangemaakt in de Supabase Auth dashboard:
    - **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
    - **Wachtwoord**: Minimaal 12 karakters, sterk wachtwoord
    - **Auto confirm**: Aan
-   - **User metadata**: `{ "role": "admin" }`
+4. Voeg het email adres toe aan `VITE_ADMIN_EMAILS` in je `.env` bestand
 
 ### Student Accounts
 
@@ -35,11 +35,14 @@ Maak een `.env` bestand aan met:
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 
+# Admin email adressen (komma-gescheiden)
+VITE_ADMIN_EMAILS=admin@jouwdomein.nl
+
 # Server-side only (voor API endpoints)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
 # AI features (optioneel)
-VITE_GEMINI_API_KEY=your-gemini-key
+GEMINI_API_KEY=your-gemini-key
 ```
 
 ### Starten in Development
@@ -102,7 +105,7 @@ npm run dev
 
 1. **Service Role Key**: NOOIT in de browser, alleen in `/api/*` endpoints
 2. **RLS Policies**: Alle tabellen zijn beveiligd met Row Level Security
-3. **Role-based Access**: Rol wordt bepaald via `user_metadata.role` in Supabase Auth
+3. **Role-based Access**: Admin rol wordt bepaald via `VITE_ADMIN_EMAILS` environment variable
 
 ## 📚 Architectuur
 
@@ -115,10 +118,10 @@ npm run dev
    ↓
 3. Supabase Auth signInWithPassword()
    ↓
-4. Rol check via user_metadata.role
+4. Email check: staat in VITE_ADMIN_EMAILS?
    ↓
-5. Admin → Admin Dashboard
-   Student → Profiel ophalen → Student Dashboard
+5. Ja → Admin Dashboard
+   Nee → Student profiel ophalen → Student Dashboard
 ```
 
 ### Session Persistence

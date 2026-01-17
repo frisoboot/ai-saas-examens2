@@ -5,7 +5,7 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 // ============================================================================
 // SUPABASE AUTH - VOLLEDIGE INTEGRATIE
 //
-// Login met echte email adressen. Rol wordt bepaald via user metadata.
+// Login met echte email adressen. Admin rol wordt bepaald via VITE_ADMIN_EMAILS.
 //
 // SECURITY:
 // - Alle admin operaties gaan via server-side API endpoints
@@ -17,6 +17,16 @@ const requireSupabase = () => {
   if (!supabase) {
     throw new Error('Supabase niet beschikbaar. Controleer je configuratie.');
   }
+};
+
+/**
+ * Check of een email adres een admin is
+ * Admin emails worden geconfigureerd via VITE_ADMIN_EMAILS environment variable
+ */
+const isAdminEmail = (email: string): boolean => {
+  const adminEmails = import.meta.env.VITE_ADMIN_EMAILS || '';
+  const adminList = adminEmails.split(',').map((e: string) => e.toLowerCase().trim()).filter(Boolean);
+  return adminList.includes(email.toLowerCase().trim());
 };
 
 // ============================================================================
@@ -71,17 +81,17 @@ export const login = async (email: string, password: string): Promise<LoginResul
       throw new Error('Geen user data ontvangen');
     }
 
-    const role = data.user.user_metadata?.role;
+    const userEmail = data.user.email || email;
 
-    // Admin
-    if (role === 'admin') {
+    // Admin - check via VITE_ADMIN_EMAILS environment variable
+    if (isAdminEmail(userEmail)) {
       return {
         type: 'admin',
         admin: {
           id: data.user.id,
-          username: data.user.email || email,
+          username: userEmail,
           passwordHash: '',
-          email: data.user.email,
+          email: userEmail,
           lastLogin: new Date().toISOString()
         }
       };
@@ -161,17 +171,17 @@ export const getCurrentSession = async (): Promise<LoginResult> => {
     }
 
     const user = session.user;
-    const role = user.user_metadata?.role;
+    const userEmail = user.email || '';
 
-    // Admin
-    if (role === 'admin') {
+    // Admin - check via VITE_ADMIN_EMAILS environment variable
+    if (isAdminEmail(userEmail)) {
       return {
         type: 'admin',
         admin: {
           id: user.id,
-          username: user.email || '',
+          username: userEmail,
           passwordHash: '',
-          email: user.email || '',
+          email: userEmail,
           lastLogin: new Date().toISOString()
         }
       };

@@ -19,20 +19,23 @@ Alle authenticatie verloopt via Supabase Auth. Er zijn geen fallbacks of alterna
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 
+# Admin email adressen (komma-gescheiden)
+VITE_ADMIN_EMAILS=admin@jouwdomein.nl,backup@jouwdomein.nl
+
 # Server-side only (GEEN VITE_ prefix!)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 #### Admin Account Aanmaken
 
-Admins moeten handmatig worden aangemaakt in Supabase:
+Admins worden bepaald op basis van email adres via `VITE_ADMIN_EMAILS`:
 
 1. Ga naar Supabase → Authentication → Users
 2. Klik "Add user" → "Create new user"
 3. **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
 4. **Wachtwoord**: Minimaal 12 karakters
 5. **Auto confirm**: Aan
-6. **User metadata**: `{ "role": "admin" }`
+6. **Voeg email toe aan VITE_ADMIN_EMAILS** in je environment variabelen
 
 **Wachtwoord eisen**:
 - ✅ Minimaal 12 karakters (16+ aanbevolen)
@@ -58,7 +61,7 @@ openssl rand -base64 24
 - ✅ **Unified login** - Één login form voor iedereen
 - ✅ **Session persistence** - Gebruikers blijven ingelogd
 - ✅ **Proper logout** - `signOut()` verwijdert sessie volledig
-- ✅ **Role-based access** - Via `user_metadata.role` in Supabase
+- ✅ **Role-based access** - Via `VITE_ADMIN_EMAILS` environment variable
 - ✅ **RLS policies** - Alle data beveiligd op database niveau
 
 #### 🔄 Aanbevolen voor de toekomst:
@@ -180,13 +183,19 @@ Content-Security-Policy: default-src 'self'
 
 ## 📝 Changelog
 
+### v2.1.0 (2026-01-17) - Admin via Environment Variable
+- ✅ **BREAKING**: Admin rol nu bepaald via `VITE_ADMIN_EMAILS` environment variable
+- ✅ Verwijderd: Afhankelijkheid van `user_metadata.role` voor admin detectie
+- ✅ Toegevoegd: `isAdminEmail()` helper functie
+- ✅ Verbeterd: Makkelijker admin toevoegen zonder Supabase metadata aan te passen
+
 ### v2.0.0 (2026-01-17) - Supabase Auth Only
 - ✅ **BREAKING**: Verwijderd: Server-side admin-login API endpoint
 - ✅ **BREAKING**: Alle authenticatie nu uitsluitend via Supabase Auth
 - ✅ Toegevoegd: Session persistence (onthoud ingelogde gebruikers)
 - ✅ Toegevoegd: Proper logout met signOut()
 - ✅ Toegevoegd: getCurrentSession() voor session check bij app start
-- ✅ Verbeterd: Email domain verificatie voor admin/student onderscheid
+- ✅ Verbeterd: Unified login (één form voor admin en student)
 - ✅ Verbeterd: Error handling in auth flows
 
 ### v1.1.0 (2026-01-14) - Security Improvements
@@ -202,4 +211,4 @@ Content-Security-Policy: default-src 'self'
 ---
 
 **Laatst bijgewerkt**: 17 januari 2026
-**Versie**: 2.0.0
+**Versie**: 2.1.0
