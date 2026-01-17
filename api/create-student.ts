@@ -99,8 +99,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(409).json({ error: 'Student met deze naam bestaat al' });
     }
 
-    // Maak auth email voor student
-    const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
+    // Maak auth email voor student (use example.com - IANA reserved domain per RFC 2606)
+    const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.example.com`;
 
     // Stap 1: Maak Supabase Auth user aan
     const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({

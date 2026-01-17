@@ -45,8 +45,8 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
 export const verifyStudentLogin = async (name: string, password: string): Promise<StudentProfile | null> => {
   requireSupabase();
 
-  // Gebruik name@student.local als email format voor studenten
-  const email = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
+  // Gebruik name@student.example.com als email format voor studenten (IANA reserved domain per RFC 2606)
+  const email = `${name.toLowerCase().replace(/\s+/g, '_')}@student.example.com`;
 
   const { data, error } = await supabase!.auth.signInWithPassword({
     email,
