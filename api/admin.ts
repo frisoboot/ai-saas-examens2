@@ -292,6 +292,29 @@ async function handleResetPassword(req: VercelRequest, res: VercelResponse) {
   return res.status(200).json({ success: true });
 }
 
+async function handleListStudents(req: VercelRequest, res: VercelResponse) {
+  const adminUsername = getAdminFromRequest(req);
+  if (!adminUsername) {
+    return res.status(401).json({ error: 'Niet geautoriseerd' });
+  }
+
+  const supabase = getSupabaseAdmin();
+  if (!supabase) {
+    return res.status(500).json({ error: 'Server configuratie fout' });
+  }
+
+  const { data, error } = await supabase
+    .from('student_profiles')
+    .select('*')
+    .order('name');
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
+  }
+
+  return res.status(200).json({ success: true, students: data || [] });
+}
+
 // ============================================================================
 // Main Handler
 // ============================================================================
@@ -313,6 +336,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     switch (action) {
       case 'login':
         return handleLogin(req, res);
+      case 'list-students':
+        return handleListStudents(req, res);
       case 'create-student':
         return handleCreateStudent(req, res);
       case 'delete-student':

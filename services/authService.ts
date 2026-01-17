@@ -107,26 +107,21 @@ export const verifyStudentLogin = async (name: string, password: string): Promis
   };
 };
 
-// Get all students
+// Get all students via API
 export const getAllStudents = async (): Promise<StudentProfile[]> => {
-  if (!supabase) {
-    throw new Error('Supabase niet beschikbaar');
+  const data = await adminApiCall('list-students');
+
+  if (!data.success) {
+    throw new Error(data.error || 'Kon studenten niet ophalen');
   }
 
-  const { data, error } = await supabase
-    .from('student_profiles')
-    .select('*')
-    .order('name');
-
-  if (error) throw error;
-
-  return data.map(d => ({
-    name: d.name,
-    level: d.level,
-    strugglePoints: d.struggle_points,
-    email: d.email,
-    createdByAdmin: d.created_by_admin,
-    isActive: d.is_active
+  return (data.students || []).map((d: Record<string, unknown>) => ({
+    name: d.name as string,
+    level: d.level as string,
+    strugglePoints: d.struggle_points as string,
+    email: d.email as string,
+    createdByAdmin: d.created_by_admin as string,
+    isActive: d.is_active as boolean
   }));
 };
 
