@@ -13,7 +13,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
-import { setCorsHeaders } from '../lib/api-utils/cors';
+import { setCorsHeaders } from './_cors';
 
 interface CheckoutRequest {
   email: string;

@@ -6,7 +6,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from '../lib/api-utils/cors';
+import { setCorsHeaders } from './_cors';
 
 interface ResetPasswordRequest {
   studentName: string;
