@@ -204,6 +204,71 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
+// Normalize a JSON question object to BulkImportQuestion format
+// Supports various field name formats (lowercase, camelCase) and pipe-separated options
+const normalizeJSONQuestion = (raw: Record<string, unknown>): BulkImportQuestion => {
+  const question: Partial<BulkImportQuestion> = {};
+
+  // Subject
+  question.subject = (raw.subject as string) || '';
+
+  // Level
+  question.level = (raw.level as StudentLevel) || '' as StudentLevel;
+
+  // Type
+  question.type = (raw.type as QuestionType) || '' as QuestionType;
+
+  // Text
+  question.text = (raw.text || raw.vraag) as string || '';
+
+  // Year - support 'year', 'examYear', 'examyear', 'jaar'
+  const year = raw.year ?? raw.examYear ?? raw.examyear ?? raw.jaar;
+  if (year !== undefined && year !== null) {
+    question.examYear = typeof year === 'number' ? year : parseInt(year as string);
+  }
+
+  // Context - support 'context', 'contextText', 'contexttext', 'brontekst'
+  const context = raw.context ?? raw.contextText ?? raw.contexttext ?? raw.brontekst;
+  if (context) {
+    question.contextText = context as string;
+  }
+
+  // Source
+  if (raw.source || raw.bron) {
+    question.source = (raw.source || raw.bron) as string;
+  }
+
+  // Options - support both array and pipe-separated string
+  const rawOptions = raw.options ?? raw.opties;
+  if (rawOptions) {
+    if (Array.isArray(rawOptions)) {
+      question.options = rawOptions.map(o => String(o).trim()).filter(o => o);
+    } else if (typeof rawOptions === 'string') {
+      // Parse pipe-separated options: "A|B|C|D" or "Option 1|Option 2|Option 3"
+      question.options = rawOptions.split('|').map(o => o.trim()).filter(o => o);
+    }
+  }
+
+  // Correct answer - support 'correctAnswer', 'correctanswer', 'juistantwoord', 'correct'
+  const correctAnswer = raw.correctAnswer ?? raw.correctanswer ?? raw.juistantwoord ?? raw.correct;
+  if (correctAnswer !== undefined && correctAnswer !== null) {
+    question.correctAnswer = String(correctAnswer);
+  }
+
+  // Model answer - support 'modelAnswer', 'modelanswer', 'modelantwoord', 'answer'
+  const modelAnswer = raw.modelAnswer ?? raw.modelanswer ?? raw.modelantwoord ?? raw.answer;
+  if (modelAnswer !== undefined && modelAnswer !== null) {
+    question.modelAnswer = String(modelAnswer);
+  }
+
+  // Image URL
+  if (raw.imageUrl || raw.imageurl || raw.image) {
+    question.imageUrl = (raw.imageUrl || raw.imageurl || raw.image) as string;
+  }
+
+  return question as BulkImportQuestion;
+};
+
 // Parse JSON format
 export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
   try {
@@ -211,7 +276,8 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
     if (!Array.isArray(data)) {
       throw new Error('JSON moet een array van vragen zijn');
     }
-    return data as BulkImportQuestion[];
+    // Normalize each question to handle different field name formats
+    return data.map(normalizeJSONQuestion);
   } catch (error) {
     console.error('JSON parse error:', error);
     return [];
