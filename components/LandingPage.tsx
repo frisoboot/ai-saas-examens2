@@ -64,9 +64,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
+            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8 border border-blue-100">
               <Sparkles className="w-4 h-4" />
-              Powered by AI - Gemini 2.0
+              Examen 2025? Start vandaag met oefenen
             </div>
 
             {/* Main Headline - H1 for SEO */}
@@ -83,15 +83,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </p>
 
             {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
               <Button onClick={onLogin} size="xl" className="w-full sm:w-auto shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all hover:-translate-y-1">
-                Start nu gratis
+                Start 3 dagen gratis
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
               <Button onClick={() => scrollToSection('how-it-works')} variant="outline" size="xl" className="w-full sm:w-auto">
                 Bekijk hoe het werkt
               </Button>
             </div>
+
+            {/* Urgency text */}
+            <p className="text-sm text-gray-500 mb-8">
+              Geen creditcard nodig • Direct toegang • Maandelijks opzegbaar
+            </p>
 
             {/* Platform highlights */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 text-sm text-gray-500">
@@ -110,50 +115,91 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Hero Image/Preview */}
+          {/* Hero Image/Preview - Realistic Platform Look */}
           <div className="mt-16 relative">
-            <div className="bg-gradient-to-b from-gray-900 to-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-              <div className="flex items-center gap-2 px-4 py-3 border-b border-gray-700">
-                <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                <span className="ml-4 text-gray-400 text-sm">ai-examentrainer.nl</span>
+            <div className="bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
+              {/* Browser Chrome */}
+              <div className="flex items-center gap-2 px-4 py-3 bg-gray-100 border-b border-gray-200">
+                <div className="w-3 h-3 rounded-full bg-red-400"></div>
+                <div className="w-3 h-3 rounded-full bg-yellow-400"></div>
+                <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                <div className="ml-4 flex-1 bg-white rounded-lg px-3 py-1.5 text-sm text-gray-600 flex items-center gap-2">
+                  <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                  ai-examentrainer.nl/dashboard
+                </div>
               </div>
-              <div className="p-6 sm:p-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Subject Cards Preview */}
+
+              {/* App Content */}
+              <div className="bg-gray-50 p-4 sm:p-6">
+                {/* Top Bar */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
+                      <GraduationCap className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-sm">Welkom, Lisa!</p>
+                      <p className="text-xs text-gray-500">HAVO - Examenjaar 2025</p>
+                    </div>
+                  </div>
+                  <div className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-medium">
+                    3 dagen gratis
+                  </div>
+                </div>
+
+                {/* Subject Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {[
-                    { name: 'Wiskunde', color: 'from-blue-500 to-blue-600', icon: '📐' },
-                    { name: 'Nederlands', color: 'from-orange-500 to-orange-600', icon: '📖' },
-                    { name: 'Engels', color: 'from-red-500 to-red-600', icon: '🇬🇧' },
+                    { name: 'Wiskunde B', color: 'bg-blue-500', icon: '📐', progress: 68 },
+                    { name: 'Nederlands', color: 'bg-orange-500', icon: '📖', progress: 45 },
+                    { name: 'Engels', color: 'bg-red-500', icon: '🇬🇧', progress: 82 },
+                    { name: 'Biologie', color: 'bg-green-500', icon: '🧬', progress: 23 },
                   ].map((subject) => (
-                    <div key={subject.name} className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${subject.color} flex items-center justify-center text-2xl mb-3`}>
+                    <div key={subject.name} className="bg-white rounded-xl p-3 border border-gray-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
+                      <div className={`w-10 h-10 ${subject.color} rounded-lg flex items-center justify-center text-lg mb-2`}>
                         {subject.icon}
                       </div>
-                      <h4 className="text-white font-semibold mb-1">{subject.name}</h4>
-                      <p className="text-gray-400 text-sm">250+ examenvragen</p>
-                      <div className="mt-3 flex items-center gap-2">
-                        <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                          <div className={`h-full bg-gradient-to-r ${subject.color} w-3/4`}></div>
+                      <h4 className="text-gray-900 font-medium text-sm mb-1">{subject.name}</h4>
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div className={`h-full ${subject.color} rounded-full`} style={{ width: `${subject.progress}%` }}></div>
                         </div>
-                        <span className="text-gray-400 text-xs">75%</span>
+                        <span className="text-gray-400 text-xs">{subject.progress}%</span>
                       </div>
                     </div>
                   ))}
                 </div>
+
+                {/* Action Buttons Preview */}
+                <div className="mt-4 flex gap-2">
+                  <div className="flex-1 bg-blue-600 text-white rounded-lg py-2.5 text-center text-sm font-medium">
+                    Start AI Oefening
+                  </div>
+                  <div className="flex-1 bg-white border border-gray-200 text-gray-700 rounded-lg py-2.5 text-center text-sm font-medium">
+                    Flashcards
+                  </div>
+                </div>
               </div>
             </div>
-            {/* Floating elements */}
-            <div className="absolute -right-4 top-1/4 bg-white rounded-xl shadow-xl p-4 hidden lg:block animate-bounce">
+
+            {/* Floating Success Notification */}
+            <div className="absolute -right-2 sm:-right-4 top-1/4 bg-white rounded-xl shadow-2xl p-3 sm:p-4 hidden md:block border border-gray-100">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
                   <CheckCircle2 className="w-6 h-6 text-green-600" />
                 </div>
                 <div>
-                  <p className="font-semibold text-gray-900">Goed gedaan!</p>
-                  <p className="text-sm text-gray-500">8/10 correct</p>
+                  <p className="font-semibold text-gray-900 text-sm">Goed gedaan!</p>
+                  <p className="text-xs text-gray-500">8/10 correct</p>
                 </div>
+              </div>
+            </div>
+
+            {/* Floating AI Chat Bubble */}
+            <div className="absolute -left-2 sm:-left-4 bottom-1/4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl shadow-2xl p-3 sm:p-4 hidden md:block text-white max-w-[200px]">
+              <div className="flex items-start gap-2">
+                <Brain className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                <p className="text-xs leading-relaxed">"Bij deze vraag moet je eerst de afgeleide bepalen..."</p>
               </div>
             </div>
           </div>
@@ -376,6 +422,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
+            {/* Urgency Banner */}
+            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
+              <Clock className="w-4 h-4" />
+              Eindexamens in mei 2025 - Start nu met voorbereiden
+            </div>
+
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Kies jouw pakket
             </h2>
@@ -387,9 +439,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Individual Subscription */}
             <div className="bg-white rounded-2xl p-8 shadow-xl border-2 border-blue-500 relative overflow-hidden">
-              <div className="absolute top-0 right-0 bg-blue-600 text-white px-4 py-1 text-sm font-medium rounded-bl-xl">
-                Meest gekozen
+              <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 text-sm font-medium text-center">
+                Probeer 3 dagen gratis - Geen risico
               </div>
+              <div className="pt-6">
               <h3 className="text-2xl font-bold text-gray-900 mb-2">Individueel</h3>
               <p className="text-gray-600 mb-6">Voor leerlingen die zelfstandig willen oefenen</p>
 
@@ -424,6 +477,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin }) => {
                 Start gratis proefperiode
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
+              </div>
             </div>
 
             {/* School License */}
