@@ -165,20 +165,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         type: 'verification',
         username: username.toLowerCase(),
         email: email.toLowerCase(),
-        level: level,
-        password_hash: Buffer.from(password).toString('base64') // Tijdelijk opslaan (wordt verwijderd na activatie)
+        level: level
+        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
       }
     })) as Payment;
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
-    // Sla pending registration op
+    // Sla pending registration op (zonder wachtwoord - security)
     const { error: pendingError } = await supabase
       .from('pending_registrations')
       .insert({
         email: email.toLowerCase(),
         username: username.toLowerCase(),
-        password_encrypted: Buffer.from(password).toString('base64'),
+        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
         level: level,
         mollie_customer_id: customer.id,
         mollie_payment_id: payment.id,

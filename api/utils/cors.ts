@@ -12,10 +12,12 @@ const ALLOWED_ORIGINS = [
   'https://www.ai-examentrainer.nl',
 ];
 
-// Regex patterns voor dynamische origins (Vercel previews, localhost)
+// Regex patterns voor dynamische origins (Vercel previews, localhost, development)
 const ALLOWED_PATTERNS = [
   /^https:\/\/.*\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
+  /^http:\/\/127\.0\.0\.1:\d+$/,
+  /^http:\/\/\[::1\]:\d+$/,
 ];
 
 /**
