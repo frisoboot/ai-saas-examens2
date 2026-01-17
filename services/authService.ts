@@ -21,8 +21,9 @@ const requireSupabase = () => {
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
   requireSupabase();
 
-  // Gebruik username@admin.local als email format voor admins
-  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.local`;
+  // Gebruik username@admin.example.com als email format voor admins
+  // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
+  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.example.com`;
 
   const { data, error } = await supabase!.auth.signInWithPassword({
     email,
@@ -37,7 +38,7 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
     throw new Error('Geen user data ontvangen van Supabase Auth');
   }
 
-  // Email eindigt op @admin.local = admin (geen metadata nodig)
+  // Email eindigt op @admin.example.com = admin (geen metadata nodig)
   return {
     id: data.user.id,
     username: username,
@@ -51,8 +52,9 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
 export const verifyStudentLogin = async (name: string, password: string): Promise<StudentProfile | null> => {
   requireSupabase();
 
-  // Gebruik name@student.local als email format voor studenten
-  const email = `${name.toLowerCase().replace(/\s+/g, '_')}@student.local`;
+  // Gebruik name@student.example.com als email format voor studenten
+  // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
+  const email = `${name.toLowerCase().replace(/\s+/g, '_')}@student.example.com`;
 
   const { data, error } = await supabase!.auth.signInWithPassword({
     email,

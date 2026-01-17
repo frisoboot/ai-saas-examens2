@@ -114,7 +114,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Maak Supabase Auth user aan
-      const studentEmail = `${username}@student.local`;
+      // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
+      const studentEmail = `${username}@student.example.com`;
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: studentEmail,
         password: password,
