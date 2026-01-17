@@ -4,7 +4,20 @@
  * Handelt alle subscription-gerelateerde API calls af.
  */
 
-const API_BASE = import.meta.env.VITE_API_URL || '';
+// Bepaal de API base URL - gebruik absolute URL in productie om "The string did not match the expected pattern" te voorkomen
+const getApiBase = (): string => {
+  // Gebruik environment variable indien beschikbaar
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // In production: gebruik absolute URL gebaseerd op current origin
+  if (typeof window !== 'undefined') {
+    return window.location.origin;
+  }
+  return ''; // SSR fallback
+};
+
+const API_BASE = getApiBase();
 
 export interface SubscriptionStatus {
   hasAccess: boolean;

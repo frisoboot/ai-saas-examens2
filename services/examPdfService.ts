@@ -6,6 +6,15 @@ import { BulkImportQuestion, StudentLevel } from '../types';
  * Frontend service for parsing exam PDFs using the AI backend.
  */
 
+// Bepaal de API base URL - gebruik absolute URL in productie om "The string did not match the expected pattern" te voorkomen
+const getApiUrl = (path: string): string => {
+  if (typeof window === 'undefined') {
+    return path; // SSR fallback
+  }
+  // In production: gebruik absolute URL
+  return new URL(path, window.location.origin).toString();
+};
+
 export interface ParseExamPDFRequest {
   questionsFile: File;
   answersFile?: File;
@@ -72,7 +81,7 @@ export async function parseExamPDF(request: ParseExamPDFRequest): Promise<ParseE
     }
 
     // Call the API
-    const response = await fetch('/api/parse-exam-pdf', {
+    const response = await fetch(getApiUrl('/api/parse-exam-pdf'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
