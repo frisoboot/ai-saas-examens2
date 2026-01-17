@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ViewState, ExamSession, StudentProfile, StudentLevel, AdminUser, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { verifyStudentLogin, verifyAdminLogin } from './services/authService';
+import { login, logout, getCurrentSession } from './services/authService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AdminDashboard } from './components/AdminDashboard';
 import { StudentDashboard } from './components/StudentDashboard';
@@ -13,14 +13,43 @@ import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { Button } from './components/Button';
-import { GraduationCap, UserCog, ArrowRight, ArrowLeft, Lock, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ArrowRight, ArrowLeft, Lock } from 'lucide-react';
 
 const App: React.FC = () => {
   const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
+
+  // Check voor bestaande sessie bij opstarten
+  useEffect(() => {
+    const checkExistingSession = async () => {
+      try {
+        const session = await getCurrentSession();
+
+        if (session) {
+          if (session.type === 'admin' && session.admin) {
+            setCurrentAdmin(session.admin);
+            setView('ADMIN');
+          } else if (session.type === 'student' && session.profile) {
+            setCurrentProfile(session.profile);
+            setView('STUDENT_DASHBOARD');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking session:', error);
+      } finally {
+        setIsCheckingSession(false);
+      }
+    };
+
+    checkExistingSession();
+  }, []);
 
   // Check voor payment callback van Mollie
   useEffect(() => {
+    // Wacht tot session check klaar is
+    if (isCheckingSession) return;
+
     const params = new URLSearchParams(window.location.search);
     const paymentCallback = params.get('payment_callback');
     const payment = params.get('payment');
@@ -39,75 +68,56 @@ const App: React.FC = () => {
       // Verwijder query params uit URL
       window.history.replaceState({}, '', window.location.pathname);
     }
-  }, []);
-
-  // Auth State
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  }, [isCheckingSession]);
 
   // Input State
-  const [studentName, setStudentName] = useState('');
-  const [studentPassword, setStudentPassword] = useState('');
-  const [adminUsername, setAdminUsername] = useState('');
-  const [adminPassword, setAdminPassword] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  // User State
   const [currentProfile, setCurrentProfile] = useState<StudentProfile | null>(null);
   const [currentAdmin, setCurrentAdmin] = useState<AdminUser | null>(null);
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
   const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
-  const [loginError, setLoginError] = useState('');
 
-  const handleStudentAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
 
-    if (!studentName.trim() || !studentPassword.trim()) {
-      setLoginError("Vul naam en wachtwoord in.");
+    if (!email.trim() || !password.trim()) {
+      setLoginError("Vul email en wachtwoord in.");
       return;
     }
 
+    setIsLoggingIn(true);
+
     try {
-      const profile = await verifyStudentLogin(studentName, studentPassword);
-      if (profile) {
-        if (profile.isActive === false) {
+      const result = await login(email, password);
+
+      if (result?.type === 'admin') {
+        setCurrentAdmin(result.admin);
+        setView('ADMIN');
+        setEmail('');
+        setPassword('');
+      } else if (result?.type === 'student') {
+        if (result.profile.isActive === false) {
           setLoginError("Je account is gedeactiveerd. Neem contact op met je docent.");
           return;
         }
-
-        setCurrentProfile(profile);
+        setCurrentProfile(result.profile);
         setView('STUDENT_DASHBOARD');
+        setEmail('');
+        setPassword('');
       } else {
-        setLoginError("Naam of wachtwoord onjuist.");
-      }
-    } catch (error) {
-      setLoginError("Er ging iets mis bij het inloggen.");
-    }
-  };
-
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-
-    if (!adminUsername.trim() || !adminPassword.trim()) {
-      setLoginError("Vul gebruikersnaam en wachtwoord in.");
-      return;
-    }
-
-    try {
-      const admin = await verifyAdminLogin(adminUsername, adminPassword);
-      if (admin) {
-        setCurrentAdmin(admin);
-        setView('ADMIN');
-        setShowAdminLogin(false);
-        setAdminUsername('');
-        setAdminPassword('');
-      } else {
-        setLoginError("Gebruikersnaam of wachtwoord onjuist.");
+        setLoginError("Email of wachtwoord onjuist.");
       }
     } catch (error: any) {
-      // Show the actual error message from the API/auth service
-      const errorMessage = error?.message || "Er ging iets mis bij het inloggen.";
-      setLoginError(errorMessage);
+      setLoginError(error?.message || "Er ging iets mis bij het inloggen.");
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
@@ -302,6 +312,18 @@ const App: React.FC = () => {
   };
 
   const renderContent = () => {
+    // Toon loading indicator tijdens session check
+    if (isCheckingSession) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-500">Even geduld...</p>
+          </div>
+        </div>
+      );
+    }
+
     switch (view) {
       case 'PUBLIC_LANDING':
         return (
@@ -315,10 +337,9 @@ const App: React.FC = () => {
         return (
           <CheckoutForm
             onBack={() => setView('PUBLIC_LANDING')}
-            onSuccess={(username) => {
-              // Na succesvolle registratie, vul username in en ga naar login
-              setStudentName(username);
-              setStudentPassword('');
+            onSuccess={(userEmail) => {
+              setEmail(userEmail);
+              setPassword('');
               setLoginError('');
               setView('LANDING');
             }}
@@ -328,9 +349,9 @@ const App: React.FC = () => {
       case 'PAYMENT_CALLBACK':
         return (
           <PaymentCallback
-            onLogin={(username) => {
-              setStudentName(username);
-              setStudentPassword('');
+            onLogin={(userEmail) => {
+              setEmail(userEmail);
+              setPassword('');
               setLoginError('');
               setView('LANDING');
             }}
@@ -344,9 +365,9 @@ const App: React.FC = () => {
         return (
           <PaymentSuccess
             username={paymentUsername || ''}
-            onLogin={(username) => {
-              setStudentName(username);
-              setStudentPassword('');
+            onLogin={(userEmail) => {
+              setEmail(userEmail);
+              setPassword('');
               setLoginError('');
               setView('LANDING');
             }}
@@ -372,7 +393,7 @@ const App: React.FC = () => {
             </div>
 
             <div className="w-full max-w-[440px] relative z-10">
-              
+
               <div className="text-center mb-10">
                 <div className="flex justify-center mb-6">
                    <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center justify-center transform rotate-3 hover:rotate-6 transition-transform duration-300 border-2 border-white/20">
@@ -380,120 +401,80 @@ const App: React.FC = () => {
                    </div>
                 </div>
                 <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-                  {showAdminLogin ? 'Admin Portal' : 'Welkom terug'}
+                  Welkom terug
                 </h2>
                 <p className="text-gray-500 mt-3 text-lg">
-                  {showAdminLogin ? 'Beheer het platform' : 'Log in om verder te gaan'}
+                  Log in om verder te gaan
                 </p>
               </div>
 
               <div className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
-                {!showAdminLogin ? (
-                  <form onSubmit={handleStudentAuth} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Gebruikersnaam</label>
-                      <input
-                        type="text"
-                        required
-                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Je naam..."
-                        value={studentName}
-                        onChange={(e) => setStudentName(e.target.value)}
-                      />
+                <form onSubmit={handleLogin} className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Email</label>
+                    <input
+                      type="email"
+                      required
+                      className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                      placeholder="je@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isLoggingIn}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
+                    <input
+                      type="password"
+                      required
+                      className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                      placeholder="Je wachtwoord..."
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoggingIn}
+                    />
+                  </div>
+
+                  {loginError && (
+                    <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
+                      <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                      <span>{loginError}</span>
                     </div>
+                  )}
 
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
-                      <input
-                        type="password"
-                        required
-                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Je wachtwoord..."
-                        value={studentPassword}
-                        onChange={(e) => setStudentPassword(e.target.value)}
-                      />
-                    </div>
-
-                    {loginError && (
-                      <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
-                        <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                        <span>{loginError}</span>
-                      </div>
-                    )}
-
-                    <Button type="submit" className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5" size="lg">
-                      Inloggen
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </form>
-                ) : (
-                  <form onSubmit={handleAdminLogin} className="space-y-6">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Admin Gebruikersnaam</label>
-                      <input
-                        type="text"
-                        required
-                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Gebruikersnaam"
-                        value={adminUsername}
-                        onChange={(e) => setAdminUsername(e.target.value)}
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">Wachtwoord</label>
-                      <input
-                        type="password"
-                        required
-                        className="block w-full rounded-xl border-gray-200 bg-gray-50 px-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                        placeholder="Wachtwoord"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                      />
-                    </div>
-
-                    {loginError && (
-                      <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3 animate-shake">
-                        <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                        <span>{loginError}</span>
-                      </div>
-                    )}
-
-                    <Button type="submit" className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5" size="lg">
-                      Admin Inloggen
-                      <ArrowRight className="w-5 h-5 ml-2" />
-                    </Button>
-                  </form>
-                )}
-                
-                <div className="mt-8 pt-6 border-t border-gray-100 text-center">
-                  <button
-                    onClick={() => {
-                      setShowAdminLogin(!showAdminLogin);
-                      setLoginError('');
-                    }}
-                    className="text-sm font-medium text-gray-400 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 mx-auto"
+                  <Button
+                    type="submit"
+                    className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20 hover:shadow-blue-600/30 transition-all hover:-translate-y-0.5"
+                    size="lg"
+                    disabled={isLoggingIn}
                   >
-                    {showAdminLogin ? (
+                    {isLoggingIn ? (
                       <>
-                        <UserCog className="w-4 h-4" />
-                        Terug naar student login
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Inloggen...
                       </>
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4" />
-                        Docenten portaal
+                        Inloggen
+                        <ArrowRight className="w-5 h-5 ml-2" />
                       </>
                     )}
-                  </button>
-                </div>
+                  </Button>
+                </form>
               </div>
             </div>
           </div>
         );
 
       case 'ADMIN':
-        return <AdminDashboard onBack={() => setView('PUBLIC_LANDING')} adminUsername={currentAdmin?.username || 'admin'} />;
+        return <AdminDashboard onBack={async () => {
+          await logout();
+          setCurrentAdmin(null);
+          setEmail('');
+          setPassword('');
+          setView('PUBLIC_LANDING');
+        }} adminUsername={currentAdmin?.username || 'admin'} />;
 
       case 'STUDENT_DASHBOARD':
         if (!currentProfile) return null;
@@ -505,9 +486,10 @@ const App: React.FC = () => {
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
-            onLogout={() => {
-              setStudentName('');
-              setStudentPassword('');
+            onLogout={async () => {
+              await logout();
+              setEmail('');
+              setPassword('');
               setCurrentProfile(null);
               setView('PUBLIC_LANDING');
             }}

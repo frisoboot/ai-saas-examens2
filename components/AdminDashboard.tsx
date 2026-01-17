@@ -9,7 +9,7 @@ import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText,
 import { imageStorage } from '../services/imageStorageService';
 
 interface AdminDashboardProps {
-  onBack: () => void;
+  onBack: () => void | Promise<void>;
   adminUsername?: string;
 }
 

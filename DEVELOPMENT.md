@@ -1,30 +1,53 @@
 # Development Guide - AI Examentrainer
 
-## 🔐 Login Credentials
+## 🔐 Authenticatie via Supabase Auth
 
-### Admin Login
-- **Gebruikersnaam**: `admin`
-- **Wachtwoord**: `qfxohCpsHdFgwqn+d8PIIMwPvyFUAhki`
+Dit systeem gebruikt **uitsluitend Supabase Auth** voor alle authenticatie. Er zijn geen fallbacks of alternatieve auth methodes.
 
-⚠️ **Belangrijk**: Dit wachtwoord staat in het `.env` bestand en is gegenereerd voor development. Verander dit in productie!
+### Admin Account Aanmaken
+
+Admins worden bepaald op basis van email adres:
+
+1. Ga naar je Supabase project → Authentication → Users
+2. Klik "Add user" → "Create new user"
+3. Vul in:
+   - **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
+   - **Wachtwoord**: Minimaal 12 karakters, sterk wachtwoord
+   - **Auto confirm**: Aan
+4. Voeg het email adres toe aan `VITE_ADMIN_EMAILS` in je `.env` bestand
+
+### Student Accounts
+
+Studenten worden aangemaakt via:
+- **Admin dashboard**: Admins maken studenten aan met hun echte email adres
+- **Registratie flow**: Via de checkout/betaal flow
+
+**Let op**: Studenten loggen in met hun echte email adres.
 
 ## 🚀 Development Setup
 
-Het nieuwe login systeem heeft twee authenticatie methodes:
+### Vereiste Environment Variabelen
 
-### Methode 1: Server-side API (actief)
-De `/api/admin-login` endpoint gebruikt de credentials uit het `.env` bestand:
-- `ADMIN_USERNAME` - De admin gebruikersnaam
-- `ADMIN_PASSWORD` - Het admin wachtwoord (server-side only, geen VITE_ prefix!)
+Maak een `.env` bestand aan met:
 
-### Methode 2: Supabase Auth (optioneel)
-Als je Supabase wilt gebruiken, voeg deze credentials toe aan `.env`:
-- `VITE_SUPABASE_URL` - Je Supabase project URL
-- `VITE_SUPABASE_ANON_KEY` - Je Supabase anonymous key
+```bash
+# Supabase (VERPLICHT)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-## 🛠️ Starten in Development
+# Admin email adressen (komma-gescheiden)
+VITE_ADMIN_EMAILS=admin@jouwdomein.nl
 
-### Optie A: Vercel Dev (aanbevolen voor volledige functionaliteit)
+# Server-side only (voor API endpoints)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+
+# AI features (optioneel)
+GEMINI_API_KEY=your-gemini-key
+```
+
+### Starten in Development
+
+#### Optie A: Vercel Dev (aanbevolen)
 
 ```bash
 # Installeer Vercel CLI (als je dat nog niet hebt)
@@ -36,105 +59,96 @@ vercel dev
 
 De applicatie draait op `http://localhost:3000` met volledige API functionaliteit.
 
-### Optie B: Vite Dev (alleen frontend, API endpoints werken niet)
+#### Optie B: Vite Dev (alleen frontend)
 
 ```bash
 npm run dev
 ```
 
-⚠️ **Let op**: Met deze methode werken de API endpoints (`/api/*`) NIET. Je kunt alleen inloggen als je Supabase hebt geconfigureerd.
+⚠️ **Let op**: Met deze methode werken de API endpoints (`/api/*`) NIET. Je kunt wel inloggen via Supabase Auth.
 
 ## 📝 Development Checklist
 
-Wanneer je lokaal ontwikkelt:
+- [x] Supabase project aangemaakt
+- [x] Environment variabelen ingesteld
+- [ ] Admin account aangemaakt in Supabase Auth dashboard
+- [ ] RLS policies geactiveerd op alle tabellen
+- [ ] Optioneel: Gemini API key voor AI features
 
-- [x] `.env` bestand is aangemaakt met `ADMIN_USERNAME` en `ADMIN_PASSWORD`
-- [ ] Optioneel: Supabase credentials toegevoegd aan `.env`
-- [ ] Optioneel: Gemini API key toegevoegd voor AI features
-- [ ] Start met `vercel dev` voor volledige functionaliteit
-
-## 🔧 Troubleshooting Login Problemen
+## 🔧 Troubleshooting
 
 ### "Gebruikersnaam of wachtwoord onjuist"
 
-1. **Check `.env` bestand**: Zorg dat `ADMIN_USERNAME` en `ADMIN_PASSWORD` correct zijn ingesteld
-2. **Gebruik Vercel Dev**: Als je `npm run dev` gebruikt, gebruik dan `vercel dev` in plaats daarvan
-3. **Check browser console**: Open DevTools (F12) en bekijk de Console voor error messages
+1. **Check Supabase**: Is de admin user aangemaakt in Authentication → Users?
+2. **Check email format**: Moet eindigen op `@admin.example.com`
+3. **Check wachtwoord**: Correct wachtwoord ingevuld?
 
-### "Server configuratie fout"
+### "Supabase niet beschikbaar"
 
-Dit betekent dat de `ADMIN_PASSWORD` environment variabele niet is ingesteld of te kort is (min 12 karakters).
-
-**Oplossing**:
 1. Check of `.env` bestand bestaat
-2. Check of `ADMIN_PASSWORD` is ingesteld (geen `VITE_` prefix!)
+2. Check of `VITE_SUPABASE_URL` en `VITE_SUPABASE_ANON_KEY` zijn ingesteld
 3. Herstart de development server
 
-### API endpoint is niet bereikbaar
+### API endpoint fouten
 
-**Probleem**: Je gebruikt `npm run dev` maar de `/api` endpoints werken niet.
-
-**Oplossing**: Gebruik `vercel dev` in plaats van `npm run dev`.
+1. Check of `SUPABASE_SERVICE_ROLE_KEY` is ingesteld (zonder VITE_ prefix!)
+2. Gebruik `vercel dev` in plaats van `npm run dev`
 
 ## 🔒 Security Notes
 
+### Environment Variabelen
+
+- `VITE_*` variabelen → Beschikbaar in de browser (public)
+- Variabelen zonder `VITE_` prefix → Alleen server-side (secret)
+
 ### Belangrijke Security Principes
 
-1. **Server-side credentials**: De `ADMIN_PASSWORD` variabele heeft **GEEN** `VITE_` prefix, wat betekent dat deze ALLEEN op de server beschikbaar is en NOOIT naar de browser wordt gestuurd.
-
-2. **Environment variabelen**:
-   - `VITE_*` variabelen → Beschikbaar in de browser (public)
-   - Variabelen zonder `VITE_` prefix → Alleen server-side (secret)
-
-3. **Productie deployment**:
-   - Zet de environment variabelen in je hosting platform (Vercel/Netlify)
-   - Gebruik een sterk, uniek wachtwoord (min 16 karakters)
-   - NOOIT credentials committen in Git
-
-### Wachtwoord Genereren
-
-Voor productie, genereer een veilig wachtwoord:
-
-```bash
-# Genereer een random wachtwoord
-openssl rand -base64 24
-```
+1. **Service Role Key**: NOOIT in de browser, alleen in `/api/*` endpoints
+2. **RLS Policies**: Alle tabellen zijn beveiligd met Row Level Security
+3. **Role-based Access**: Admin rol wordt bepaald via `VITE_ADMIN_EMAILS` environment variable
 
 ## 📚 Architectuur
 
 ### Login Flow
 
 ```
-1. User vult username + password in
+1. User vult email + password in
    ↓
-2. Frontend roept verifyAdminLogin() aan
+2. Frontend roept login() aan
    ↓
-3. Probeer eerst Supabase Auth (als geconfigureerd)
+3. Supabase Auth signInWithPassword()
    ↓
-4. Bij failure: fallback naar /api/admin-login
+4. Email check: staat in VITE_ADMIN_EMAILS?
    ↓
-5. API endpoint valideert credentials (server-side)
-   ↓
-6. Success → Admin dashboard
+5. Ja → Admin Dashboard
+   Nee → Student profiel ophalen → Student Dashboard
 ```
+
+### Session Persistence
+
+Het systeem onthoudt ingelogde gebruikers via Supabase Auth's session management:
+- Bij app start wordt `getCurrentSession()` aangeroepen
+- Als er een geldige sessie is, wordt de gebruiker automatisch ingelogd
+- Logout via `signOut()` verwijdert de sessie
 
 ### Bestanden
 
-- `/api/admin-login.ts` - Server-side authenticatie endpoint
-- `/services/authService.ts` - Client-side authenticatie logica
-- `/.env` - Environment variabelen (NOT in Git!)
-- `/.env.example` - Template voor environment variabelen
+- `/services/authService.ts` - Alle authenticatie logica via Supabase Auth
+- `/services/supabaseService.ts` - Supabase client configuratie
+- `/api/create-student.ts` - Server-side student account creatie
+- `/api/reset-password.ts` - Server-side wachtwoord reset
+- `/api/delete-student.ts` - Server-side student verwijderen
 
 ## 🎯 Next Steps
 
-1. **Test de login**: Start met `vercel dev` en login met de credentials hierboven
-2. **Configureer Supabase** (optioneel): Voeg Supabase credentials toe voor database functionaliteit
-3. **Wijzig wachtwoord**: Voor productie, gebruik een ander wachtwoord
-4. **Deploy**: Push naar GitHub en deploy via Vercel/Netlify
+1. **Maak admin account**: Via Supabase Auth dashboard
+2. **Test login**: Start met `vercel dev` en login als admin
+3. **Maak studenten**: Via het admin dashboard
+4. **Deploy**: Push naar GitHub en deploy via Vercel
 
 ## 💡 Tips
 
-- Gebruik `vercel dev` voor lokale development (niet `npm run dev`)
+- Gebruik `vercel dev` voor lokale development met API endpoints
 - Check de browser console voor debug informatie
-- Het wachtwoord staat in `.env` en kan je altijd terugvinden daar
-- Voor productie: stel environment variabelen in via je hosting platform dashboard
+- Session blijft bewaard tussen page refreshes
+- Logout via de uitlog knop in het dashboard

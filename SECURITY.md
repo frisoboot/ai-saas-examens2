@@ -1,130 +1,107 @@
 # 🔒 Beveiligingshandleiding AI Examens Platform
 
 ## Overzicht
-Dit document bevat kritieke beveiligingsinformatie voor het AI Examens Platform, inclusief admin authenticatie, wachtwoordbeleid en beveiligingsbest practices.
+
+Dit document bevat kritieke beveiligingsinformatie voor het AI Examens Platform. Het systeem gebruikt **uitsluitend Supabase Auth** voor alle authenticatie.
 
 ---
 
-## ⚠️ KRITIEK: Admin Wachtwoord Configuratie
+## ⚠️ KRITIEK: Authenticatie Setup
 
-### Stap 1: Stel een STERK admin wachtwoord in
+### Supabase Auth Configuratie
 
-Het admin wachtwoord wordt **NIET** hardcoded in de code en wordt **NOOIT** naar de browser gestuurd. Het blijft veilig op de server via een API endpoint.
+Alle authenticatie verloopt via Supabase Auth. Er zijn geen fallbacks of alternatieve auth methodes.
 
-#### Voor Development (lokaal):
+#### Vereiste Environment Variabelen
 
-1. Kopieer `.env.example` naar `.env`:
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+# Browser (public - beschermd door RLS)
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
 
-2. Open `.env` en stel een **STERK** wachtwoord in:
-   ```bash
-   # LET OP: GEEN "VITE_" prefix! Dit houdt het wachtwoord server-side.
-   ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
-   ADMIN_USERNAME=admin
-   ```
+# Admin email adressen (komma-gescheiden)
+VITE_ADMIN_EMAILS=admin@jouwdomein.nl,backup@jouwdomein.nl
 
-   > 🔒 **WAAROM GEEN VITE_ PREFIX?**
-   > Variabelen met `VITE_` prefix worden geëxpositeerd naar de browser.
-   > Door GEEN `VITE_` prefix te gebruiken, blijft het wachtwoord veilig op de server!
+# Server-side only (GEEN VITE_ prefix!)
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+```
 
-3. **Wachtwoord eisen**:
-   - ✅ Minimaal 16 karakters (systeem vereist minimaal 12)
-   - ✅ Mix van hoofdletters en kleine letters
-   - ✅ Cijfers en speciale karakters (@, #, $, %, !, etc.)
-   - ❌ NOOIT veelvoorkomende wachtwoorden (admin123, password, etc.)
-   - ❌ NOOIT persoonlijke informatie (naam, geboortedatum, etc.)
+#### Admin Account Aanmaken
 
-4. **Genereer een sterk wachtwoord**:
-   ```bash
-   # Met OpenSSL
-   openssl rand -base64 24
+Admins worden bepaald op basis van email adres via `VITE_ADMIN_EMAILS`:
 
-   # Met pwgen
-   pwgen -s 24 1
+1. Ga naar Supabase → Authentication → Users
+2. Klik "Add user" → "Create new user"
+3. **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
+4. **Wachtwoord**: Minimaal 12 karakters
+5. **Auto confirm**: Aan
+6. **Voeg email toe aan VITE_ADMIN_EMAILS** in je environment variabelen
 
-   # Of gebruik een wachtwoordmanager:
-   # - 1Password
-   # - Bitwarden
-   # - LastPass
-   # - KeePassXC
-   ```
+**Wachtwoord eisen**:
+- ✅ Minimaal 12 karakters (16+ aanbevolen)
+- ✅ Mix van hoofdletters en kleine letters
+- ✅ Cijfers en speciale karakters
+- ❌ Geen veelvoorkomende wachtwoorden
+- ❌ Geen persoonlijke informatie
 
-#### Voor Productie (Vercel/andere hosts):
-
-1. **NOOIT** commit je `.env` bestand naar Git!
-2. Stel environment variabelen in via je hosting platform:
-   - **Vercel**: Project Settings → Environment Variables
-   - **Netlify**: Site Settings → Build & Deploy → Environment
-   - **Andere**: Zie documentatie van je host
-
-3. Productie environment variabelen:
-   ```bash
-   # ⚠️ BELANGRIJK: GEEN "VITE_" prefix voor admin credentials!
-   # Dit houdt het wachtwoord server-side (alleen beschikbaar in /api endpoints)
-   ADMIN_PASSWORD=zeer-sterk-productie-wachtwoord
-   ADMIN_USERNAME=admin
-
-   # Frontend variabelen (WEL met VITE_ prefix):
-   VITE_ALLOW_DEV_FALLBACK=false  # ⚠️ VERPLICHT in productie!
-   ```
-
-4. **Vercel specifiek**: Wanneer je `ADMIN_PASSWORD` toevoegt, zal Vercel GEEN waarschuwing geven omdat het GEEN `VITE_` prefix heeft en dus veilig server-side blijft! ✅
+**Genereer een sterk wachtwoord**:
+```bash
+openssl rand -base64 24
+```
 
 ---
 
 ## 🛡️ Beveiligingsmaatregelen
 
-### 1. Admin Authenticatie
+### 1. Authenticatie
 
 #### ✅ Geïmplementeerd:
-- ✅ **Server-side API endpoint** (`/api/admin-login`) - wachtwoord blijft op server!
-- ✅ **Geen VITE_ prefix** - voorkomt exposure naar browser
-- ✅ Wachtwoorden via environment variabelen (niet hardcoded)
-- ✅ Minimale wachtwoordlengte check (12 karakters)
-- ✅ Supabase Auth integratie met role-based access
-- ✅ Fallback naar veilige API als Supabase faalt
-- ✅ Warning bij zwakke wachtwoorden
-- ✅ Timing attack prevention (constant-time response)
+- ✅ **Supabase Auth** - Alle authenticatie via Supabase
+- ✅ **Echte email adressen** - Geen fake emails meer, gewoon je eigen email
+- ✅ **Unified login** - Één login form voor iedereen
+- ✅ **Session persistence** - Gebruikers blijven ingelogd
+- ✅ **Proper logout** - `signOut()` verwijdert sessie volledig
+- ✅ **Role-based access** - Via `VITE_ADMIN_EMAILS` environment variable
+- ✅ **RLS policies** - Alle data beveiligd op database niveau
 
 #### 🔄 Aanbevolen voor de toekomst:
-- ⚠️ Rate limiting (max 5 login pogingen per 15 min)
 - ⚠️ Two-Factor Authentication (2FA/MFA)
 - ⚠️ Session timeout (bijv. 30 min inactief = uitloggen)
 - ⚠️ Audit logging (wie, wanneer, welke actie)
 - ⚠️ IP whitelisting voor admin toegang
 - ⚠️ Email notificaties bij admin login
 
-### 2. Development vs Productie
+### 2. Server-side Beveiliging
 
-#### Development Mode:
-- Fallback authenticatie mogelijk via environment variabelen
-- `VITE_ALLOW_DEV_FALLBACK=true` toestaan
-- Gebruik test databases en API keys
+#### API Endpoints
 
-#### Productie Mode:
-- **VERPLICHT**: `VITE_ALLOW_DEV_FALLBACK=false`
-- Alleen Supabase Auth gebruiken (geen fallback!)
-- Gebruik productie databases en API keys
-- HTTPS verplicht
-- Security headers geconfigureerd
+Alle admin operaties gaan via server-side API endpoints:
+- `/api/create-student` - Student account aanmaken
+- `/api/reset-password` - Wachtwoord resetten
+- `/api/delete-student` - Student verwijderen
 
-### 3. Wachtwoord Management Best Practices
+Deze endpoints:
+- Verifiëren de JWT token
+- Checken of de user admin is (via metadata)
+- Gebruiken de service role key (nooit in browser)
 
-#### Voor Admins:
-1. **Gebruik een wachtwoordmanager** (1Password, Bitwarden, etc.)
-2. **Deel NOOIT** je admin wachtwoord via email/chat
-3. **Wijzig regelmatig** je wachtwoord (elke 3-6 maanden)
-4. **Gebruik unieke wachtwoorden** (niet hergebruiken)
-5. **Schakel 2FA in** zodra beschikbaar
+### 3. Row Level Security (RLS)
 
-#### Voor Developers:
-1. **NOOIT** commit `.env` bestanden naar Git
-2. **NOOIT** hardcode wachtwoorden in de code
-3. **Gebruik altijd** environment variabelen
-4. **Roteer credentials** na teamleden vertrek
-5. **Review code** op security issues voor elke merge
+Alle tabellen zijn beveiligd met RLS policies:
+
+| Tabel | Studenten | Admins |
+|-------|-----------|--------|
+| `questions` | Lezen | Lezen + Schrijven |
+| `exam_results` | Alleen eigen | Alle |
+| `student_profiles` | Alleen eigen | Alle |
+| `student_progress` | Alleen eigen | Alle |
+
+### 4. Environment Variabelen
+
+- `VITE_*` variabelen → Beschikbaar in de browser (public)
+- Variabelen zonder `VITE_` prefix → Alleen server-side (secret)
+
+**NOOIT** de `SUPABASE_SERVICE_ROLE_KEY` in de browser!
 
 ---
 
@@ -134,23 +111,40 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code en wordt **NOOIT** naar
 
 - [ ] `.env` staat in `.gitignore`
 - [ ] Geen hardcoded credentials in de code
-- [ ] `VITE_ALLOW_DEV_FALLBACK=false` in productie
-- [ ] **`ADMIN_PASSWORD` ingesteld ZONDER `VITE_` prefix** ⚠️ KRITIEK
-- [ ] **`ADMIN_USERNAME` ingesteld ZONDER `VITE_` prefix**
-- [ ] Sterk admin wachtwoord ingesteld (min. 16 chars)
+- [ ] Admin account aangemaakt in Supabase Auth dashboard
+- [ ] Sterk admin wachtwoord (min. 16 chars)
+- [ ] `SUPABASE_SERVICE_ROLE_KEY` ZONDER `VITE_` prefix
 - [ ] HTTPS geconfigureerd
-- [ ] Supabase RLS policies actief
-- [ ] Service role key NIET in productie frontend
-- [ ] API keys voor productie (niet test keys)
-- [ ] `/api/admin-login` endpoint werkt correct
+- [ ] RLS policies actief op alle tabellen
 
 ### Regelmatig controleren:
 
-- [ ] Admin login logs reviewen
+- [ ] Supabase Auth logs reviewen
 - [ ] Ongebruikte accounts verwijderen
-- [ ] Dependencies updaten (npm audit)
+- [ ] Dependencies updaten (`npm audit`)
 - [ ] Security headers testen
 - [ ] Penetration testing overwegen
+
+---
+
+## 🔒 CORS en Security Headers
+
+### CORS Whitelist
+
+De API endpoints accepteren alleen requests van:
+- Productie domains (geconfigureerd in `api/utils/cors.ts`)
+- Vercel preview URLs
+- `localhost` (alleen development)
+
+### Security Headers
+
+Aanbevolen headers voor productie:
+```
+X-Content-Type-Options: nosniff
+X-Frame-Options: DENY
+Strict-Transport-Security: max-age=31536000
+Content-Security-Policy: default-src 'self'
+```
 
 ---
 
@@ -158,20 +152,18 @@ Het admin wachtwoord wordt **NIET** hardcoded in de code en wordt **NOOIT** naar
 
 ### Als je denkt dat beveiliging is gecompromitteerd:
 
-1. **DIRECT**: Wijzig alle wachtwoorden en API keys
-2. **CHECK**: Review admin login logs in Supabase
-3. **DISABLE**: Tijdelijk admin toegang uitschakelen
+1. **DIRECT**: Wijzig alle wachtwoorden in Supabase Auth
+2. **CHECK**: Review auth logs in Supabase dashboard
+3. **DISABLE**: Tijdelijk admin accounts deactiveren
 4. **INVESTIGATE**: Zoek naar verdachte activiteit
-5. **DOCUMENT**: Noteer wat er gebeurd is
+5. **ROTATE**: Genereer nieuwe API keys
 6. **UPDATE**: Patch de security vulnerability
 7. **NOTIFY**: Informeer betrokkenen indien nodig
 
 ### Contact voor security issues:
 
-Voor het rapporteren van security vulnerabilities:
-- **NIET** publiekelijk delen in issues
+- **NIET** publiekelijk delen in GitHub issues
 - Stuur een private melding naar de repository maintainer
-- Geef tijd voor een fix voordat je publiceert
 
 ---
 
@@ -179,11 +171,11 @@ Voor het rapporteren van security vulnerabilities:
 
 ### Security Best Practices:
 - [OWASP Top 10](https://owasp.org/www-project-top-ten/)
-- [NIST Password Guidelines](https://pages.nist.gov/800-63-3/sp800-63b.html)
 - [Supabase Security Guide](https://supabase.com/docs/guides/auth/security)
+- [Supabase RLS Policies](https://supabase.com/docs/guides/auth/row-level-security)
 
 ### Tools:
-- [Have I Been Pwned](https://haveibeenpwned.com/) - Check compromised passwords
+- [Supabase Dashboard](https://app.supabase.com/) - Auth & logs
 - [npm audit](https://docs.npmjs.com/cli/v8/commands/npm-audit) - Check dependencies
 - [OWASP ZAP](https://www.zaproxy.org/) - Security testing
 
@@ -191,22 +183,32 @@ Voor het rapporteren van security vulnerabilities:
 
 ## 📝 Changelog
 
-### v1.1.0 (2026-01-14) - SECURITY FIX
-- ✅ **KRITIEKE FIX**: Wachtwoord NIET meer geëxpositeerd naar browser
-- ✅ Toegevoegd: Server-side API endpoint `/api/admin-login`
-- ✅ Gewijzigd: `VITE_ADMIN_PASSWORD` → `ADMIN_PASSWORD` (server-side only)
-- ✅ Toegevoegd: Timing attack prevention in API
-- ✅ Verbeterd: Fallback nu via veilige API i.p.v. client-side check
+### v2.1.0 (2026-01-17) - Admin via Environment Variable
+- ✅ **BREAKING**: Admin rol nu bepaald via `VITE_ADMIN_EMAILS` environment variable
+- ✅ Verwijderd: Afhankelijkheid van `user_metadata.role` voor admin detectie
+- ✅ Toegevoegd: `isAdminEmail()` helper functie
+- ✅ Verbeterd: Makkelijker admin toevoegen zonder Supabase metadata aan te passen
+
+### v2.0.0 (2026-01-17) - Supabase Auth Only
+- ✅ **BREAKING**: Verwijderd: Server-side admin-login API endpoint
+- ✅ **BREAKING**: Alle authenticatie nu uitsluitend via Supabase Auth
+- ✅ Toegevoegd: Session persistence (onthoud ingelogde gebruikers)
+- ✅ Toegevoegd: Proper logout met signOut()
+- ✅ Toegevoegd: getCurrentSession() voor session check bij app start
+- ✅ Verbeterd: Unified login (één form voor admin en student)
+- ✅ Verbeterd: Error handling in auth flows
+
+### v1.1.0 (2026-01-14) - Security Improvements
+- ✅ Server-side API endpoint voor admin login
+- ✅ Timing attack prevention
+- ✅ Rate limiting op login endpoint
 
 ### v1.0.0 (2026-01-14)
-- ✅ Verwijderd: Hardcoded admin wachtwoord 'admin123'
-- ✅ Toegevoegd: Environment variabele voor admin wachtwoord
-- ✅ Toegevoegd: Minimale wachtwoordlengte validatie (12 chars)
-- ✅ Toegevoegd: Development fallback security check
-- ✅ Verbeterd: Security logging en warnings
-- ✅ Gedocumenteerd: Complete security guidelines
+- ✅ Initiële release met Supabase Auth integratie
+- ✅ RLS policies geïmplementeerd
+- ✅ Environment variabelen voor credentials
 
 ---
 
-**Laatst bijgewerkt**: 14 januari 2026
-**Versie**: 1.0.0
+**Laatst bijgewerkt**: 17 januari 2026
+**Versie**: 2.1.0

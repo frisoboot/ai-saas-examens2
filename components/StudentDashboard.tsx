@@ -18,7 +18,7 @@ interface StudentDashboardProps {
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
-  onLogout: () => void;
+  onLogout: () => void | Promise<void>;
 }
 
 // All available subjects - always shown to students

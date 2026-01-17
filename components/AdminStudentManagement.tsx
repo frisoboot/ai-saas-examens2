@@ -44,8 +44,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     setError('');
     setSuccess('');
 
-    if (!newName.trim() || !newPassword.trim()) {
-      setError('Naam en wachtwoord zijn verplicht');
+    if (!newName.trim() || !newPassword.trim() || !newEmail.trim()) {
+      setError('Naam, email en wachtwoord zijn verplicht');
+      return;
+    }
+
+    if (!newEmail.includes('@')) {
+      setError('Vul een geldig email adres in');
       return;
     }
 
