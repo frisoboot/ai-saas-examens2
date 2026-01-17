@@ -11,6 +11,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from './utils/cors.ts';
+import { isAdminEmail } from './utils/admin.ts';
 
 interface DeleteStudentRequest {
   studentName: string;
@@ -60,10 +61,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: 'Unauthorized - invalid token' });
     }
 
-    // Check of user admin is
-    const role = user.user_metadata?.role;
-    if (role !== 'admin') {
-      console.error('User is not admin:', user.id, role);
+    // Check of user admin is (via VITE_ADMIN_EMAILS)
+    if (!user.email || !isAdminEmail(user.email)) {
+      console.error('User is not admin:', user.id, user.email);
       return res.status(403).json({ error: 'Forbidden - alleen admins kunnen studenten verwijderen' });
     }
 
