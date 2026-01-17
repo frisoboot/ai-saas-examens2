@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
+import { setCorsHeaders } from './utils/cors';
 
 /**
  * Admin Login API Endpoint - Server-side authenticatie
@@ -13,25 +14,8 @@ import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter';
  */
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers - restrict to allowed origins
-  const allowedOrigins = [
-    process.env.VITE_APP_URL,
-    'http://localhost:5173',
-    'http://localhost:3000'
-  ].filter(Boolean);
-
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV === 'development') {
-    // Allow any origin in development only
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-  }
-  // In production without matching origin, no CORS header is set (request blocked)
-
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS headers - ondersteunt productie, Vercel previews, en localhost
+  setCorsHeaders(res, req.headers.origin, 'POST,OPTIONS');
 
   // Handle preflight
   if (req.method === 'OPTIONS') {
