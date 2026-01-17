@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
+import formidable from 'formidable';
+import { promises as fs } from 'fs';
 
 /**
  * Parse Exam PDF API Endpoint
@@ -8,16 +10,23 @@ import { GoogleGenAI } from "@google/genai";
  * and returns structured question data ready for import.
  *
  * POST /api/parse-exam-pdf
- * Body: {
- *   questionsBase64: string,    // Base64 encoded PDF with questions
- *   answersBase64?: string,     // Base64 encoded PDF/text with answers (optional)
- *   answersText?: string,       // Plain text answers (alternative to PDF)
- *   subject: string,            // e.g., "Geschiedenis"
- *   level: string,              // "VMBO-TL" | "HAVO" | "VWO"
- *   examYear: number,           // e.g., 2024
+ * Content-Type: multipart/form-data
+ * Fields:
+ *   questionsFile: File         // PDF with questions
+ *   answersFile?: File          // PDF with answers (optional)
+ *   answersText?: string        // Plain text answers (alternative to PDF)
+ *   subject: string             // e.g., "Geschiedenis"
+ *   level: string               // "VMBO-TL" | "HAVO" | "VWO"
+ *   examYear: string            // e.g., "2024"
  *   source?: string             // e.g., "Tijdvak 1"
- * }
  */
+
+// Disable body parsing - we handle multipart ourselves
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 // Lazy initialization
 let _ai: GoogleGenAI | null = null;
@@ -35,6 +44,37 @@ const getAI = (): GoogleGenAI => {
   return _ai;
 };
 
+/**
+ * Parse multipart form data from request
+ */
+async function parseFormData(req: VercelRequest): Promise<{
+  fields: formidable.Fields;
+  files: formidable.Files;
+}> {
+  return new Promise((resolve, reject) => {
+    const form = formidable({
+      maxFileSize: 25 * 1024 * 1024, // 25MB max per file
+      maxTotalFileSize: 50 * 1024 * 1024, // 50MB total
+    });
+
+    form.parse(req, (err, fields, files) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve({ fields, files });
+      }
+    });
+  });
+}
+
+/**
+ * Read file and convert to base64
+ */
+async function fileToBase64(file: formidable.File): Promise<string> {
+  const data = await fs.readFile(file.filepath);
+  return data.toString('base64');
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -50,19 +90,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const {
-      questionsBase64,
-      answersBase64,
-      answersText,
-      subject,
-      level,
-      examYear,
-      source
-    } = req.body;
+    // Parse multipart form data
+    const { fields, files } = await parseFormData(req);
+
+    // Extract fields (formidable returns arrays)
+    const subject = Array.isArray(fields.subject) ? fields.subject[0] : fields.subject;
+    const level = Array.isArray(fields.level) ? fields.level[0] : fields.level;
+    const examYearStr = Array.isArray(fields.examYear) ? fields.examYear[0] : fields.examYear;
+    const examYear = examYearStr ? parseInt(examYearStr, 10) : 0;
+    const source = Array.isArray(fields.source) ? fields.source[0] : fields.source;
+    const answersText = Array.isArray(fields.answersText) ? fields.answersText[0] : fields.answersText;
+
+    // Extract files
+    const questionsFileArr = files.questionsFile;
+    const questionsFile = Array.isArray(questionsFileArr) ? questionsFileArr[0] : questionsFileArr;
+    const answersFileArr = files.answersFile;
+    const answersFile = Array.isArray(answersFileArr) ? answersFileArr[0] : answersFileArr;
 
     // Validation
-    if (!questionsBase64) {
-      return res.status(400).json({ error: 'questionsBase64 is verplicht' });
+    if (!questionsFile) {
+      return res.status(400).json({ error: 'questionsFile is verplicht' });
     }
     if (!subject) {
       return res.status(400).json({ error: 'subject is verplicht' });
@@ -72,6 +119,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (!examYear || examYear < 2000 || examYear > 2100) {
       return res.status(400).json({ error: 'examYear is verplicht (2000-2100)' });
+    }
+
+    // Convert files to base64 for Gemini API
+    const questionsBase64 = await fileToBase64(questionsFile);
+    let answersBase64: string | undefined;
+    if (answersFile) {
+      answersBase64 = await fileToBase64(answersFile);
     }
 
     const ai = getAI();

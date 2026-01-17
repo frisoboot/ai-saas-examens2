@@ -43,49 +43,32 @@ export interface ParseExamPDFResult {
 }
 
 /**
- * Convert a File to base64 string
- */
-async function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      resolve(result);
-    };
-    reader.onerror = () => reject(new Error('Kon bestand niet lezen'));
-    reader.readAsDataURL(file);
-  });
-}
-
-/**
  * Parse exam PDF files using AI
+ * Uses FormData for efficient binary transfer (no base64 overhead)
  */
 export async function parseExamPDF(request: ParseExamPDFRequest): Promise<ParseExamPDFResult> {
   try {
-    // Convert questions PDF to base64
-    const questionsBase64 = await fileToBase64(request.questionsFile);
+    // Create FormData for efficient binary file transfer
+    const formData = new FormData();
+    formData.append('questionsFile', request.questionsFile);
+    formData.append('subject', request.subject);
+    formData.append('level', request.level);
+    formData.append('examYear', request.examYear.toString());
 
-    // Convert answers PDF to base64 if provided
-    let answersBase64: string | undefined;
     if (request.answersFile) {
-      answersBase64 = await fileToBase64(request.answersFile);
+      formData.append('answersFile', request.answersFile);
+    }
+    if (request.answersText) {
+      formData.append('answersText', request.answersText);
+    }
+    if (request.source) {
+      formData.append('source', request.source);
     }
 
-    // Call the API
+    // Call the API - don't set Content-Type, browser handles it for FormData
     const response = await fetch('/api/parse-exam-pdf', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        questionsBase64,
-        answersBase64,
-        answersText: request.answersText,
-        subject: request.subject,
-        level: request.level,
-        examYear: request.examYear,
-        source: request.source,
-      }),
+      body: formData,
     });
 
     if (!response.ok) {
