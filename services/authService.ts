@@ -37,16 +37,10 @@ export const verifyAdminLogin = async (username: string, password: string): Prom
     throw new Error('Geen user data ontvangen van Supabase Auth');
   }
 
-  // Controleer of user admin role heeft
-  const role = data.user.user_metadata?.role;
-  if (role !== 'admin') {
-    await supabase!.auth.signOut();
-    throw new Error('User is geen admin');
-  }
-
+  // Email eindigt op @admin.local = admin (geen metadata nodig)
   return {
     id: data.user.id,
-    username: data.user.user_metadata?.username || username,
+    username: username,
     passwordHash: '',
     email: data.user.email,
     lastLogin: new Date().toISOString()
