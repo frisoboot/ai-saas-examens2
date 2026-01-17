@@ -17,31 +17,39 @@ const requireSupabase = () => {
   }
 };
 
-// Admin authentication - via server-side API
+// Admin authentication - via Supabase Auth (zelfde als studenten)
 export const verifyAdminLogin = async (username: string, password: string): Promise<AdminUser | null> => {
-  // Build absolute URL to avoid "The string did not match the expected pattern" error
-  // This can happen in Vercel when using relative URLs in certain contexts
-  const apiUrl = new URL('/api/admin-login', window.location.origin).toString();
+  requireSupabase();
 
-  // Verify credentials via secure server-side API
-  const response = await fetch(apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+  // Gebruik username@admin.local als email format voor admins
+  const email = `${username.toLowerCase().replace(/\s+/g, '_')}@admin.local`;
+
+  const { data, error } = await supabase!.auth.signInWithPassword({
+    email,
+    password
   });
 
-  const apiResult = await response.json();
-
-  if (!apiResult.success) {
-    throw new Error(apiResult.error || 'Admin login mislukt');
+  if (error) {
+    throw new Error(`Admin login mislukt: ${error.message}`);
   }
 
-  // Credentials verified by server - return admin user
+  if (!data.user) {
+    throw new Error('Geen user data ontvangen van Supabase Auth');
+  }
+
+  // Controleer of user admin role heeft
+  const role = data.user.user_metadata?.role;
+  if (role !== 'admin') {
+    await supabase!.auth.signOut();
+    throw new Error('User is geen admin');
+  }
+
   return {
-    id: 'admin',
-    username: apiResult.admin?.username || username,
+    id: data.user.id,
+    username: data.user.user_metadata?.username || username,
     passwordHash: '',
-    lastLogin: apiResult.admin?.lastLogin || new Date().toISOString()
+    email: data.user.email,
+    lastLogin: new Date().toISOString()
   };
 };
 
