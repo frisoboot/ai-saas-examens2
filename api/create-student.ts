@@ -117,7 +117,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (authCreateError) {
       console.error('Error creating auth user:', authCreateError);
-      return res.status(500).json({ error: `Auth error: ${authCreateError.message}` });
+
+      // Provide clearer error messages for common Supabase errors
+      let errorMessage = authCreateError.message;
+      if (errorMessage.includes('did not match the expected pattern')) {
+        errorMessage = 'Email adres heeft een ongeldig formaat. Gebruik bijv. student@school.nl';
+      } else if (errorMessage.includes('already registered') || errorMessage.includes('already been registered')) {
+        errorMessage = 'Dit email adres is al in gebruik';
+      } else if (errorMessage.includes('password')) {
+        errorMessage = 'Wachtwoord voldoet niet aan de eisen (minimaal 8 karakters)';
+      }
+
+      return res.status(400).json({ error: errorMessage });
     }
 
     console.log('Auth user created:', authData.user.id);

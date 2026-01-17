@@ -49,8 +49,15 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       return;
     }
 
-    if (!newEmail.includes('@')) {
-      setError('Vul een geldig email adres in');
+    // Validate email format with regex
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail.trim())) {
+      setError('Vul een geldig email adres in (bijv. student@school.nl)');
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setError('Wachtwoord moet minimaal 8 karakters zijn');
       return;
     }
 
@@ -182,7 +189,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
           <form onSubmit={handleCreateStudent} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Naam</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Naam *</label>
                 <input
                   type="text"
                   required
@@ -192,9 +199,11 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Email (optioneel)</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Email *</label>
                 <input
                   type="email"
+                  required
+                  placeholder="student@school.nl"
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={newEmail}
                   onChange={(e) => setNewEmail(e.target.value)}
@@ -204,10 +213,12 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Wachtwoord</label>
+                <label className="block text-xs font-bold text-slate-500 uppercase mb-1.5">Wachtwoord * <span className="font-normal text-slate-400">(min. 8 karakters)</span></label>
                 <input
                   type="password"
                   required
+                  minLength={8}
+                  placeholder="Minimaal 8 karakters"
                   className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
