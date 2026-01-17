@@ -290,9 +290,11 @@ const App: React.FC = () => {
         return (
           <CheckoutForm
             onBack={() => setView('PUBLIC_LANDING')}
-            onSuccess={(email) => {
-              // Na succesvolle checkout, toon login pagina
-              alert(`Welkom! Je kunt nu inloggen met je email: ${email}`);
+            onSuccess={(username) => {
+              // Na succesvolle registratie, vul username in en ga naar login
+              setStudentName(username);
+              setStudentPassword('');
+              setLoginError('');
               setView('LANDING');
             }}
           />

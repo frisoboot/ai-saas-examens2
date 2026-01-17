@@ -59,7 +59,8 @@ export async function checkSubscription(email: string): Promise<SubscriptionStat
  */
 export async function createCheckout(
   email: string,
-  name: string,
+  username: string,
+  password: string,
   level: 'VMBO-TL' | 'HAVO' | 'VWO'
 ): Promise<CheckoutResponse> {
   try {
@@ -68,7 +69,7 @@ export async function createCheckout(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, name, level })
+      body: JSON.stringify({ email, username, password, level })
     });
 
     const data = await response.json();

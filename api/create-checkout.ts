@@ -1,40 +1,19 @@
 /**
- * Vercel Serverless Function - Mollie Checkout
+ * Vercel Serverless Function - Create Checkout / Start Trial
  *
- * Maakt een Mollie betaling aan voor het individuele abonnement.
- * - Eerste 3 dagen gratis trial
- * - Daarna €12,50 per maand
+ * Maakt een student account aan en start de gratis proefperiode.
+ * Na de trial wordt Mollie gebruikt voor betalingen.
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Mollie API client
-import createMollieClient from '@mollie/api-client';
-
 interface CheckoutRequest {
   email: string;
-  name: string;
+  username: string;
+  password: string;
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
 }
-
-// Mollie redirect URLs
-const getRedirectUrl = (success: boolean) => {
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.VITE_APP_URL || 'http://localhost:5173';
-
-  return `${baseUrl}?payment=${success ? 'success' : 'cancelled'}`;
-};
-
-const getWebhookUrl = () => {
-  // Webhook URL moet publiek toegankelijk zijn
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : process.env.VITE_APP_URL || 'http://localhost:5173';
-
-  return `${baseUrl}/api/mollie-webhook`;
-};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
@@ -53,14 +32,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     // Environment variables check
-    const mollieApiKey = process.env.MOLLIE_API_KEY;
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-    if (!mollieApiKey) {
-      console.error('Missing MOLLIE_API_KEY');
-      return res.status(500).json({ error: 'Betaalservice niet geconfigureerd' });
-    }
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('Missing Supabase environment variables');
@@ -69,11 +42,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Parse request body
     const body: CheckoutRequest = req.body;
-    const { email, name, level } = body;
+    const { email, username, password, level } = body;
 
     // Validatie
-    if (!email || !name || !level) {
-      return res.status(400).json({ error: 'Email, naam en niveau zijn verplicht' });
+    if (!email || !username || !password || !level) {
+      return res.status(400).json({ error: 'Alle velden zijn verplicht' });
     }
 
     // Email validatie
@@ -82,8 +55,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
     }
 
-    // Initialize clients
-    const mollie = createMollieClient({ apiKey: mollieApiKey });
+    // Username validatie
+    if (username.length < 3) {
+      return res.status(400).json({ error: 'Gebruikersnaam moet minimaal 3 tekens zijn' });
+    }
+
+    // Password validatie
+    if (password.length < 6) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 6 tekens zijn' });
+    }
+
+    // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -91,7 +73,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // Check of subscription al bestaat
+    // Check of username al bestaat
+    const { data: existingUser } = await supabase
+      .from('student_profiles')
+      .select('name')
+      .eq('name', username.toLowerCase())
+      .maybeSingle();
+
+    if (existingUser) {
+      return res.status(400).json({ error: 'Deze gebruikersnaam is al in gebruik' });
+    }
+
+    // Check of email al een subscription heeft
     const { data: existingSubscription } = await supabase
       .from('subscriptions')
       .select('*')
@@ -103,42 +96,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (existingSubscription.status === 'trial') {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
-          return res.status(200).json({
-            success: true,
-            message: 'Je hebt al een actieve proefperiode',
-            subscription: {
-              status: 'trial',
-              trialEndsAt: existingSubscription.trial_ends_at
-            }
+          return res.status(400).json({
+            error: 'Dit e-mailadres heeft al een actieve proefperiode'
           });
         }
       }
 
       // Check of subscription actief is
       if (existingSubscription.status === 'active') {
-        return res.status(200).json({
-          success: true,
-          message: 'Je hebt al een actief abonnement',
-          subscription: {
-            status: 'active',
-            periodEnd: existingSubscription.current_period_end
-          }
+        return res.status(400).json({
+          error: 'Dit e-mailadres heeft al een actief abonnement'
         });
       }
     }
 
-    // Maak of haal Mollie customer
-    let mollieCustomerId = existingSubscription?.mollie_customer_id;
+    // Maak student account aan in Supabase Auth
+    const studentEmail = `${username.toLowerCase()}@student.local`;
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: studentEmail,
+      password: password,
+      email_confirm: true,
+      user_metadata: {
+        name: username.toLowerCase(),
+        level: level,
+        real_email: email.toLowerCase()
+      }
+    });
 
-    if (!mollieCustomerId) {
-      const customer = await mollie.customers.create({
-        name: name,
+    if (authError) {
+      console.error('Auth error:', authError);
+      if (authError.message.includes('already been registered')) {
+        return res.status(400).json({ error: 'Deze gebruikersnaam is al in gebruik' });
+      }
+      return res.status(500).json({ error: 'Kon account niet aanmaken: ' + authError.message });
+    }
+
+    // Maak student profile aan
+    const { error: profileError } = await supabase
+      .from('student_profiles')
+      .insert({
+        name: username.toLowerCase(),
+        level: level,
+        struggle_points: '',
         email: email.toLowerCase(),
-        metadata: {
-          level: level
-        }
+        is_active: true
       });
-      mollieCustomerId = customer.id;
+
+    if (profileError) {
+      console.error('Profile error:', profileError);
+      // Cleanup: verwijder auth user als profile aanmaken mislukt
+      if (authUser?.user?.id) {
+        await supabase.auth.admin.deleteUser(authUser.user.id);
+      }
+
+      if (profileError.code === '23505') { // Unique constraint violation
+        return res.status(400).json({ error: 'Deze gebruikersnaam is al in gebruik' });
+      }
+      return res.status(500).json({ error: 'Kon profiel niet aanmaken' });
     }
 
     // Bereken trial einddatum (3 dagen vanaf nu)
@@ -146,72 +160,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const trialEnds = new Date(trialStarted);
     trialEnds.setDate(trialEnds.getDate() + 3);
 
-    // Maak first payment voor subscription setup
-    // We gebruiken een €0.00 payment voor de trial, daarna automatische incasso
-    const payment = await mollie.payments.create({
-      amount: {
-        value: '0.00', // Gratis trial
-        currency: 'EUR'
-      },
-      description: 'AI Examentrainer - 3 dagen gratis proefperiode',
-      redirectUrl: getRedirectUrl(true),
-      webhookUrl: getWebhookUrl(),
-      metadata: {
-        type: 'trial_setup',
-        email: email.toLowerCase(),
-        name: name,
-        level: level,
-        trial_ends: trialEnds.toISOString()
-      },
-      customerId: mollieCustomerId,
-      sequenceType: 'first' // Dit maakt een mandaat aan voor toekomstige betalingen
-    });
-
-    // Upsert subscription in database
+    // Maak subscription record aan
     const subscriptionData = {
       user_email: email.toLowerCase(),
-      user_name: name,
-      mollie_customer_id: mollieCustomerId,
-      status: 'pending',
+      user_name: username.toLowerCase(),
+      status: 'trial',
       plan_type: 'individual',
       price_cents: 1250,
       trial_started_at: trialStarted.toISOString(),
       trial_ends_at: trialEnds.toISOString()
     };
 
-    if (existingSubscription) {
-      await supabase
-        .from('subscriptions')
-        .update(subscriptionData)
-        .eq('id', existingSubscription.id);
-    } else {
-      await supabase
-        .from('subscriptions')
-        .insert(subscriptionData);
+    const { error: subscriptionError } = await supabase
+      .from('subscriptions')
+      .insert(subscriptionData);
+
+    if (subscriptionError) {
+      console.error('Subscription error:', subscriptionError);
+      // Don't fail the whole request - user can still use trial
     }
 
-    // Log payment
-    await supabase
-      .from('payments')
-      .insert({
-        mollie_payment_id: payment.id,
-        amount_cents: 0,
-        currency: 'EUR',
-        status: 'pending',
-        description: 'Trial setup'
-      });
-
-    // Return checkout URL
+    // Return success - geen Mollie redirect nodig voor gratis trial
     return res.status(200).json({
       success: true,
-      checkoutUrl: payment.getCheckoutUrl(),
-      message: 'Checkout sessie aangemaakt'
+      message: 'Account aangemaakt! Je kunt nu inloggen.',
+      username: username.toLowerCase(),
+      trialEndsAt: trialEnds.toISOString()
     });
 
   } catch (error) {
     console.error('Checkout error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis bij het aanmaken van de checkout',
+      error: 'Er ging iets mis bij het aanmaken van je account',
       details: error instanceof Error ? error.message : 'Unknown error'
     });
   }

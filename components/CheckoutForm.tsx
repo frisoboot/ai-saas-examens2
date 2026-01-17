@@ -9,13 +9,15 @@ import {
   Lock,
   Sparkles,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Eye,
+  EyeOff
 } from 'lucide-react';
 import { createCheckout } from '../services/subscriptionService';
 
 interface CheckoutFormProps {
   onBack: () => void;
-  onSuccess: (email: string) => void;
+  onSuccess: (username: string) => void;
 }
 
 type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
@@ -23,7 +25,9 @@ type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess }) => {
   const [step, setStep] = useState<'form' | 'processing' | 'redirect'>('form');
   const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [level, setLevel] = useState<StudentLevel>('HAVO');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -33,7 +37,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setError('');
 
     // Validatie
-    if (!email || !name) {
+    if (!email || !username || !password) {
       setError('Vul alle velden in');
       return;
     }
@@ -44,11 +48,21 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
       return;
     }
 
+    if (username.length < 3) {
+      setError('Gebruikersnaam moet minimaal 3 tekens zijn');
+      return;
+    }
+
+    if (password.length < 6) {
+      setError('Wachtwoord moet minimaal 6 tekens zijn');
+      return;
+    }
+
     setIsLoading(true);
     setStep('processing');
 
     try {
-      const result = await createCheckout(email, name, level);
+      const result = await createCheckout(email, username, password, level);
 
       if (!result.success) {
         setError(result.message || 'Er ging iets mis');
@@ -59,17 +73,17 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
       // Als er al een actieve subscription is
       if (result.subscription) {
-        onSuccess(email);
+        onSuccess(username);
         return;
       }
 
-      // Redirect naar Mollie checkout
+      // Redirect naar Mollie checkout of direct success
       if (result.checkoutUrl) {
         setStep('redirect');
         window.location.href = result.checkoutUrl;
       } else {
-        // Trial direct geactiveerd (geen betaling nodig)
-        onSuccess(email);
+        // Trial direct geactiveerd (geen betaling nodig voor trial start)
+        onSuccess(username);
       }
     } catch (err) {
       console.error('Checkout error:', err);
@@ -98,7 +112,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
       <div className="w-full max-w-[480px] relative z-10">
         {/* Header */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <div className="flex justify-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-white" />
@@ -137,7 +151,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
         {/* Form Card */}
         <div className="bg-white p-8 sm:p-10 rounded-[2rem] shadow-2xl shadow-gray-200/50 border border-gray-100">
           {step === 'form' && (
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
                   E-mailadres
@@ -157,7 +171,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
-                  Je naam
+                  Gebruikersnaam
                 </label>
                 <div className="relative">
                   <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -165,10 +179,35 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                     type="text"
                     required
                     className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                    placeholder="Je volledige naam"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Kies een gebruikersnaam"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
                   />
+                </div>
+                <p className="text-xs text-gray-500 mt-1 ml-1">Dit gebruik je om in te loggen</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
+                  Wachtwoord
+                </label>
+                <div className="relative">
+                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-12 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                    placeholder="Minimaal 6 tekens"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  >
+                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                  </button>
                 </div>
               </div>
 
@@ -228,7 +267,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
           {step === 'processing' && (
             <div className="text-center py-8">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Even geduld...</p>
+              <p className="text-gray-600">Account wordt aangemaakt...</p>
             </div>
           )}
 
