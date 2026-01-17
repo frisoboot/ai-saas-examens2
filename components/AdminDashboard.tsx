@@ -5,9 +5,8 @@ import { AdminStudentManagement } from './AdminStudentManagement';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2 } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
-import { Loader2 } from 'lucide-react';
 
 interface AdminDashboardProps {
   onBack: () => void;

@@ -1,26 +1,17 @@
-import { 
-  Globe, 
-  Briefcase, 
-  Dna, 
-  MessageCircle, 
-  Euro, 
-  Languages, 
-  Hourglass, 
-  Palette, 
-  Users, 
-  Atom, 
-  BookOpen, 
-  FlaskConical, 
+import {
+  Globe,
+  Briefcase,
+  Dna,
+  MessageCircle,
+  Euro,
+  Languages,
+  Hourglass,
+  Palette,
+  Users,
+  Atom,
+  BookOpen,
+  FlaskConical,
   Calculator,
-  Sigma,
-  FunctionSquare,
-  Landmark,
-  Microscope,
-  Leaf,
-  Coins,
-  Scale,
-  Zap,
-  Feather,
   BookMarked
 } from 'lucide-react';
 import { LucideIcon } from 'lucide-react';
@@ -39,7 +30,7 @@ export const getSubjectIcon = (subject: string): LucideIcon => {
   if (normalizedSubject.includes('kunst')) return Palette;
   if (normalizedSubject.includes('maatschappij')) return Users;
   if (normalizedSubject.includes('natuurkunde')) return Atom;
-  if (normalizedSubject.includes('nederlands')) return BookOpen; // Or Feather if available
+  if (normalizedSubject.includes('nederlands')) return BookOpen;
   if (normalizedSubject.includes('scheikunde')) return FlaskConical;
   if (normalizedSubject.includes('wiskunde')) return Calculator;
 

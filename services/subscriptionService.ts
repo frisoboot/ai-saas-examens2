@@ -144,18 +144,6 @@ export async function cancelSubscription(email: string): Promise<{
 }
 
 /**
- * Format datum voor weergave
- */
-export function formatSubscriptionDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('nl-NL', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric'
-  });
-}
-
-/**
  * Check betaalstatus bij Mollie
  */
 export async function checkPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
