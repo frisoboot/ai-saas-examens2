@@ -26,19 +26,24 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
   const [accountReady, setAccountReady] = useState(false);
   const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
+  // Sla payment_id op in state zodat deze beschikbaar blijft voor account ready checks
+  const [paymentId, setPaymentId] = useState<string | null>(null);
 
   // Check betaalstatus bij laden
   useEffect(() => {
-    const paymentId = localStorage.getItem('pending_payment_id');
+    const storedPaymentId = localStorage.getItem('pending_payment_id');
 
-    if (!paymentId) {
+    if (!storedPaymentId) {
       setState('no_payment');
       setMessage('Geen betaling gevonden. Probeer opnieuw te registreren.');
       return;
     }
 
+    // Sla payment_id op in state voor latere checks
+    setPaymentId(storedPaymentId);
+
     const checkStatus = async () => {
-      const result = await checkPaymentStatus(paymentId);
+      const result = await checkPaymentStatus(storedPaymentId);
 
       if (result.success) {
         setUsername(result.username);
@@ -48,8 +53,10 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
           case 'paid':
             setState('paid');
             setMessage(result.message);
-            // Verwijder payment ID uit localStorage
-            localStorage.removeItem('pending_payment_id');
+            // Verwijder payment ID alleen als account ready is
+            if (result.accountReady) {
+              localStorage.removeItem('pending_payment_id');
+            }
             break;
           case 'pending':
           case 'open':
@@ -81,21 +88,20 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
 
   // Bij success: check of account klaar is
   useEffect(() => {
-    if (state === 'paid' && !accountReady && checkCount < 30) {
-      const paymentId = localStorage.getItem('pending_payment_id');
-      if (paymentId) {
-        const timer = setTimeout(async () => {
-          const result = await checkPaymentStatus(paymentId);
-          if (result.accountReady) {
-            setAccountReady(true);
-          } else {
-            setCheckCount(c => c + 1);
-          }
-        }, 2000);
-        return () => clearTimeout(timer);
-      }
+    if (state === 'paid' && !accountReady && checkCount < 30 && paymentId) {
+      const timer = setTimeout(async () => {
+        const result = await checkPaymentStatus(paymentId);
+        if (result.accountReady) {
+          setAccountReady(true);
+          // Nu account ready is, verwijder payment ID uit localStorage
+          localStorage.removeItem('pending_payment_id');
+        } else {
+          setCheckCount(c => c + 1);
+        }
+      }, 2000);
+      return () => clearTimeout(timer);
     }
-  }, [state, accountReady, checkCount]);
+  }, [state, accountReady, checkCount, paymentId]);
 
   // Countdown voor auto-redirect bij success
   useEffect(() => {
