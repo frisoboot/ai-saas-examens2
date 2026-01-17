@@ -71,12 +71,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
 
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center max-w-4xl mx-auto">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium mb-8 border border-blue-100">
-              <Sparkles className="w-4 h-4" />
-              Examen 2025? Start vandaag met oefenen
-            </div>
-
             {/* Main Headline - H1 for SEO */}
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-6">
               Haal hogere cijfers met de{' '}
@@ -430,12 +424,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            {/* Urgency Banner */}
-            <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-700 px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Clock className="w-4 h-4" />
-              Eindexamens in mei 2025 - Start nu met voorbereiden
-            </div>
-
             <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Kies jouw pakket
             </h2>
