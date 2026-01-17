@@ -78,6 +78,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missende vereiste velden' });
     }
 
+    // Email is verplicht voor echte accounts
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Een geldig email adres is verplicht' });
+    }
+
     // Maak admin client met service role key
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -97,13 +102,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(409).json({ error: 'Student met deze naam bestaat al' });
     }
 
-    // Maak auth email voor student
-    // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-    const authEmail = `${name.toLowerCase().replace(/\s+/g, '_')}@student.example.com`;
-
-    // Stap 1: Maak Supabase Auth user aan
+    // Stap 1: Maak Supabase Auth user aan met de echte email
     const { data: authData, error: authCreateError } = await supabaseAdmin.auth.admin.createUser({
-      email: authEmail,
+      email: email.toLowerCase().trim(),
       password: password,
       email_confirm: true,
       user_metadata: {
@@ -128,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         name: name,
         level: level,
         struggle_points: strugglePoints,
-        email: email || authEmail,
+        email: email.toLowerCase().trim(),
         created_by_admin: adminUsername,
         is_active: true,
         auth_user_id: authData.user.id

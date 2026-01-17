@@ -29,10 +29,10 @@ Admins moeten handmatig worden aangemaakt in Supabase:
 
 1. Ga naar Supabase → Authentication → Users
 2. Klik "Add user" → "Create new user"
-3. **Email**: `username@admin.example.com`
+3. **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
 4. **Wachtwoord**: Minimaal 12 karakters
 5. **Auto confirm**: Aan
-6. **User metadata**: `{ "role": "admin", "name": "username" }`
+6. **User metadata**: `{ "role": "admin" }`
 
 **Wachtwoord eisen**:
 - ✅ Minimaal 12 karakters (16+ aanbevolen)
@@ -54,10 +54,11 @@ openssl rand -base64 24
 
 #### ✅ Geïmplementeerd:
 - ✅ **Supabase Auth** - Alle authenticatie via Supabase
-- ✅ **Email domain verificatie** - Admins: `@admin.example.com`, Studenten: `@student.example.com`
+- ✅ **Echte email adressen** - Geen fake emails meer, gewoon je eigen email
+- ✅ **Unified login** - Één login form voor iedereen
 - ✅ **Session persistence** - Gebruikers blijven ingelogd
 - ✅ **Proper logout** - `signOut()` verwijdert sessie volledig
-- ✅ **Role-based access** - Via email domain en user metadata
+- ✅ **Role-based access** - Via `user_metadata.role` in Supabase
 - ✅ **RLS policies** - Alle data beveiligd op database niveau
 
 #### 🔄 Aanbevolen voor de toekomst:

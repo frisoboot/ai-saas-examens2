@@ -11,16 +11,18 @@ Admins moeten handmatig worden aangemaakt in de Supabase Auth dashboard:
 1. Ga naar je Supabase project → Authentication → Users
 2. Klik "Add user" → "Create new user"
 3. Vul in:
-   - **Email**: `username@admin.example.com` (bijv. `admin@admin.example.com`)
+   - **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
    - **Wachtwoord**: Minimaal 12 karakters, sterk wachtwoord
    - **Auto confirm**: Aan
-   - **User metadata**: `{ "role": "admin", "name": "admin" }`
+   - **User metadata**: `{ "role": "admin" }`
 
 ### Student Accounts
 
 Studenten worden aangemaakt via:
-- **Admin dashboard**: Admins kunnen studenten toevoegen
+- **Admin dashboard**: Admins maken studenten aan met hun echte email adres
 - **Registratie flow**: Via de checkout/betaal flow
+
+**Let op**: Studenten loggen in met hun echte email adres.
 
 ## 🚀 Development Setup
 
@@ -100,24 +102,23 @@ npm run dev
 
 1. **Service Role Key**: NOOIT in de browser, alleen in `/api/*` endpoints
 2. **RLS Policies**: Alle tabellen zijn beveiligd met Row Level Security
-3. **Email Domain Check**: Admins eindigen op `@admin.example.com`, studenten op `@student.example.com`
+3. **Role-based Access**: Rol wordt bepaald via `user_metadata.role` in Supabase Auth
 
 ## 📚 Architectuur
 
 ### Login Flow
 
 ```
-1. User vult username + password in
+1. User vult email + password in
    ↓
-2. Frontend roept verifyAdminLogin() of verifyStudentLogin() aan
+2. Frontend roept login() aan
    ↓
 3. Supabase Auth signInWithPassword()
    ↓
-4. Email domain verificatie (admin vs student)
+4. Rol check via user_metadata.role
    ↓
-5. Profiel ophalen uit database
-   ↓
-6. Success → Dashboard
+5. Admin → Admin Dashboard
+   Student → Profiel ophalen → Student Dashboard
 ```
 
 ### Session Persistence

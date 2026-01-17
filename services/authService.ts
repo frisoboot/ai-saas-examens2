@@ -5,8 +5,7 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 // ============================================================================
 // SUPABASE AUTH - VOLLEDIGE INTEGRATIE
 //
-// Dit bestand bevat alle authenticatie logica via Supabase Auth.
-// Login gebeurt direct met email - geen conversies nodig.
+// Login met echte email adressen. Rol wordt bepaald via user metadata.
 //
 // SECURITY:
 // - Alle admin operaties gaan via server-side API endpoints
@@ -14,271 +13,82 @@ import { apiCreateStudent, apiResetPassword, apiDeleteStudent } from './apiServi
 // - RLS policies beschermen alle data in de database
 // ============================================================================
 
-/**
- * Gooi een error als Supabase niet beschikbaar is
- */
 const requireSupabase = () => {
   if (!supabase) {
     throw new Error('Supabase niet beschikbaar. Controleer je configuratie.');
   }
 };
 
-/**
- * Check of een email een admin is
- */
-const isAdminEmail = (email: string): boolean => {
-  return email.endsWith('@admin.example.com');
-};
-
-/**
- * Check of een email een student is
- */
-const isStudentEmail = (email: string): boolean => {
-  return email.endsWith('@student.example.com');
-};
-
 // ============================================================================
 // LOGOUT
 // ============================================================================
 
-/**
- * Log de huidige gebruiker uit via Supabase Auth
- */
 export const logout = async (): Promise<void> => {
   requireSupabase();
-
   const { error } = await supabase!.auth.signOut();
-
   if (error) {
     console.error('Logout error:', error);
   }
 };
 
 // ============================================================================
-// SESSION MANAGEMENT
+// UNIFIED LOGIN - Eén login voor iedereen
 // ============================================================================
 
+export type LoginResult = {
+  type: 'admin';
+  admin: AdminUser;
+} | {
+  type: 'student';
+  profile: StudentProfile;
+} | null;
+
 /**
- * Haal de huidige sessie op en bepaal of user student of admin is
+ * Unified login - werkt voor zowel admins als studenten
+ * Rol wordt bepaald via user_metadata.role
  */
-export const getCurrentSession = async (): Promise<{
-  type: 'student' | 'admin';
-  profile: StudentProfile | null;
-  admin: AdminUser | null;
-} | null> => {
+export const login = async (email: string, password: string): Promise<LoginResult> => {
   requireSupabase();
 
-  try {
-    const { data: { session }, error } = await supabase!.auth.getSession();
+  if (!email || !password) {
+    throw new Error('Email en wachtwoord zijn verplicht');
+  }
 
-    if (error || !session) {
-      return null;
+  try {
+    const { data, error } = await supabase!.auth.signInWithPassword({
+      email: email.toLowerCase().trim(),
+      password
+    });
+
+    if (error) {
+      if (error.message.includes('Invalid login credentials')) {
+        throw new Error('Email of wachtwoord onjuist');
+      }
+      throw new Error(`Login mislukt: ${error.message}`);
     }
 
-    const user = session.user;
-    const email = user.email || '';
+    if (!data.user) {
+      throw new Error('Geen user data ontvangen');
+    }
 
-    // Check admin
-    if (isAdminEmail(email)) {
+    const role = data.user.user_metadata?.role;
+
+    // Admin
+    if (role === 'admin') {
       return {
         type: 'admin',
-        profile: null,
         admin: {
-          id: user.id,
-          username: email, // Gewoon het email adres tonen
+          id: data.user.id,
+          username: data.user.email || email,
           passwordHash: '',
-          email: email,
+          email: data.user.email,
           lastLogin: new Date().toISOString()
         }
       };
     }
 
-    // Check student
-    if (isStudentEmail(email)) {
-      // Zoek profiel op auth_user_id (meest betrouwbaar)
-      let profileData = null;
-
-      const result = await supabase!
-        .from('student_profiles')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-      profileData = result.data;
-
-      // Fallback: zoek op email in profiel
-      if (!profileData) {
-        const emailResult = await supabase!
-          .from('student_profiles')
-          .select('*')
-          .eq('email', email)
-          .maybeSingle();
-        profileData = emailResult.data;
-      }
-
-      if (!profileData) {
-        await logout();
-        return null;
-      }
-
-      if (profileData.is_active === false) {
-        await logout();
-        return null;
-      }
-
-      return {
-        type: 'student',
-        profile: {
-          name: profileData.name,
-          level: profileData.level,
-          strugglePoints: profileData.struggle_points,
-          email: profileData.email,
-          createdByAdmin: profileData.created_by_admin,
-          isActive: profileData.is_active
-        },
-        admin: null
-      };
-    }
-
-    await logout();
-    return null;
-
-  } catch (error) {
-    console.error('Error checking session:', error);
-    return null;
-  }
-};
-
-/**
- * Luister naar auth state changes
- */
-export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
-  requireSupabase();
-
-  return supabase!.auth.onAuthStateChange((event, session) => {
-    callback(event, session);
-  });
-};
-
-// ============================================================================
-// ADMIN AUTHENTICATION
-// ============================================================================
-
-/**
- * Admin login via Supabase Auth
- *
- * @param email - Het volledige email adres (moet eindigen op @admin.example.com)
- * @param password - Het wachtwoord
- */
-export const verifyAdminLogin = async (email: string, password: string): Promise<AdminUser | null> => {
-  requireSupabase();
-
-  if (!email || !password) {
-    throw new Error('Email en wachtwoord zijn verplicht');
-  }
-
-  // Valideer dat het een admin email is
-  if (!isAdminEmail(email)) {
-    throw new Error('Gebruik je admin email (eindigt op @admin.example.com)');
-  }
-
-  try {
-    const { data, error } = await supabase!.auth.signInWithPassword({
-      email: email.toLowerCase(),
-      password
-    });
-
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Email of wachtwoord onjuist');
-      }
-      throw new Error(`Login mislukt: ${error.message}`);
-    }
-
-    if (!data.user) {
-      throw new Error('Geen user data ontvangen');
-    }
-
-    return {
-      id: data.user.id,
-      username: data.user.email || email,
-      passwordHash: '',
-      email: data.user.email,
-      lastLogin: new Date().toISOString()
-    };
-
-  } catch (error: any) {
-    if (error.message) {
-      throw error;
-    }
-    throw new Error('Er ging iets mis bij het inloggen');
-  }
-};
-
-// ============================================================================
-// STUDENT AUTHENTICATION
-// ============================================================================
-
-/**
- * Student login via Supabase Auth
- *
- * @param email - Het volledige email adres (moet eindigen op @student.example.com)
- * @param password - Het wachtwoord
- */
-export const verifyStudentLogin = async (email: string, password: string): Promise<StudentProfile | null> => {
-  requireSupabase();
-
-  if (!email || !password) {
-    throw new Error('Email en wachtwoord zijn verplicht');
-  }
-
-  // Valideer dat het een student email is
-  if (!isStudentEmail(email)) {
-    throw new Error('Gebruik je student email (eindigt op @student.example.com)');
-  }
-
-  try {
-    const { data, error } = await supabase!.auth.signInWithPassword({
-      email: email.toLowerCase(),
-      password
-    });
-
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        throw new Error('Email of wachtwoord onjuist');
-      }
-      throw new Error(`Login mislukt: ${error.message}`);
-    }
-
-    if (!data.user) {
-      throw new Error('Geen user data ontvangen');
-    }
-
-    // Haal student profiel op via auth_user_id
-    let profileData = null;
-    let profileError = null;
-
-    const result = await supabase!
-      .from('student_profiles')
-      .select('*')
-      .eq('auth_user_id', data.user.id)
-      .maybeSingle();
-    profileData = result.data;
-    profileError = result.error;
-
-    // Fallback: zoek op email in profiel
-    if (!profileData && !profileError) {
-      const emailResult = await supabase!
-        .from('student_profiles')
-        .select('*')
-        .eq('email', email.toLowerCase())
-        .maybeSingle();
-      profileData = emailResult.data;
-      profileError = emailResult.error;
-    }
-
-    if (profileError) {
-      throw new Error(`Fout bij ophalen profiel: ${profileError.message}`);
-    }
+    // Student (default)
+    const profileData = await getStudentProfile(data.user.id, data.user.email || email);
 
     if (!profileData) {
       await logout();
@@ -291,12 +101,15 @@ export const verifyStudentLogin = async (email: string, password: string): Promi
     }
 
     return {
-      name: profileData.name,
-      level: profileData.level,
-      strugglePoints: profileData.struggle_points,
-      email: profileData.email,
-      createdByAdmin: profileData.created_by_admin,
-      isActive: profileData.is_active
+      type: 'student',
+      profile: {
+        name: profileData.name,
+        level: profileData.level,
+        strugglePoints: profileData.struggle_points,
+        email: profileData.email,
+        createdByAdmin: profileData.created_by_admin,
+        isActive: profileData.is_active
+      }
     };
 
   } catch (error: any) {
@@ -307,25 +120,158 @@ export const verifyStudentLogin = async (email: string, password: string): Promi
   }
 };
 
+/**
+ * Haal student profiel op via auth_user_id of email
+ */
+const getStudentProfile = async (userId: string, email: string) => {
+  // Eerst zoeken op auth_user_id
+  let result = await supabase!
+    .from('student_profiles')
+    .select('*')
+    .eq('auth_user_id', userId)
+    .maybeSingle();
+
+  if (result.data) return result.data;
+
+  // Fallback: zoeken op email
+  result = await supabase!
+    .from('student_profiles')
+    .select('*')
+    .eq('email', email.toLowerCase())
+    .maybeSingle();
+
+  return result.data;
+};
+
+// ============================================================================
+// SESSION MANAGEMENT
+// ============================================================================
+
+/**
+ * Haal de huidige sessie op
+ */
+export const getCurrentSession = async (): Promise<LoginResult> => {
+  requireSupabase();
+
+  try {
+    const { data: { session }, error } = await supabase!.auth.getSession();
+
+    if (error || !session) {
+      return null;
+    }
+
+    const user = session.user;
+    const role = user.user_metadata?.role;
+
+    // Admin
+    if (role === 'admin') {
+      return {
+        type: 'admin',
+        admin: {
+          id: user.id,
+          username: user.email || '',
+          passwordHash: '',
+          email: user.email || '',
+          lastLogin: new Date().toISOString()
+        }
+      };
+    }
+
+    // Student
+    const profileData = await getStudentProfile(user.id, user.email || '');
+
+    if (!profileData) {
+      await logout();
+      return null;
+    }
+
+    if (profileData.is_active === false) {
+      await logout();
+      return null;
+    }
+
+    return {
+      type: 'student',
+      profile: {
+        name: profileData.name,
+        level: profileData.level,
+        strugglePoints: profileData.struggle_points,
+        email: profileData.email,
+        createdByAdmin: profileData.created_by_admin,
+        isActive: profileData.is_active
+      }
+    };
+
+  } catch (error) {
+    console.error('Error checking session:', error);
+    return null;
+  }
+};
+
+/**
+ * Luister naar auth state changes
+ */
+export const onAuthStateChange = (callback: (event: string, session: any) => void) => {
+  requireSupabase();
+  return supabase!.auth.onAuthStateChange((event, session) => {
+    callback(event, session);
+  });
+};
+
+// ============================================================================
+// LEGACY FUNCTIONS - voor backwards compatibility
+// ============================================================================
+
+/**
+ * @deprecated Gebruik login() in plaats hiervan
+ */
+export const verifyAdminLogin = async (email: string, password: string): Promise<AdminUser | null> => {
+  const result = await login(email, password);
+  if (result?.type === 'admin') {
+    return result.admin;
+  }
+  if (result?.type === 'student') {
+    await logout();
+    throw new Error('Dit is geen admin account');
+  }
+  return null;
+};
+
+/**
+ * @deprecated Gebruik login() in plaats hiervan
+ */
+export const verifyStudentLogin = async (email: string, password: string): Promise<StudentProfile | null> => {
+  const result = await login(email, password);
+  if (result?.type === 'student') {
+    return result.profile;
+  }
+  if (result?.type === 'admin') {
+    await logout();
+    throw new Error('Dit is geen student account');
+  }
+  return null;
+};
+
 // ============================================================================
 // ADMIN OPERATIES (via server-side API)
 // ============================================================================
 
-/**
- * Maak een nieuwe student account aan
- */
 export const createStudentAccount = async (
   adminUsername: string,
   name: string,
   password: string,
   level: StudentLevel,
   strugglePoints: string,
-  email?: string
+  email: string
 ): Promise<{ success: boolean; error?: string }> => {
   requireSupabase();
 
-  if (!name || !password || !level) {
-    return { success: false, error: 'Naam, wachtwoord en niveau zijn verplicht' };
+  if (!name || !password || !level || !email) {
+    return { success: false, error: 'Naam, email, wachtwoord en niveau zijn verplicht' };
+  }
+
+  if (!email.includes('@')) {
+    return { success: false, error: 'Vul een geldig email adres in' };
   }
 
   if (password.length < 8) {
@@ -340,9 +286,6 @@ export const createStudentAccount = async (
   return await apiCreateStudent(adminUsername, name, password, level, strugglePoints, email);
 };
 
-/**
- * Haal alle studenten op (voor admin beheer)
- */
 export const getAllStudents = async (): Promise<StudentProfile[]> => {
   requireSupabase();
 
@@ -363,9 +306,6 @@ export const getAllStudents = async (): Promise<StudentProfile[]> => {
   }));
 };
 
-/**
- * Update een student profiel
- */
 export const updateStudent = async (
   name: string,
   updates: Partial<StudentProfile>
@@ -396,23 +336,14 @@ export const updateStudent = async (
   return { success: true };
 };
 
-/**
- * Deactiveer een student account
- */
 export const deactivateStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
   return updateStudent(name, { isActive: false });
 };
 
-/**
- * Activeer een student account
- */
 export const activateStudent = async (name: string): Promise<{ success: boolean; error?: string }> => {
   return updateStudent(name, { isActive: true });
 };
 
-/**
- * Reset student wachtwoord
- */
 export const resetStudentPassword = async (
   name: string,
   newPassword: string
@@ -426,9 +357,6 @@ export const resetStudentPassword = async (
   return await apiResetPassword(name, newPassword);
 };
 
-/**
- * Helper: haal student op via naam
- */
 const getStudentByName = async (name: string): Promise<StudentProfile | null> => {
   requireSupabase();
 
@@ -450,9 +378,6 @@ const getStudentByName = async (name: string): Promise<StudentProfile | null> =>
   } : null;
 };
 
-/**
- * Verwijder een student account
- */
 export const deleteStudent = async (
   name: string
 ): Promise<{ success: boolean; error?: string }> => {
