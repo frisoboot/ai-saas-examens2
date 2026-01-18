@@ -324,7 +324,13 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           <div className="flex-1 p-6 lg:p-10 max-w-3xl mx-auto w-full flex flex-col">
             {currentQuestion.imageUrl && (
               <div className="mb-6 rounded-xl border border-slate-100 overflow-hidden bg-slate-50 flex justify-center">
-                <img src={currentQuestion.imageUrl} alt="Vraag" className="max-h-[40vh] w-auto object-contain" />
+                <img
+                  src={currentQuestion.imageUrl}
+                  alt="Vraag afbeelding"
+                  className="max-h-[40vh] w-auto object-contain"
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             )}
 

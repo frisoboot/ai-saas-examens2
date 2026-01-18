@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { SEO } from './SEO';
 import { Button } from './Button';
 
 interface LoginPageProps {
@@ -67,8 +68,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      <SEO
+        title="Inloggen"
+        description="Log in bij AI Examentrainer om te oefenen voor je eindexamen met AI-gegenereerde vragen en flashcards."
+        noindex={true}
+      />
       {/* Header */}
-      <nav className="bg-white border-b border-gray-100">
+      <nav className="bg-white border-b border-gray-100" role="navigation" aria-label="Hoofdnavigatie">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <button

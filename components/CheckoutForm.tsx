@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SEO } from './SEO';
 import { Button } from './Button';
 import {
   ArrowRight,
@@ -94,6 +95,11 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
+      <SEO
+        title="Registreren | Start je gratis proefperiode"
+        description="Start vandaag nog je gratis 7-dagen proefperiode van AI Examentrainer. Toegang tot alle AI-gegenereerde oefenvragen en flashcards voor VMBO, HAVO en VWO."
+        canonical="https://ai-examentrainer.nl/checkout"
+      />
       {/* Back Button */}
       <button
         onClick={onBack}

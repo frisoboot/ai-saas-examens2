@@ -1,4 +1,5 @@
 import React from 'react';
+import { SEO } from './SEO';
 import { Button } from './Button';
 import {
   GraduationCap,
@@ -37,8 +38,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
 
   return (
     <div className="min-h-screen bg-white">
+      <SEO
+        title="AI Examentrainer | Oefen voor je VMBO, HAVO & VWO Eindexamen met AI"
+        description="Behaal hogere cijfers met de AI Examentrainer. Oefen voor je eindexamen met AI-gegenereerde vragen, flashcards en persoonlijke begeleiding voor VMBO, HAVO en VWO."
+        canonical="https://ai-examentrainer.nl/"
+      />
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100" role="navigation" aria-label="Hoofdnavigatie">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
@@ -47,22 +53,22 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
               </div>
               <span className="font-bold text-xl text-gray-900">AI Examentrainer</span>
             </div>
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 transition-colors">Functies</button>
-              <button onClick={() => scrollToSection('how-it-works')} className="text-gray-600 hover:text-gray-900 transition-colors">Hoe het werkt</button>
-              <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 transition-colors">Prijzen</button>
-              <button onClick={() => scrollToSection('faq')} className="text-gray-600 hover:text-gray-900 transition-colors">FAQ</button>
+            <div className="hidden md:flex items-center gap-8" role="menubar" aria-label="Navigatie menu">
+              <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 transition-colors" role="menuitem" aria-label="Ga naar functies sectie">Functies</button>
+              <button onClick={() => scrollToSection('how-it-works')} className="text-gray-600 hover:text-gray-900 transition-colors" role="menuitem" aria-label="Ga naar hoe het werkt sectie">Hoe het werkt</button>
+              <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 transition-colors" role="menuitem" aria-label="Ga naar prijzen sectie">Prijzen</button>
+              <button onClick={() => scrollToSection('faq')} className="text-gray-600 hover:text-gray-900 transition-colors" role="menuitem" aria-label="Ga naar veelgestelde vragen">FAQ</button>
             </div>
-            <Button onClick={onLogin} size="md">
+            <Button onClick={onLogin} size="md" aria-label="Inloggen op je account">
               Inloggen
-              <ArrowRight className="w-4 h-4 ml-2" />
+              <ArrowRight className="w-4 h-4 ml-2" aria-hidden="true" />
             </Button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden" aria-labelledby="hero-heading">
         {/* Background */}
         <div className="absolute inset-0 z-0">
           <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 rounded-full blur-3xl opacity-70"></div>
@@ -72,7 +78,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
         <div className="max-w-7xl mx-auto relative z-10">
           <div className="text-center max-w-4xl mx-auto">
             {/* Main Headline - H1 for SEO */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-6">
+            <h1 id="hero-heading" className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight mb-6">
               Haal hogere cijfers met de{' '}
               <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 AI Examentrainer
@@ -86,11 +92,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
-              <Button onClick={handleStartTrial} size="xl" className="w-full sm:w-auto shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all hover:-translate-y-1">
+              <Button onClick={handleStartTrial} size="xl" className="w-full sm:w-auto shadow-xl shadow-blue-600/25 hover:shadow-blue-600/40 transition-all hover:-translate-y-1" aria-label="Start je gratis proefperiode van 3 dagen">
                 Start 3 dagen gratis
-                <ArrowRight className="w-5 h-5 ml-2" />
+                <ArrowRight className="w-5 h-5 ml-2" aria-hidden="true" />
               </Button>
-              <Button onClick={() => scrollToSection('how-it-works')} variant="outline" size="xl" className="w-full sm:w-auto">
+              <Button onClick={() => scrollToSection('how-it-works')} variant="outline" size="xl" className="w-full sm:w-auto" aria-label="Bekijk hoe AI Examentrainer werkt">
                 Bekijk hoe het werkt
               </Button>
             </div>
@@ -232,10 +238,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="features" className="py-20 px-4 sm:px-6 lg:px-8" aria-labelledby="features-heading">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 id="features-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Alles wat je nodig hebt om te slagen
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -295,10 +301,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </section>
 
       {/* How It Works */}
-      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white">
+      <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-gray-50 to-white" aria-labelledby="how-it-works-heading">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 id="how-it-works-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               In 3 stappen klaar voor je examen
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -421,10 +427,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+      <section id="pricing" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50" aria-labelledby="pricing-heading">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 id="pricing-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Kies jouw pakket
             </h2>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
@@ -513,10 +519,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </section>
 
       {/* FAQ Section - Important for SEO */}
-      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8">
+      <section id="faq" className="py-20 px-4 sm:px-6 lg:px-8" aria-labelledby="faq-heading">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            <h2 id="faq-heading" className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
               Veelgestelde vragen
             </h2>
             <p className="text-xl text-gray-600">
