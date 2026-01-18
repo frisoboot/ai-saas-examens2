@@ -239,9 +239,34 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    await signOut();
+    // Probeer uit te loggen met retry voor stabiliteit
+    let retries = 3;
+    let lastError: string | null = null;
+
+    while (retries > 0) {
+      const { error } = await signOut();
+
+      if (!error) {
+        // Logout gelukt - navigeer naar landing
+        setView('PUBLIC_LANDING');
+        // Force page refresh om state volledig te resetten
+        window.location.href = '/';
+        return;
+      }
+
+      lastError = error;
+      retries--;
+
+      if (retries > 0) {
+        // Wacht even voordat we opnieuw proberen
+        await new Promise(resolve => setTimeout(resolve, 500));
+      }
+    }
+
+    // Als alle retries gefaald zijn, toch doorsturen maar log de error
+    console.error('Uitloggen mislukt na meerdere pogingen:', lastError);
+    // Forceer toch een refresh om lokale state te clearen
     setView('PUBLIC_LANDING');
-    // Force page refresh om state volledig te resetten
     window.location.href = '/';
   };
 
