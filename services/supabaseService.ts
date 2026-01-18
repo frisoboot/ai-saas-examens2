@@ -177,50 +177,11 @@ export const dbQuestions = {
       console.error('Fout bij verwijderen vraag:', error);
       throw error;
     }
-  },
-
-  // Haal vragen op gefilterd op vak
-  async getBySubject(subject: string): Promise<Question[]> {
-    if (!supabase) {
-      throw new Error('Supabase niet geconfigureerd');
-    }
-
-    const { data, error } = await supabase
-      .from(TABLES.QUESTIONS)
-      .select('*')
-      .eq('subject', subject)
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Fout bij ophalen vragen per vak:', error);
-      throw error;
-    }
-
-    // Converteer database records naar TypeScript objects
-    return (data || []).map(dbToQuestion);
   }
 };
 
 // Resultaten operaties
 export const dbResults = {
-  async getAll(): Promise<ExamResult[]> {
-    if (!supabase) {
-      throw new Error('Supabase niet geconfigureerd');
-    }
-
-    const { data, error } = await supabase
-      .from(TABLES.RESULTS)
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Fout bij ophalen resultaten:', error);
-      throw error;
-    }
-
-    return data || [];
-  },
-
   async save(result: ExamResult): Promise<ExamResult> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');

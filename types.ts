@@ -124,14 +124,6 @@ export interface ImportError {
   data?: any;
 }
 
-// Year exam data structure
-export interface YearExam {
-  year: number;
-  subjects: string[]; // Subjects available for this year
-  questionCount: number;
-  levels: StudentLevel[];
-}
-
 // Flashcard interfaces
 export interface Flashcard {
   id: string;

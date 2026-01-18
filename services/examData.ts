@@ -1,10 +1,5 @@
 import { StudentLevel } from '../types';
 
-export interface SubjectTopic {
-  id: string;
-  name: string;
-}
-
 export const EXAM_TOPICS: Record<string, Record<StudentLevel, string[]>> = {
   'Aardrijkskunde': {
     'VMBO-TL': ['Weer en klimaat', 'Bevolking en ruimte', 'Water', 'Arm en rijk', 'Bronnen en energie', 'Grenzen en identiteit'],
