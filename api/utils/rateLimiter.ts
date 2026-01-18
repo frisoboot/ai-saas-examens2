@@ -104,7 +104,8 @@ export function getClientIP(req: { headers: Record<string, string | string[] | u
   }
 
   if (realIp) {
-    return Array.isArray(realIp) ? realIp[0] : realIp;
+    const ip = Array.isArray(realIp) ? realIp[0] : realIp;
+    return ip?.trim() || 'unknown';
   }
 
   return 'unknown';
