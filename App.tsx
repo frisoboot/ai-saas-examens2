@@ -13,6 +13,7 @@ import { LandingPage } from './components/LandingPage';
 import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
+import { SubscriptionSettings } from './components/SubscriptionSettings';
 
 // Inner app die useAuth kan gebruiken
 const AppContent: React.FC = () => {
@@ -330,7 +331,7 @@ const AppContent: React.FC = () => {
     // Protected views - vereisen authenticatie
     if (!isAuthenticated && !isLoading) {
       // Als niet ingelogd en probeert protected view te openen
-      if (['ADMIN', 'STUDENT_DASHBOARD', 'EXAM', 'SUBJECT_CHAT', 'FLASHCARD_STUDY'].includes(view)) {
+      if (['ADMIN', 'STUDENT_DASHBOARD', 'EXAM', 'SUBJECT_CHAT', 'FLASHCARD_STUDY', 'SETTINGS'].includes(view)) {
         return (
           <LoginPage
             onLogin={signIn}
@@ -383,6 +384,15 @@ const AppContent: React.FC = () => {
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
             onLogout={handleLogout}
+            onSettings={() => setView('SETTINGS')}
+          />
+        );
+
+      case 'SETTINGS':
+        return (
+          <SubscriptionSettings
+            userEmail={user?.email || ''}
+            onBack={() => setView('STUDENT_DASHBOARD')}
           />
         );
 

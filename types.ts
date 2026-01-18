@@ -63,7 +63,7 @@ export interface StudentProfile {
   isActive?: boolean;
 }
 
-export type ViewState = 'PUBLIC_LANDING' | 'LOGIN' | 'CHECKOUT' | 'PAYMENT_CALLBACK' | 'PAYMENT_SUCCESS' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'FLASHCARD_STUDY';
+export type ViewState = 'PUBLIC_LANDING' | 'LOGIN' | 'CHECKOUT' | 'PAYMENT_CALLBACK' | 'PAYMENT_SUCCESS' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'FLASHCARD_STUDY' | 'SETTINGS';
 
 export interface ExamSession {
   studentName: string;
