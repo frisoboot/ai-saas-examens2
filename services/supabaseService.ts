@@ -398,7 +398,7 @@ export const auth = {
 
       if (error) {
         console.error('Uitlogfout:', error);
-        return { error: error.message };
+        return { error: error.message || 'Supabase logout failed' };
       }
 
       return { error: null };
