@@ -2,7 +2,10 @@ import React, { useState } from 'react';
 import { ViewState, ExamSession, StudentProfile, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { LoginPage } from './components/LoginPage';
 import { StudentDashboard } from './components/StudentDashboard';
+import { AdminDashboard } from './components/AdminDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
@@ -11,20 +14,14 @@ import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 
-// Default student profile - no login required
-const DEFAULT_STUDENT: StudentProfile = {
-  name: 'Student',
-  level: 'HAVO',
-  strugglePoints: 'Algemene examenvoorbereiding',
-  isActive: true
-};
+// Inner app die useAuth kan gebruiken
+const AppContent: React.FC = () => {
+  const { isAuthenticated, isLoading, isAdmin, user, profile, signIn, signOut } = useAuth();
 
-const App: React.FC = () => {
-  const [view, setView] = useState<ViewState>('STUDENT_DASHBOARD');
+  const [view, setView] = useState<ViewState>('PUBLIC_LANDING');
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
 
-  // User State
-  const [currentProfile] = useState<StudentProfile>(DEFAULT_STUDENT);
+  // Exam/Chat State
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
   const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
@@ -51,9 +48,15 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const startExam = async (subject: string, year?: number) => {
-    if (!currentProfile) return;
+  // Bepaal welk profiel te gebruiken (ingelogd of default fallback)
+  const currentProfile: StudentProfile = profile || {
+    name: 'Student',
+    level: 'HAVO',
+    strugglePoints: 'Algemene examenvoorbereiding',
+    isActive: true
+  };
 
+  const startExam = async (subject: string, year?: number) => {
     try {
       const allQuestions = await getQuestions();
       let subjectQuestions = allQuestions.filter(q =>
@@ -96,8 +99,6 @@ const App: React.FC = () => {
     difficulty?: string,
     questionTypeMix?: string
   ) => {
-    if (!currentProfile) return;
-
     // Show loading feedback
     console.log(`Gemini genereert ${count} ${currentProfile.level} AI examen vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`);
 
@@ -148,8 +149,6 @@ const App: React.FC = () => {
     count: number = 10,
     topic?: string
   ) => {
-    if (!currentProfile) return;
-
     console.log(`Genereren van ${count} flashcards voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
 
     try {
@@ -195,8 +194,6 @@ const App: React.FC = () => {
     examStyle?: string,
     timeLimit?: number
   ) => {
-    if (!currentProfile) return;
-
     console.log(`Genereren van ${count} look-alike examenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
 
     try {
@@ -241,57 +238,113 @@ const App: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut();
+    setView('PUBLIC_LANDING');
+  };
+
   const renderContent = () => {
-    switch (view) {
-      case 'PUBLIC_LANDING':
+    // Payment callback views - altijd tonen ongeacht auth status
+    if (view === 'PAYMENT_CALLBACK') {
+      return (
+        <PaymentCallback
+          onLogin={() => setView('LOGIN' as ViewState)}
+          onRetry={() => setView('CHECKOUT')}
+        />
+      );
+    }
+
+    if (view === 'PAYMENT_SUCCESS') {
+      return (
+        <PaymentSuccess
+          username={paymentUsername || ''}
+          onLogin={() => setView('LOGIN' as ViewState)}
+        />
+      );
+    }
+
+    // Public views
+    if (view === 'PUBLIC_LANDING') {
+      return (
+        <LandingPage
+          onLogin={() => setView('LOGIN' as ViewState)}
+          onCheckout={() => setView('CHECKOUT')}
+        />
+      );
+    }
+
+    if (view === 'CHECKOUT') {
+      return (
+        <CheckoutForm
+          onBack={() => setView('PUBLIC_LANDING')}
+          onSuccess={() => setView('LOGIN' as ViewState)}
+        />
+      );
+    }
+
+    // Login view
+    if (view === 'LOGIN' as ViewState) {
+      // Als al ingelogd, ga naar juiste dashboard
+      if (isAuthenticated) {
+        setView(isAdmin ? 'ADMIN' : 'STUDENT_DASHBOARD');
+        return null;
+      }
+
+      return (
+        <LoginPage
+          onLogin={signIn}
+          onCheckout={() => setView('CHECKOUT')}
+          onLanding={() => setView('PUBLIC_LANDING')}
+          isLoading={isLoading}
+        />
+      );
+    }
+
+    // Protected views - vereisen authenticatie
+    if (!isAuthenticated && !isLoading) {
+      // Als niet ingelogd en probeert protected view te openen
+      if (['ADMIN', 'STUDENT_DASHBOARD', 'EXAM', 'SUBJECT_CHAT', 'FLASHCARD_STUDY'].includes(view)) {
         return (
-          <LandingPage
-            onLogin={() => setView('STUDENT_DASHBOARD')}
+          <LoginPage
+            onLogin={signIn}
             onCheckout={() => setView('CHECKOUT')}
+            onLanding={() => setView('PUBLIC_LANDING')}
+            isLoading={isLoading}
           />
         );
+      }
+    }
 
-      case 'CHECKOUT':
-        return (
-          <CheckoutForm
-            onBack={() => setView('PUBLIC_LANDING')}
-            onSuccess={() => {
-              setView('STUDENT_DASHBOARD');
-            }}
-          />
-        );
+    // Loading state
+    if (isLoading) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Even geduld...</p>
+          </div>
+        </div>
+      );
+    }
 
-      case 'PAYMENT_CALLBACK':
-        return (
-          <PaymentCallback
-            onLogin={() => {
-              setView('STUDENT_DASHBOARD');
-            }}
-            onRetry={() => {
-              setView('CHECKOUT');
-            }}
-          />
-        );
-
-      case 'PAYMENT_SUCCESS':
-        return (
-          <PaymentSuccess
-            username={paymentUsername || ''}
-            onLogin={() => {
-              setView('STUDENT_DASHBOARD');
-            }}
-          />
-        );
-
+    switch (view) {
       case 'LANDING':
         // Redirect to dashboard directly
         setView('STUDENT_DASHBOARD');
         return null;
 
       case 'ADMIN':
-        // No admin anymore, redirect to dashboard
-        setView('STUDENT_DASHBOARD');
-        return null;
+        // Admin dashboard - alleen voor admins
+        if (!isAdmin) {
+          setView('STUDENT_DASHBOARD');
+          return null;
+        }
+        return (
+          <AdminDashboard
+            onBack={handleLogout}
+            adminUsername={user?.email || 'admin'}
+          />
+        );
 
       case 'STUDENT_DASHBOARD':
         return (
@@ -302,6 +355,7 @@ const App: React.FC = () => {
             onStartAIQuestions={startAIQuestions}
             onStartFlashcards={startFlashcards}
             onStartLookalikeExam={startLookalikeExam}
+            onLogout={handleLogout}
           />
         );
 
@@ -315,7 +369,7 @@ const App: React.FC = () => {
         );
 
       case 'SUBJECT_CHAT':
-        if (!currentProfile || !chatSubject) return null;
+        if (!chatSubject) return null;
         return (
           <SubjectChat
             subject={chatSubject}
@@ -325,7 +379,7 @@ const App: React.FC = () => {
         );
 
       case 'FLASHCARD_STUDY':
-        if (!currentProfile || !currentFlashcardSession) return null;
+        if (!currentFlashcardSession) return null;
         return (
           <FlashcardStudy
             session={currentFlashcardSession}
@@ -344,6 +398,15 @@ const App: React.FC = () => {
     <div className="font-sans antialiased text-gray-900 bg-white">
       {renderContent()}
     </div>
+  );
+};
+
+// Main App component met AuthProvider
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 };
 
