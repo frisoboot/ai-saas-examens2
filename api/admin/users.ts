@@ -184,7 +184,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Verwijder profiel
       if (email) {
-        await supabaseAdmin.from('student_profiles').delete().eq('email', email.toLowerCase());
+        const { error: deleteProfileError } = await supabaseAdmin
+          .from('student_profiles')
+          .delete()
+          .eq('email', email.toLowerCase());
+
+        if (deleteProfileError) {
+          console.error('Fout bij verwijderen profiel:', deleteProfileError);
+          return res.status(500).json({ error: 'Kon student profiel niet verwijderen' });
+        }
       }
 
       return res.status(200).json({ success: true, message: 'Student verwijderd' });
