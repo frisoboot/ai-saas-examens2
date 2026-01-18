@@ -89,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST - Maak nieuwe student aan
     if (req.method === 'POST') {
-      const { email, name, level } = req.body;
+      const { email, name, level, customPassword } = req.body;
 
       if (!email || !name || !level) {
         return res.status(400).json({ error: 'Email, naam en niveau zijn verplicht' });
@@ -105,7 +105,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(400).json({ error: 'Ongeldig niveau' });
       }
 
-      const password = generatePassword();
+      // Gebruik custom wachtwoord als meegegeven, anders genereer er een
+      let password: string;
+      if (customPassword && customPassword.trim().length > 0) {
+        if (customPassword.length < 8) {
+          return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+        }
+        password = customPassword;
+      } else {
+        password = generatePassword();
+      }
       const cleanEmail = email.trim().toLowerCase();
       const cleanName = name.trim();
 
