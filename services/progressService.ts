@@ -78,30 +78,79 @@ export const calculateProgress = (
   };
 };
 
-// Get all progress for a student
-export const getStudentProgress = async (studentName: string): Promise<StudentProgress[]> => {
+// Helper: Get exam results for a student from exam_results table
+const getExamResultsForStudent = async (studentName: string): Promise<ExamResult[]> => {
   requireDatabase();
 
   const { data, error } = await supabase!
-    .from('student_progress')
+    .from('exam_results')
     .select('*')
     .eq('student_name', studentName);
 
   if (error) throw error;
 
-  return data.map(d => ({
+  return (data || []).map(d => ({
     id: d.id,
     studentName: d.student_name,
     subject: d.subject,
-    totalExamsTaken: d.total_exams_taken,
-    totalQuestionsAnswered: d.total_questions_answered,
-    totalCorrectAnswers: d.total_correct_answers,
-    averageScore: d.average_score,
-    lastExamDate: d.last_exam_date,
-    weakestTopics: d.weakest_topics,
-    improvementRate: d.improvement_rate,
-    recentScores: []
+    score: d.score,
+    totalQuestions: d.total_questions,
+    date: d.date,
+    answers: d.answers || [],
+    examYear: d.exam_year,
+    examType: d.exam_type,
+    durationSeconds: d.duration_seconds,
+    level: d.level
   }));
+};
+
+// Get all progress for a student
+// Falls back to calculating from exam_results if student_progress table is empty
+export const getStudentProgress = async (studentName: string): Promise<StudentProgress[]> => {
+  requireDatabase();
+
+  // First try to get from student_progress table
+  const { data, error } = await supabase!
+    .from('student_progress')
+    .select('*')
+    .eq('student_name', studentName);
+
+  // If we have data in student_progress, use it
+  if (!error && data && data.length > 0) {
+    return data.map(d => ({
+      id: d.id,
+      studentName: d.student_name,
+      subject: d.subject,
+      totalExamsTaken: d.total_exams_taken,
+      totalQuestionsAnswered: d.total_questions_answered,
+      totalCorrectAnswers: d.total_correct_answers,
+      averageScore: d.average_score,
+      lastExamDate: d.last_exam_date,
+      weakestTopics: d.weakest_topics,
+      improvementRate: d.improvement_rate,
+      recentScores: []
+    }));
+  }
+
+  // Fallback: Calculate progress from exam_results table
+  const examResults = await getExamResultsForStudent(studentName);
+
+  if (examResults.length === 0) {
+    return [];
+  }
+
+  // Group by subject and calculate progress for each
+  const subjectsSet = new Set(examResults.map(r => r.subject));
+  const progressList: StudentProgress[] = [];
+
+  for (const subject of subjectsSet) {
+    const progress = calculateProgress(studentName, subject, examResults);
+    if (progress.totalExamsTaken > 0) {
+      progressList.push(progress);
+    }
+  }
+
+  return progressList;
 };
 
 // Get overall progress summary for a student (across all subjects)
