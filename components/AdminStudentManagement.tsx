@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
 import { dbStudents, auth } from '../services/supabaseService';
 import { Button } from './Button';
-import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Copy, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 interface AdminStudentManagementProps {
   adminUsername: string;
@@ -37,6 +37,9 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   });
   const [createdStudent, setCreatedStudent] = useState<CreatedStudent | null>(null);
   const [copiedPassword, setCopiedPassword] = useState(false);
+  const [useCustomPassword, setUseCustomPassword] = useState(false);
+  const [customPassword, setCustomPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Delete confirmation state
   const [deleteConfirm, setDeleteConfirm] = useState<StudentProfile | null>(null);
@@ -86,7 +89,8 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
         body: JSON.stringify({
           name: newStudent.name,
           email: newStudent.email,
-          level: newStudent.level
+          level: newStudent.level,
+          customPassword: useCustomPassword ? customPassword : undefined
         })
       });
 
@@ -105,6 +109,9 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
       // Reset form
       setNewStudent({ name: '', email: '', level: 'HAVO' });
+      setUseCustomPassword(false);
+      setCustomPassword('');
+      setShowPassword(false);
 
       // Herlaad studenten lijst
       await loadStudents();
@@ -178,6 +185,9 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     setCreatedStudent(null);
     setNewStudent({ name: '', email: '', level: 'HAVO' });
     setCopiedPassword(false);
+    setUseCustomPassword(false);
+    setCustomPassword('');
+    setShowPassword(false);
   };
 
   const filteredStudents = students.filter(s =>
@@ -368,6 +378,9 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                     onClick={() => {
                       setCreatedStudent(null);
                       setNewStudent({ name: '', email: '', level: 'HAVO' });
+                      setUseCustomPassword(false);
+                      setCustomPassword('');
+                      setShowPassword(false);
                     }}
                     variant="secondary"
                     className="flex-1"
@@ -423,8 +436,56 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                   </select>
                 </div>
 
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-                  Er wordt automatisch een veilig wachtwoord gegenereerd. Dit wordt getoond nadat de student is aangemaakt.
+                {/* Wachtwoord opties */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="useCustomPassword"
+                      checked={useCustomPassword}
+                      onChange={(e) => {
+                        setUseCustomPassword(e.target.checked);
+                        if (!e.target.checked) {
+                          setCustomPassword('');
+                          setShowPassword(false);
+                        }
+                      }}
+                      className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                    />
+                    <label htmlFor="useCustomPassword" className="text-sm font-medium text-slate-700">
+                      Eigen wachtwoord instellen
+                    </label>
+                  </div>
+
+                  {useCustomPassword ? (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1">
+                        Wachtwoord * <span className="font-normal text-slate-500">(minimaal 8 tekens)</span>
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword ? 'text' : 'password'}
+                          required
+                          minLength={8}
+                          value={customPassword}
+                          onChange={(e) => setCustomPassword(e.target.value)}
+                          className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                          placeholder="Voer een wachtwoord in"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                      Er wordt automatisch een veilig wachtwoord gegenereerd. Dit wordt getoond nadat de student is aangemaakt.
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
