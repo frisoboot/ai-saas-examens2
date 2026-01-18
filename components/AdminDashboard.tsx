@@ -2,10 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
 import { AdminStudentManagement } from './AdminStudentManagement';
+import { AdminHealthCheck } from './AdminHealthCheck';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2 } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS } from '../constants/subjects';
 
@@ -14,7 +15,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder';
+type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('exam-builder');
@@ -299,6 +300,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <Upload className="w-4 h-4" />
                   CSV/JSON Import
                 </button>
+                <button
+                  onClick={() => setActiveTab('health-check')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'health-check'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Activity className="w-4 h-4" />
+                  Systeem Status
+                </button>
              </div>
          </div>
 
@@ -378,6 +390,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'import' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <BulkImportQuestions />
+           </div>
+        ) : activeTab === 'health-check' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <AdminHealthCheck />
            </div>
         ) : (
           <>
