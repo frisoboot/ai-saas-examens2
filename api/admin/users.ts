@@ -135,15 +135,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const password = generatePassword();
 
       // Maak user aan in Supabase Auth
+      const cleanEmail = email.trim().toLowerCase();
+      const cleanName = name.trim();
+
+      console.log('Creating user with email:', cleanEmail, 'name:', cleanName, 'password length:', password.length);
+
+      // Stap 1: Maak user aan zonder email_confirm
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email: email.trim().toLowerCase(),
-        password,
-        email_confirm: true,
+        email: cleanEmail,
+        password: password,
         user_metadata: {
-          name: name.trim(),
-          level
+          name: cleanName,
+          level: level
         }
       });
+
+      // Stap 2: Als user aangemaakt is, bevestig email apart
+      if (newUser?.user?.id) {
+        await supabaseAdmin.auth.admin.updateUserById(newUser.user.id, {
+          email_confirm: true
+        });
+      }
 
       if (createError) {
         console.error('Fout bij aanmaken user:', createError);
