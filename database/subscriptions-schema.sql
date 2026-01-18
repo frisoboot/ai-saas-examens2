@@ -123,7 +123,8 @@ CREATE TABLE IF NOT EXISTS pending_registrations (
   -- User gegevens
   email TEXT NOT NULL,
   username TEXT NOT NULL,
-  password_encrypted TEXT NOT NULL, -- Base64 encoded (wordt verwijderd na activatie)
+  -- SECURITY: password wordt tijdelijk gehasht opgeslagen (bcrypt) en na account activatie verwijderd
+  password_hash TEXT,
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
 
   -- Mollie IDs

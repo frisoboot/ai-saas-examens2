@@ -13,10 +13,40 @@ import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
 
 /**
- * Genereer een veilig random wachtwoord
+ * Genereer een veilig random wachtwoord (fallback als geen opgeslagen wachtwoord)
  */
 function generateSecurePassword(): string {
-  return crypto.randomBytes(32).toString('base64url');
+  return crypto.randomBytes(16).toString('base64url');
+}
+
+/**
+ * Decrypt een versleuteld wachtwoord
+ * Gebruikt AES-256-GCM voor veilige decryptie
+ */
+function decryptPassword(encryptedData: string, secretKey: string): string | null {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+      console.error('Invalid encrypted password format');
+      return null;
+    }
+
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const key = crypto.scryptSync(secretKey, 'salt', 32);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch (error) {
+    console.error('Password decryption failed:', error);
+    return null;
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -97,9 +127,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, error: 'Missing registration data' });
       }
 
-      // SECURITY: Genereer een veilig random wachtwoord
-      // Gebruiker krijgt een password reset email om zelf een wachtwoord in te stellen
-      const temporaryPassword = generateSecurePassword();
+      // Probeer het originele wachtwoord van de gebruiker te gebruiken
+      // Als dit niet lukt, genereer een tijdelijk wachtwoord
+      let userPassword: string;
+      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+
+      if (pending?.password_hash) {
+        const decryptedPassword = decryptPassword(pending.password_hash, encryptionKey);
+        if (decryptedPassword) {
+          userPassword = decryptedPassword;
+          console.log('Using user-provided password');
+        } else {
+          userPassword = generateSecurePassword();
+          console.log('Password decryption failed, using generated password');
+        }
+      } else {
+        userPassword = generateSecurePassword();
+        console.log('No stored password, using generated password');
+      }
 
       // Check of account al bestaat (idempotency)
       const { data: existingProfile } = await supabase
@@ -120,12 +165,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Maak Supabase Auth user aan met tijdelijk wachtwoord
+      // Maak Supabase Auth user aan met het wachtwoord van de gebruiker
       // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
       const studentEmail = `${username}@student.example.com`;
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: studentEmail,
-        password: temporaryPassword,
+        password: userPassword,
         email_confirm: true,
         user_metadata: {
           role: 'student',
@@ -142,27 +187,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log('Created auth user:', authUser.user?.id);
 
-      // Stuur password reset email naar het echte email adres
-      // Zodat de gebruiker zelf een wachtwoord kan instellen
-      try {
-        const { error: resetError } = await supabase.auth.admin.generateLink({
-          type: 'recovery',
-          email: studentEmail,
-          options: {
-            redirectTo: `${appUrl}/reset-password`
-          }
-        });
-
-        if (resetError) {
-          console.error('Password reset email error:', resetError);
-          // Niet fataal - gebruiker kan later alsnog reset aanvragen
-        } else {
-          console.log('Password reset link generated for:', email);
-        }
-      } catch (resetErr) {
-        console.error('Failed to send password reset:', resetErr);
-        // Niet fataal - account is aangemaakt
-      }
+      // NOTE: Password reset links werken alleen met het email adres waarmee de auth user is aangemaakt
+      // Aangezien we @student.example.com gebruiken (wat geen echt email is), kunnen we geen
+      // reset link sturen. De gebruiker logt in met hun username en het tijdelijke wachtwoord
+      // wordt niet gedeeld - ze moeten contact opnemen voor account recovery.
+      //
+      // TODO: Overweeg om het echte email adres te gebruiken voor auth users in de toekomst,
+      // zodat password reset emails wel werken.
 
       // Maak student profile aan
       const { error: profileError } = await supabase

@@ -37,9 +37,13 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
   struggle_points TEXT,
   is_active BOOLEAN DEFAULT TRUE,
+  auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Index voor auth_user_id lookups
+CREATE INDEX IF NOT EXISTS idx_student_profiles_auth_user ON student_profiles(auth_user_id);
 
 -- Indexen voor betere performance
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);

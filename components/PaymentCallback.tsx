@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Button } from './Button';
 import {
   CheckCircle2,
@@ -26,16 +26,22 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
   const [accountReady, setAccountReady] = useState(false);
   const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
+  // Bewaar payment ID in ref zodat we het kunnen gebruiken na localStorage cleanup
+  const paymentIdRef = useRef<string | null>(null);
 
   // Check betaalstatus bij laden
   useEffect(() => {
-    const paymentId = localStorage.getItem('pending_payment_id');
+    // Gebruik ref als we al een payment ID hebben opgeslagen, anders haal uit localStorage
+    const paymentId = paymentIdRef.current || localStorage.getItem('pending_payment_id');
 
     if (!paymentId) {
       setState('no_payment');
       setMessage('Geen betaling gevonden. Probeer opnieuw te registreren.');
       return;
     }
+
+    // Bewaar payment ID in ref voor latere checks
+    paymentIdRef.current = paymentId;
 
     const checkStatus = async () => {
       const result = await checkPaymentStatus(paymentId);
@@ -48,7 +54,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
           case 'paid':
             setState('paid');
             setMessage(result.message);
-            // Verwijder payment ID uit localStorage
+            // Verwijder payment ID uit localStorage (ref blijft beschikbaar)
             localStorage.removeItem('pending_payment_id');
             break;
           case 'pending':
@@ -82,7 +88,8 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
   // Bij success: check of account klaar is
   useEffect(() => {
     if (state === 'paid' && !accountReady && checkCount < 30) {
-      const paymentId = localStorage.getItem('pending_payment_id');
+      // Gebruik de ref in plaats van localStorage (die is al verwijderd na paid status)
+      const paymentId = paymentIdRef.current;
       if (paymentId) {
         const timer = setTimeout(async () => {
           const result = await checkPaymentStatus(paymentId);

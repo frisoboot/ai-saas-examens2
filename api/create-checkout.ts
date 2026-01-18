@@ -14,6 +14,24 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
+import crypto from 'crypto';
+
+/**
+ * Versleutel wachtwoord voor tijdelijke opslag
+ * Gebruikt AES-256-GCM voor veilige encryptie
+ */
+function encryptPassword(password: string, secretKey: string): string {
+  const iv = crypto.randomBytes(16);
+  const key = crypto.scryptSync(secretKey, 'salt', 32);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag();
+
+  // Combineer IV + authTag + encrypted data
+  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+}
 
 interface CheckoutRequest {
   email: string;
@@ -172,13 +190,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
-    // Sla pending registration op (zonder wachtwoord - security)
+    // Versleutel het wachtwoord veilig voor tijdelijke opslag
+    // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
+    // Het wachtwoord wordt verwijderd na account activatie
+    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+    const encryptedPassword = encryptPassword(password, encryptionKey);
+
+    // Sla pending registration op met versleuteld wachtwoord
     const { error: pendingError } = await supabase
       .from('pending_registrations')
       .insert({
         email: email.toLowerCase(),
         username: username.toLowerCase(),
-        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
+        password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
         level: level,
         mollie_customer_id: customer.id,
         mollie_payment_id: payment.id,

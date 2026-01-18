@@ -53,6 +53,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // Security: Valideer eerst dat dit een bekende payment is van ons systeem
+    // Dit voorkomt dat willekeurige payment IDs kunnen worden opgevraagd
+    const { data: knownPayment } = await supabase
+      .from('pending_registrations')
+      .select('id, email')
+      .eq('mollie_payment_id', paymentId)
+      .maybeSingle();
+
+    // Als de payment niet in pending_registrations staat, check of er een payment record is
+    const { data: paymentRecord } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('mollie_payment_id', paymentId)
+      .maybeSingle();
+
+    // Payment moet bekend zijn in ons systeem
+    if (!knownPayment && !paymentRecord) {
+      console.log('Unknown payment ID requested:', paymentId);
+      return res.status(404).json({
+        success: false,
+        error: 'Betaling niet gevonden'
+      });
+    }
+
     // Haal payment op bij Mollie
     const payment = await mollie.payments.get(paymentId);
 

@@ -10,12 +10,16 @@ import type { VercelResponse } from '@vercel/node';
 const ALLOWED_ORIGINS = [
   'https://ai-examentrainer.nl',
   'https://www.ai-examentrainer.nl',
-  'https://ai-saas-examens2-git-claude-security-audit-7uhkg-b-9b220f12.vercel.app',
 ];
 
 // Regex patterns voor dynamische origins (Vercel previews, localhost, development)
+// Vercel preview URLs: ai-saas-examens2-*.vercel.app
 const ALLOWED_PATTERNS = [
-  /^https:\/\/.*\.vercel\.app$/,
+  // Vercel preview URLs specifiek voor dit project
+  /^https:\/\/ai-saas-examens2(-[a-z0-9-]+)?\.vercel\.app$/,
+  // Vercel preview URLs met git branch info
+  /^https:\/\/ai-saas-examens2-git-[a-z0-9-]+-[a-z0-9]+\.vercel\.app$/,
+  // Localhost development
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/,
   /^http:\/\/\[::1\]:\d+$/,

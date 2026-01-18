@@ -152,5 +152,22 @@ CREATE POLICY "Allow public access to import_history" ON import_history
 -- SELECT username FROM admin_users WHERE username = 'admin';
 
 -- ============================================================================
+-- MIGRATION 7: Add auth_user_id to student_profiles
+-- Koppelt student_profiles aan Supabase Auth users
+-- ============================================================================
+ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+-- Index voor snelle lookups op auth_user_id
+CREATE INDEX IF NOT EXISTS idx_student_profiles_auth_user ON student_profiles(auth_user_id);
+
+-- ============================================================================
+-- MIGRATION 8: Update pending_registrations - password_hash kolom
+-- Wachtwoord wordt tijdelijk gehasht opgeslagen tot account activatie
+-- ============================================================================
+-- Hernoem oude kolom naar nieuwe naam als deze bestaat
+ALTER TABLE pending_registrations DROP COLUMN IF EXISTS password_encrypted;
+ALTER TABLE pending_registrations ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+-- ============================================================================
 -- MIGRATION COMPLETE
 -- ============================================================================
