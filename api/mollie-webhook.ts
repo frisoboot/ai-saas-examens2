@@ -13,10 +13,40 @@ import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
 
 /**
- * Genereer een veilig random wachtwoord
+ * Genereer een veilig random wachtwoord (fallback als geen opgeslagen wachtwoord)
  */
 function generateSecurePassword(): string {
-  return crypto.randomBytes(32).toString('base64url');
+  return crypto.randomBytes(16).toString('base64url');
+}
+
+/**
+ * Decrypt een versleuteld wachtwoord
+ * Gebruikt AES-256-GCM voor veilige decryptie
+ */
+function decryptPassword(encryptedData: string, secretKey: string): string | null {
+  try {
+    const parts = encryptedData.split(':');
+    if (parts.length !== 3) {
+      console.error('Invalid encrypted password format');
+      return null;
+    }
+
+    const iv = Buffer.from(parts[0], 'hex');
+    const authTag = Buffer.from(parts[1], 'hex');
+    const encrypted = parts[2];
+
+    const key = crypto.scryptSync(secretKey, 'salt', 32);
+    const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
+    decipher.setAuthTag(authTag);
+
+    let decrypted = decipher.update(encrypted, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+
+    return decrypted;
+  } catch (error) {
+    console.error('Password decryption failed:', error);
+    return null;
+  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -64,7 +94,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const metadata = payment.metadata as {
       type?: string;
-      username?: string;
       email?: string;
       level?: string;
     } | null;
@@ -78,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // VERIFICATIE BETALING (€1.00) - Account activatie
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
-      console.log('Processing verification payment for:', metadata.username);
+      console.log('Processing verification payment for:', metadata.email);
 
       // Haal pending registration op
       const { data: pending } = await supabase
@@ -88,24 +117,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle();
 
       // Gebruik data uit pending registration of fallback naar metadata
-      const username = pending?.username || metadata.username;
       const email = pending?.email || metadata.email;
       const level = pending?.level || metadata.level;
 
-      if (!username || !email || !level) {
+      if (!email || !level) {
         console.error('Missing registration data');
         return res.status(200).json({ received: true, error: 'Missing registration data' });
       }
 
-      // SECURITY: Genereer een veilig random wachtwoord
-      // Gebruiker krijgt een password reset email om zelf een wachtwoord in te stellen
-      const temporaryPassword = generateSecurePassword();
+      // Probeer het originele wachtwoord van de gebruiker te gebruiken
+      // Als dit niet lukt, genereer een tijdelijk wachtwoord
+      let userPassword: string;
+      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+
+      if (pending?.password_hash) {
+        const decryptedPassword = decryptPassword(pending.password_hash, encryptionKey);
+        if (decryptedPassword) {
+          userPassword = decryptedPassword;
+          console.log('Using user-provided password');
+        } else {
+          userPassword = generateSecurePassword();
+          console.log('Password decryption failed, using generated password');
+        }
+      } else {
+        userPassword = generateSecurePassword();
+        console.log('No stored password, using generated password');
+      }
 
       // Check of account al bestaat (idempotency)
       const { data: existingProfile } = await supabase
         .from('student_profiles')
-        .select('name')
-        .eq('name', username)
+        .select('email')
+        .eq('email', email)
         .maybeSingle();
 
       if (existingProfile) {
@@ -120,18 +163,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Maak Supabase Auth user aan met tijdelijk wachtwoord
-      // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-      const studentEmail = `${username}@student.example.com`;
+      // Maak Supabase Auth user aan met het echte email adres
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: studentEmail,
-        password: temporaryPassword,
+        email: email,
+        password: userPassword,
         email_confirm: true,
         user_metadata: {
           role: 'student',
-          name: username,
-          level: level,
-          real_email: email
+          level: level
         }
       });
 
@@ -142,36 +181,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log('Created auth user:', authUser.user?.id);
 
-      // Stuur password reset email naar het echte email adres
-      // Zodat de gebruiker zelf een wachtwoord kan instellen
-      try {
-        const { error: resetError } = await supabase.auth.admin.generateLink({
-          type: 'recovery',
-          email: studentEmail,
-          options: {
-            redirectTo: `${appUrl}/reset-password`
-          }
-        });
-
-        if (resetError) {
-          console.error('Password reset email error:', resetError);
-          // Niet fataal - gebruiker kan later alsnog reset aanvragen
-        } else {
-          console.log('Password reset link generated for:', email);
-        }
-      } catch (resetErr) {
-        console.error('Failed to send password reset:', resetErr);
-        // Niet fataal - account is aangemaakt
-      }
-
-      // Maak student profile aan
+      // Maak student profile aan (email als primary key)
       const { error: profileError } = await supabase
         .from('student_profiles')
         .insert({
-          name: username,
+          email: email,
+          name: email, // Gebruik email als naam
           level: level,
           struggle_points: '',
-          email: email,
           is_active: true,
           auth_user_id: authUser.user?.id
         });
@@ -200,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from('subscriptions')
         .insert({
           user_email: email,
-          user_name: username,
+          user_name: email, // Gebruik email als naam
           status: 'trial',
           plan_type: 'individual',
           price_cents: 1250,
@@ -262,8 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               webhookUrl: `${appUrl}/api/mollie-webhook`,
               metadata: {
                 type: 'subscription_payment',
-                email: email,
-                username: username
+                email: email
               }
             });
 
@@ -293,7 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Deleted pending registration');
       }
 
-      console.log('Account activation complete for:', username);
+      console.log('Account activation complete for:', email);
     }
 
     // ========================================================================
@@ -301,7 +317,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ========================================================================
     if (metadata.type === 'verification' &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
-      console.log('Verification payment failed for:', metadata.username);
+      console.log('Verification payment failed for:', metadata.email);
 
       // Verwijder pending registration
       await supabase

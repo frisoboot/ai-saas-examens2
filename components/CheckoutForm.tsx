@@ -4,7 +4,6 @@ import {
   ArrowRight,
   ArrowLeft,
   Mail,
-  User,
   GraduationCap,
   Lock,
   Sparkles,
@@ -25,7 +24,6 @@ type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess }) => {
   const [step, setStep] = useState<'form' | 'processing' | 'redirect'>('form');
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [level, setLevel] = useState<StudentLevel>('HAVO');
@@ -37,7 +35,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setError('');
 
     // Validatie
-    if (!email || !username || !password) {
+    if (!email || !password) {
       setError('Vul alle velden in');
       return;
     }
@@ -45,11 +43,6 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError('Vul een geldig e-mailadres in');
-      return;
-    }
-
-    if (username.length < 3) {
-      setError('Gebruikersnaam moet minimaal 3 tekens zijn');
       return;
     }
 
@@ -62,7 +55,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setStep('processing');
 
     try {
-      const result = await createCheckout(email, username, password, level);
+      const result = await createCheckout(email, password, level);
 
       console.log('Checkout result:', result);
 
@@ -176,24 +169,6 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                     onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
-                  Gebruikersnaam
-                </label>
-                <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    required
-                    className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-4 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                    placeholder="Kies een gebruikersnaam"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/\s/g, ''))}
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-1 ml-1">Dit gebruik je om in te loggen</p>
               </div>
 
               <div>

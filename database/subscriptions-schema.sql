@@ -120,10 +120,10 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE TABLE IF NOT EXISTS pending_registrations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  -- User gegevens
+  -- User gegevens (alleen email, geen username meer)
   email TEXT NOT NULL,
-  username TEXT NOT NULL,
-  password_encrypted TEXT NOT NULL, -- Base64 encoded (wordt verwijderd na activatie)
+  -- SECURITY: password wordt tijdelijk versleuteld opgeslagen en na account activatie verwijderd
+  password_hash TEXT,
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
 
   -- Mollie IDs
@@ -140,7 +140,6 @@ CREATE TABLE IF NOT EXISTS pending_registrations (
 
 -- Indexen
 CREATE INDEX IF NOT EXISTS idx_pending_email ON pending_registrations(email);
-CREATE INDEX IF NOT EXISTS idx_pending_username ON pending_registrations(username);
 CREATE INDEX IF NOT EXISTS idx_pending_mollie_payment ON pending_registrations(mollie_payment_id);
 CREATE INDEX IF NOT EXISTS idx_pending_status ON pending_registrations(status);
 CREATE INDEX IF NOT EXISTS idx_pending_expires ON pending_registrations(expires_at);

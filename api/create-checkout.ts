@@ -2,7 +2,7 @@
  * Vercel Serverless Function - Create Checkout
  *
  * Flow:
- * 1. Valideer input en check of username/email beschikbaar is
+ * 1. Valideer input en check of email beschikbaar is
  * 2. Maak Mollie customer aan
  * 3. Maak €1.00 verificatiebetaling aan (creëert mandaat voor toekomstige incasso's)
  * 4. Sla pending registratie op in database
@@ -14,10 +14,27 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
+import crypto from 'crypto';
+
+/**
+ * Versleutel wachtwoord voor tijdelijke opslag
+ * Gebruikt AES-256-GCM voor veilige encryptie
+ */
+function encryptPassword(password: string, secretKey: string): string {
+  const iv = crypto.randomBytes(16);
+  const key = crypto.scryptSync(secretKey, 'salt', 32);
+  const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
+
+  let encrypted = cipher.update(password, 'utf8', 'hex');
+  encrypted += cipher.final('hex');
+  const authTag = cipher.getAuthTag();
+
+  // Combineer IV + authTag + encrypted data
+  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+}
 
 interface CheckoutRequest {
   email: string;
-  username: string;
   password: string;
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
 }
@@ -53,10 +70,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Parse request body
     const body: CheckoutRequest = req.body;
-    const { email, username, password, level } = body;
+    const { email, password, level } = body;
 
     // Validatie
-    if (!email || !username || !password || !level) {
+    if (!email || !password || !level) {
       return res.status(400).json({ error: 'Alle velden zijn verplicht' });
     }
 
@@ -64,11 +81,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
-    }
-
-    // Username validatie
-    if (username.length < 3) {
-      return res.status(400).json({ error: 'Gebruikersnaam moet minimaal 3 tekens zijn' });
     }
 
     // Password validatie
@@ -85,17 +97,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const mollie = createMollieClient({ apiKey: mollieApiKey });
-
-    // Check of username al bestaat
-    const { data: existingUser } = await supabase
-      .from('student_profiles')
-      .select('name')
-      .eq('name', username.toLowerCase())
-      .maybeSingle();
-
-    if (existingUser) {
-      return res.status(400).json({ error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.' });
-    }
 
     // Check of email al een actieve subscription heeft
     const { data: existingSubscription } = await supabase
@@ -125,7 +126,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { data: existingPending } = await supabase
       .from('pending_registrations')
       .select('*')
-      .or(`email.eq.${email.toLowerCase()},username.eq.${username.toLowerCase()}`)
+      .eq('email', email.toLowerCase())
       .maybeSingle();
 
     if (existingPending) {
@@ -136,12 +137,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('id', existingPending.id);
     }
 
-    // Maak Mollie customer aan
+    // Maak Mollie customer aan (gebruik email als naam)
     const customer = await mollie.customers.create({
-      name: username,
+      name: email.toLowerCase(),
       email: email.toLowerCase(),
       metadata: {
-        username: username.toLowerCase(),
         level: level
       }
     });
@@ -163,22 +163,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       webhookUrl: `${appUrl}/api/mollie-webhook`,
       metadata: {
         type: 'verification',
-        username: username.toLowerCase(),
         email: email.toLowerCase(),
         level: level
-        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
       }
     })) as Payment;
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
-    // Sla pending registration op (zonder wachtwoord - security)
+    // Versleutel het wachtwoord veilig voor tijdelijke opslag
+    // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
+    // Het wachtwoord wordt verwijderd na account activatie
+    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+    const encryptedPassword = encryptPassword(password, encryptionKey);
+
+    // Sla pending registration op met versleuteld wachtwoord
     const { error: pendingError } = await supabase
       .from('pending_registrations')
       .insert({
         email: email.toLowerCase(),
-        username: username.toLowerCase(),
-        // SECURITY: Wachtwoord wordt NIET opgeslagen - gebruiker krijgt reset email na betaling
+        password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
         level: level,
         mollie_customer_id: customer.id,
         mollie_payment_id: payment.id,

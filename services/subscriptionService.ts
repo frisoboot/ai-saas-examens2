@@ -31,7 +31,7 @@ export interface PaymentStatusResponse {
   success: boolean;
   status: 'paid' | 'pending' | 'failed' | 'canceled' | 'expired' | 'open';
   message: string;
-  username: string | null;
+  email: string | null;
   accountReady: boolean;
   paymentMethod?: string;
   error?: string;
@@ -70,19 +70,18 @@ export async function checkSubscription(email: string): Promise<SubscriptionStat
  */
 export async function createCheckout(
   email: string,
-  username: string,
   password: string,
   level: 'VMBO-TL' | 'HAVO' | 'VWO'
 ): Promise<CheckoutResponse> {
   try {
-    console.log('Starting checkout for:', email, username, level);
+    console.log('Starting checkout for:', email, level);
 
     const response = await fetch(`${API_BASE}/api/create-checkout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, username, password, level })
+      body: JSON.stringify({ email, password, level })
     });
 
     console.log('Checkout response status:', response.status);
@@ -156,7 +155,7 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
         success: false,
         status: 'failed',
         message: data.error || 'Kon betaalstatus niet ophalen',
-        username: null,
+        email: null,
         accountReady: false
       };
     }
@@ -168,7 +167,7 @@ export async function checkPaymentStatus(paymentId: string): Promise<PaymentStat
       success: false,
       status: 'failed',
       message: 'Netwerk fout bij ophalen betaalstatus',
-      username: null,
+      email: null,
       accountReady: false
     };
   }

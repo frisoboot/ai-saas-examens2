@@ -368,9 +368,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
          )}
 
          <div className="p-4 border-t border-slate-100 mt-auto">
-            <Button variant="secondary" onClick={onBack} className="w-full justify-start text-slate-500">
+            <Button variant="secondary" onClick={() => { onBack(); }} className="w-full justify-start text-slate-500">
                <ArrowLeft className="w-4 h-4 mr-2" />
-               Afsluiten
+               Uitloggen
             </Button>
          </div>
       </aside>

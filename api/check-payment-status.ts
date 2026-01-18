@@ -53,19 +53,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // Security: Valideer eerst dat dit een bekende payment is van ons systeem
+    // Dit voorkomt dat willekeurige payment IDs kunnen worden opgevraagd
+    const { data: knownPayment } = await supabase
+      .from('pending_registrations')
+      .select('id, email')
+      .eq('mollie_payment_id', paymentId)
+      .maybeSingle();
+
+    // Als de payment niet in pending_registrations staat, check of er een payment record is
+    const { data: paymentRecord } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('mollie_payment_id', paymentId)
+      .maybeSingle();
+
+    // Payment moet bekend zijn in ons systeem
+    if (!knownPayment && !paymentRecord) {
+      console.log('Unknown payment ID requested:', paymentId);
+      return res.status(404).json({
+        success: false,
+        error: 'Betaling niet gevonden'
+      });
+    }
+
     // Haal payment op bij Mollie
     const payment = await mollie.payments.get(paymentId);
 
     const metadata = payment.metadata as {
       type?: string;
-      username?: string;
       email?: string;
     } | null;
 
     // Bepaal de status
     let status: 'paid' | 'pending' | 'failed' | 'canceled' | 'expired' | 'open';
     let message: string;
-    let username: string | null = metadata?.username || null;
+    let email: string | null = metadata?.email || null;
 
     switch (payment.status) {
       case 'paid':
@@ -99,11 +122,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Als betaling geslaagd is, check of account al aangemaakt is
     let accountReady = false;
-    if (status === 'paid' && username) {
+    if (status === 'paid' && email) {
       const { data: profile } = await supabase
         .from('student_profiles')
-        .select('name')
-        .eq('name', username)
+        .select('email')
+        .eq('email', email)
         .maybeSingle();
 
       accountReady = !!profile;
@@ -113,7 +136,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       status,
       message,
-      username,
+      email,
       accountReady,
       paymentMethod: payment.method || null
     });
