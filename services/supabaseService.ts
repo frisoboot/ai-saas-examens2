@@ -241,6 +241,18 @@ export const dbResults = {
   }
 };
 
+// Helper: converteer database row naar StudentProfile
+const mapDbToProfile = (row: any): StudentProfile | null => {
+  if (!row) return null;
+  return {
+    name: row.name,
+    level: row.level,
+    strugglePoints: row.struggle_points || '',
+    email: row.email,
+    isActive: row.is_active ?? true
+  };
+};
+
 // Student profielen operaties
 export const dbStudents = {
   async getByName(name: string): Promise<StudentProfile | null> {
@@ -259,7 +271,7 @@ export const dbStudents = {
       throw error;
     }
 
-    return data;
+    return mapDbToProfile(data);
   },
 
   async save(profile: StudentProfile): Promise<StudentProfile> {
@@ -267,9 +279,18 @@ export const dbStudents = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
+    // Converteer naar database format (snake_case)
+    const dbData = {
+      email: profile.email,
+      name: profile.name,
+      level: profile.level,
+      struggle_points: profile.strugglePoints || '',
+      is_active: profile.isActive ?? true
+    };
+
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
-      .upsert(profile, { onConflict: 'name' })
+      .upsert(dbData, { onConflict: 'email' })
       .select()
       .single();
 
@@ -278,7 +299,7 @@ export const dbStudents = {
       throw error;
     }
 
-    return data;
+    return mapDbToProfile(data)!;
   },
 
   async getAll(): Promise<StudentProfile[]> {
@@ -296,7 +317,7 @@ export const dbStudents = {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(row => mapDbToProfile(row)!);
   },
 
   async getByEmail(email: string): Promise<StudentProfile | null> {
@@ -315,7 +336,7 @@ export const dbStudents = {
       throw error;
     }
 
-    return data;
+    return mapDbToProfile(data);
   },
 
   async delete(email: string): Promise<void> {
@@ -438,22 +459,44 @@ export const userProfile = {
    * Combineert Supabase Auth user met student_profiles tabel
    */
   async getCurrentProfile(): Promise<StudentProfile | null> {
-    const { user, error: userError } = await auth.getUser();
+    try {
+      const { user, error: userError } = await auth.getUser();
 
-    if (userError || !user) {
+      if (userError || !user) {
+        return null;
+      }
+
+      // Probeer profiel te vinden via email
+      try {
+        const profile = await dbStudents.getByEmail(user.email || '');
+        if (profile) {
+          return profile;
+        }
+      } catch (e) {
+        console.log('Geen profiel gevonden via email, probeer naam');
+      }
+
+      // Fallback: probeer via naam (voor oudere accounts)
+      try {
+        const profileByName = await dbStudents.getByName(user.email?.split('@')[0] || '');
+        if (profileByName) {
+          return profileByName;
+        }
+      } catch (e) {
+        console.log('Geen profiel gevonden via naam');
+      }
+
+      // Als geen profiel gevonden, maak een default profiel voor admins
+      return {
+        name: user.email?.split('@')[0] || 'User',
+        level: 'HAVO',
+        strugglePoints: '',
+        email: user.email,
+        isActive: true
+      };
+    } catch (error) {
+      console.error('Fout bij ophalen profiel:', error);
       return null;
     }
-
-    // Probeer profiel te vinden via email
-    const profile = await dbStudents.getByEmail(user.email || '');
-
-    if (profile) {
-      return profile;
-    }
-
-    // Fallback: probeer via naam (voor oudere accounts)
-    const profileByName = await dbStudents.getByName(user.email?.split('@')[0] || '');
-
-    return profileByName;
   }
 };

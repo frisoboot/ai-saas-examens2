@@ -30,12 +30,13 @@ CREATE TABLE IF NOT EXISTS exam_results (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabel voor student profielen
+-- Tabel voor student profielen (EMAIL is primaire sleutel)
 CREATE TABLE IF NOT EXISTS student_profiles (
-  name TEXT PRIMARY KEY,
-  password TEXT NOT NULL,
+  email TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
   struggle_points TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -97,3 +98,6 @@ CREATE POLICY "Allow public insert access to student_profiles" ON student_profil
 
 CREATE POLICY "Allow public update access to student_profiles" ON student_profiles
     FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete access to student_profiles" ON student_profiles
+    FOR DELETE USING (true);
