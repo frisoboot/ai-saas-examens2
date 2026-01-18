@@ -384,20 +384,30 @@ export const auth = {
 
   /**
    * Uitloggen
+   * Gebruikt scope: 'global' om alle sessies te beëindigen voor betere stabiliteit
    */
   async signOut(): Promise<{ error: string | null }> {
     if (!supabase) {
       return { error: 'Supabase niet geconfigureerd' };
     }
 
-    const { error } = await supabase.auth.signOut();
+    try {
+      // Gebruik 'global' scope om alle sessies te beëindigen
+      // Dit voorkomt problemen met stale sessies
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
 
-    if (error) {
-      console.error('Uitlogfout:', error);
-      return { error: error.message };
+      if (error) {
+        console.error('Uitlogfout:', error);
+        return { error: error.message };
+      }
+
+      return { error: null };
+    } catch (err) {
+      // Vang network errors en andere exceptions op
+      const errorMessage = err instanceof Error ? err.message : 'Onbekende fout bij uitloggen';
+      console.error('Uitloggen exception:', errorMessage);
+      return { error: errorMessage };
     }
-
-    return { error: null };
   },
 
   /**

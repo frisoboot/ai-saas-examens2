@@ -18,7 +18,7 @@ interface AuthState {
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
-  signOut: () => Promise<void>;
+  signOut: () => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
 }
 
@@ -148,16 +148,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Sign out functie
-  const signOut = async () => {
-    await auth.signOut();
-    setState({
-      user: null,
-      session: null,
-      profile: null,
-      isLoading: false,
-      isAuthenticated: false,
-      isAdmin: false
-    });
+  const signOut = async (): Promise<{ error: string | null }> => {
+    try {
+      const { error } = await auth.signOut();
+
+      if (error) {
+        console.error('Uitloggen mislukt:', error);
+        return { error };
+      }
+
+      // Reset state alleen na succesvolle logout
+      setState({
+        user: null,
+        session: null,
+        profile: null,
+        isLoading: false,
+        isAuthenticated: false,
+        isAdmin: false
+      });
+
+      return { error: null };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Onbekende fout bij uitloggen';
+      console.error('Uitloggen exception:', errorMessage);
+      return { error: errorMessage };
+    }
   };
 
   // Refresh profile
