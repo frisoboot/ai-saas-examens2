@@ -316,6 +316,22 @@ export const dbStudents = {
     }
 
     return data;
+  },
+
+  async delete(email: string): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { error } = await supabase
+      .from(TABLES.STUDENTS)
+      .delete()
+      .eq('email', email);
+
+    if (error) {
+      console.error('Fout bij verwijderen student profiel:', error);
+      throw error;
+    }
   }
 };
 
