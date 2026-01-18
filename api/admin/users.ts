@@ -136,19 +136,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Maak user aan in Supabase Auth
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-        email,
+        email: email.trim().toLowerCase(),
         password,
-        email_confirm: true, // Skip email verification
+        email_confirm: true,
         user_metadata: {
-          name,
+          name: name.trim(),
           level
         }
       });
 
       if (createError) {
         console.error('Fout bij aanmaken user:', createError);
+        console.error('Email gebruikt:', email.trim().toLowerCase());
+        console.error('Password length:', password.length);
+
         if (createError.message.includes('already been registered')) {
           return res.status(400).json({ error: 'Dit email adres is al geregistreerd' });
+        }
+        if (createError.message.includes('not match the expected pattern')) {
+          return res.status(400).json({
+            error: 'Ongeldig email formaat. Gebruik een geldig email adres zoals naam@domein.nl',
+            details: createError.message
+          });
         }
         return res.status(500).json({ error: 'Kon gebruiker niet aanmaken: ' + createError.message });
       }
@@ -157,8 +166,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { error: profileError } = await supabaseAdmin
         .from('student_profiles')
         .upsert({
-          name,
-          email,
+          email: email.trim().toLowerCase(),
+          name: name.trim(),
           level,
           struggle_points: '',
           is_active: true
