@@ -84,17 +84,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // GET - Haal alle gebruikers op
     // ========================================================================
     if (req.method === 'GET') {
-      const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+      const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers();
 
       if (listError) {
         console.error('Fout bij ophalen users:', listError);
         return res.status(500).json({ error: 'Kon gebruikers niet ophalen' });
       }
 
+      const users = data?.users || [];
+
       // Filter alleen non-admin users en map naar simpele structuur
       const students = users
-        .filter(u => !isAdminEmail(u.email))
-        .map(u => ({
+        .filter((u: any) => !isAdminEmail(u.email))
+        .map((u: any) => ({
           id: u.id,
           email: u.email,
           createdAt: u.created_at,
@@ -194,13 +196,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Als alleen email gegeven, zoek userId
       if (!userIdToDelete && email) {
-        const { data: { users }, error: searchError } = await supabaseAdmin.auth.admin.listUsers();
+        const { data, error: searchError } = await supabaseAdmin.auth.admin.listUsers();
 
         if (searchError) {
           return res.status(500).json({ error: 'Kon gebruiker niet vinden' });
         }
 
-        const foundUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+        const allUsers = data?.users || [];
+        const foundUser = allUsers.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
         if (!foundUser) {
           return res.status(404).json({ error: 'Gebruiker niet gevonden' });
         }
