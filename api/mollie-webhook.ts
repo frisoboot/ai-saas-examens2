@@ -19,6 +19,17 @@ function generateSecurePassword(): string {
   return crypto.randomBytes(32).toString('base64url');
 }
 
+function createStudentEmail(username: string): string {
+  const normalized = username
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-+|-+$)/g, '');
+  const safeLocalPart = normalized.length > 0 ? normalized : 'student';
+  const suffix = crypto.randomBytes(4).toString('hex');
+  return `${safeLocalPart}-${suffix}@student.example.com`;
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Mollie webhooks zijn altijd POST requests
   if (req.method !== 'POST') {
@@ -122,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Maak Supabase Auth user aan met tijdelijk wachtwoord
       // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-      const studentEmail = `${username}@student.example.com`;
+      const studentEmail = createStudentEmail(username);
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: studentEmail,
         password: temporaryPassword,
