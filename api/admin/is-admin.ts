@@ -1,35 +1,14 @@
 /**
- * Vercel Serverless Function - Admin Subscriptions
+ * Vercel Serverless Function - Admin status check
  *
- * Haalt alle subscriptions op voor het admin dashboard.
- * Vereist admin authenticatie via admin_users tabel.
+ * Valideert JWT en retourneert admin status op basis van admin_users tabel.
  */
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from '../utils/cors.ts';
 
-const isAdminUser = async (
-  supabase: ReturnType<typeof createClient>,
-  userId: string
-): Promise<boolean> => {
-  const { data, error } = await supabase
-    .from('admin_users')
-    .select('auth_user_id')
-    .eq('auth_user_id', userId)
-    .eq('is_active', true)
-    .maybeSingle();
-
-  if (error) {
-    console.error('Fout bij ophalen admin status:', error);
-    throw error;
-  }
-
-  return Boolean(data);
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
   setCorsHeaders(res, req.headers.origin, 'GET,OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -41,7 +20,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Environment variables check
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -50,7 +28,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
-    // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -58,45 +35,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // Haal Authorization header om user te verifiëren
     const authHeader = req.headers.authorization;
     if (!authHeader?.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Niet geautoriseerd' });
     }
 
     const token = authHeader.substring(7);
-
-    // Verifieer de user via Supabase
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
       return res.status(401).json({ error: 'Ongeldige sessie' });
     }
 
-    // Check of user admin is
-    const isAdmin = await isAdminUser(supabase, user.id);
-    if (!isAdmin) {
-      return res.status(403).json({ error: 'Geen admin rechten' });
-    }
+    const { data: adminRecord, error: adminError } = await supabase
+      .from('admin_users')
+      .select('auth_user_id')
+      .eq('auth_user_id', user.id)
+      .eq('is_active', true)
+      .maybeSingle();
 
-    // Haal alle subscriptions op
-    const { data: subscriptions, error: subError } = await supabase
-      .from('subscriptions')
-      .select('id, user_email, status, trial_start, trial_end, created_at')
-      .order('created_at', { ascending: false });
-
-    if (subError) {
-      console.error('Fout bij ophalen subscriptions:', subError);
-      return res.status(500).json({ error: 'Kon subscriptions niet ophalen' });
+    if (adminError) {
+      console.error('Fout bij ophalen admin status:', adminError);
+      return res.status(500).json({ error: 'Kon admin status niet ophalen' });
     }
 
     return res.status(200).json({
-      success: true,
-      subscriptions: subscriptions || []
+      isAdmin: Boolean(adminRecord)
     });
-
   } catch (error: any) {
-    console.error('Admin subscriptions error:', error);
+    console.error('Admin status error:', error);
     return res.status(500).json({
       error: 'Er ging iets mis',
       details: error.message

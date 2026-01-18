@@ -40,6 +40,15 @@ CREATE TABLE IF NOT EXISTS student_profiles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Tabel voor admin rollen (gekoppeld aan Supabase Auth users)
+CREATE TABLE IF NOT EXISTS admin_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Indexen voor betere performance
 CREATE INDEX IF NOT EXISTS idx_questions_subject ON questions(subject);
 CREATE INDEX IF NOT EXISTS idx_questions_level ON questions(level);
@@ -47,6 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_questions_type ON questions(type);
 CREATE INDEX IF NOT EXISTS idx_exam_results_student ON exam_results(student_name);
 CREATE INDEX IF NOT EXISTS idx_exam_results_subject ON exam_results(subject);
 CREATE INDEX IF NOT EXISTS idx_exam_results_date ON exam_results(date);
+CREATE INDEX IF NOT EXISTS idx_admin_auth_user_id ON admin_users(auth_user_id);
 
 -- Functie om updated_at automatisch bij te werken
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -69,6 +79,7 @@ CREATE TRIGGER update_student_profiles_updated_at BEFORE UPDATE ON student_profi
 ALTER TABLE questions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exam_results ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
 
 -- Policies voor publieke toegang (pas aan naar jouw behoeften)
 CREATE POLICY "Allow public read access to questions" ON questions
@@ -97,3 +108,7 @@ CREATE POLICY "Allow public insert access to student_profiles" ON student_profil
 
 CREATE POLICY "Allow public update access to student_profiles" ON student_profiles
     FOR UPDATE USING (true);
+
+-- Policies voor admin_users: alleen server-side beheren (service role/edge functions)
+CREATE POLICY "Admin roles managed server-side only" ON admin_users
+    FOR ALL USING (false) WITH CHECK (false);
