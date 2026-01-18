@@ -97,3 +97,6 @@ CREATE POLICY "Allow public insert access to student_profiles" ON student_profil
 
 CREATE POLICY "Allow public update access to student_profiles" ON student_profiles
     FOR UPDATE USING (true);
+
+CREATE POLICY "Allow public delete access to student_profiles" ON student_profiles
+    FOR DELETE USING (true);
