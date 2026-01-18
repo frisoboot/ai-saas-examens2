@@ -154,15 +154,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Maak student profiel aan in database
+      // Let op: password veld is verplicht in oude schema, maar we gebruiken Supabase Auth
+      // Na migratie kan password weggelaten worden
       const { error: profileError } = await supabaseAdmin
         .from('student_profiles')
         .upsert({
           name,
           email,
           level,
+          password: '', // Legacy veld, niet gebruikt (auth via Supabase)
           struggle_points: '',
           is_active: true
-        }, { onConflict: 'email' });
+        }, { onConflict: 'name' }); // Primary key is 'name', niet 'email'
 
       if (profileError) {
         console.error('Fout bij aanmaken profiel:', profileError);
