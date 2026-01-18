@@ -77,6 +77,8 @@ ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS created_by_admin TEXT;
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT TRUE;
 ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS email TEXT;
+ALTER TABLE student_profiles ADD COLUMN IF NOT EXISTS auth_user_id UUID;
+ALTER TABLE student_profiles ALTER COLUMN auth_user_id SET NOT NULL;
 
 -- Note: Password migration will happen in application code
 -- After migration is complete and verified, run: ALTER TABLE student_profiles DROP COLUMN password;
