@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS exam_results (
 -- Tabel voor student profielen
 CREATE TABLE IF NOT EXISTS student_profiles (
   name TEXT PRIMARY KEY,
+  auth_user_id UUID NOT NULL,
   password TEXT NOT NULL,
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
   struggle_points TEXT,

@@ -262,6 +262,25 @@ export const dbStudents = {
     return data;
   },
 
+  async getByAuthUserId(authUserId: string): Promise<StudentProfile | null> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.STUDENTS)
+      .select('*')
+      .eq('auth_user_id', authUserId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Fout bij ophalen student via auth user id:', error);
+      throw error;
+    }
+
+    return data;
+  },
+
   async save(profile: StudentProfile): Promise<StudentProfile> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');
@@ -428,16 +447,6 @@ export const userProfile = {
       return null;
     }
 
-    // Probeer profiel te vinden via email
-    const profile = await dbStudents.getByEmail(user.email || '');
-
-    if (profile) {
-      return profile;
-    }
-
-    // Fallback: probeer via naam (voor oudere accounts)
-    const profileByName = await dbStudents.getByName(user.email?.split('@')[0] || '');
-
-    return profileByName;
+    return dbStudents.getByAuthUserId(user.id);
   }
 };
