@@ -114,7 +114,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     } else if (state === 'paid' && accountReady && countdown === 0) {
       onLogin();
     }
-  }, [state, accountReady, countdown, username, onLogin]);
+  }, [state, accountReady, countdown, onLogin]);
 
   const renderContent = () => {
     switch (state) {
