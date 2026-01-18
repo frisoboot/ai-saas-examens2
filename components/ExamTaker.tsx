@@ -68,6 +68,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }, 1000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [remainingSeconds, isFinished, isSubmitting]);
 
   const formatTime = (seconds: number): string => {
@@ -230,7 +231,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
           {/* AI Summary Section */}
           {(loadingSummary || examSummary) && (
-            <ExamSummaryCard summary={examSummary!} isLoading={loadingSummary} />
+            <ExamSummaryCard summary={examSummary} isLoading={loadingSummary} />
           )}
 
           {/* Question Review Cards */}

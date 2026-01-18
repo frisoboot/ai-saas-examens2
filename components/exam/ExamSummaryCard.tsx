@@ -9,12 +9,12 @@ interface ExamSummary {
 }
 
 interface ExamSummaryCardProps {
-  summary: ExamSummary;
+  summary: ExamSummary | null;
   isLoading: boolean;
 }
 
 export const ExamSummaryCard: React.FC<ExamSummaryCardProps> = ({ summary, isLoading }) => {
-  if (isLoading) {
+  if (isLoading || !summary) {
     return (
       <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl p-8 md:p-12 mb-8 border border-indigo-200 animate-pulse">
         <div className="flex flex-col items-center justify-center gap-4 text-indigo-600">
