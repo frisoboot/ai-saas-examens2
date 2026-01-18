@@ -59,6 +59,7 @@ export interface StudentProfile {
   name: string;
   level: StudentLevel;
   strugglePoints: string;
+  authUserId?: string;
   email?: string;
   isActive?: boolean;
 }
