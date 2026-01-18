@@ -1,15 +1,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
-import { Button } from './Button';
-import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
-
-// Sanitize user input to prevent XSS attacks - strips HTML tags entirely
-const sanitizeText = (text: string): string => {
-  return text.replace(/<[^>]*>/g, '');
-};
+import { sanitizeText } from '../utils/sanitize';
+import { SUBJECTS } from '../constants/subjects';
 
 interface StudentDashboardProps {
   student: StudentProfile;
@@ -21,13 +17,6 @@ interface StudentDashboardProps {
   onLogout?: () => void;
   onAdminDashboard?: () => void;
 }
-
-// All available subjects - always shown to students
-const ALL_SUBJECTS = [
-  'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
-  'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
-  'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
-];
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   student,
@@ -170,7 +159,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {ALL_SUBJECTS.map((subject) => {
+                {SUBJECTS.map((subject) => {
                   const examCount = examCounts.get(subject) || 0;
                   const Icon = getSubjectIcon(subject);
                   const colorClass = getSubjectColor(subject);
