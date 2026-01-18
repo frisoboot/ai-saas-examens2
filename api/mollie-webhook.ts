@@ -94,7 +94,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const metadata = payment.metadata as {
       type?: string;
-      username?: string;
       email?: string;
       level?: string;
     } | null;
@@ -108,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // VERIFICATIE BETALING (€1.00) - Account activatie
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
-      console.log('Processing verification payment for:', metadata.username);
+      console.log('Processing verification payment for:', metadata.email);
 
       // Haal pending registration op
       const { data: pending } = await supabase
@@ -118,11 +117,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle();
 
       // Gebruik data uit pending registration of fallback naar metadata
-      const username = pending?.username || metadata.username;
       const email = pending?.email || metadata.email;
       const level = pending?.level || metadata.level;
 
-      if (!username || !email || !level) {
+      if (!email || !level) {
         console.error('Missing registration data');
         return res.status(200).json({ received: true, error: 'Missing registration data' });
       }
@@ -149,8 +147,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Check of account al bestaat (idempotency)
       const { data: existingProfile } = await supabase
         .from('student_profiles')
-        .select('name')
-        .eq('name', username)
+        .select('email')
+        .eq('email', email)
         .maybeSingle();
 
       if (existingProfile) {
@@ -165,18 +163,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Maak Supabase Auth user aan met het wachtwoord van de gebruiker
-      // (.local TLD wordt niet geaccepteerd door Supabase's e-mail validatie)
-      const studentEmail = `${username}@student.example.com`;
+      // Maak Supabase Auth user aan met het echte email adres
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: studentEmail,
+        email: email,
         password: userPassword,
         email_confirm: true,
         user_metadata: {
           role: 'student',
-          name: username,
-          level: level,
-          real_email: email
+          level: level
         }
       });
 
@@ -187,22 +181,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       console.log('Created auth user:', authUser.user?.id);
 
-      // NOTE: Password reset links werken alleen met het email adres waarmee de auth user is aangemaakt
-      // Aangezien we @student.example.com gebruiken (wat geen echt email is), kunnen we geen
-      // reset link sturen. De gebruiker logt in met hun username en het tijdelijke wachtwoord
-      // wordt niet gedeeld - ze moeten contact opnemen voor account recovery.
-      //
-      // TODO: Overweeg om het echte email adres te gebruiken voor auth users in de toekomst,
-      // zodat password reset emails wel werken.
-
-      // Maak student profile aan
+      // Maak student profile aan (email als primary key)
       const { error: profileError } = await supabase
         .from('student_profiles')
         .insert({
-          name: username,
+          email: email,
+          name: email, // Gebruik email als naam
           level: level,
           struggle_points: '',
-          email: email,
           is_active: true,
           auth_user_id: authUser.user?.id
         });
@@ -231,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from('subscriptions')
         .insert({
           user_email: email,
-          user_name: username,
+          user_name: email, // Gebruik email als naam
           status: 'trial',
           plan_type: 'individual',
           price_cents: 1250,
@@ -293,8 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               webhookUrl: `${appUrl}/api/mollie-webhook`,
               metadata: {
                 type: 'subscription_payment',
-                email: email,
-                username: username
+                email: email
               }
             });
 
@@ -324,7 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Deleted pending registration');
       }
 
-      console.log('Account activation complete for:', username);
+      console.log('Account activation complete for:', email);
     }
 
     // ========================================================================
@@ -332,7 +317,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // ========================================================================
     if (metadata.type === 'verification' &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
-      console.log('Verification payment failed for:', metadata.username);
+      console.log('Verification payment failed for:', metadata.email);
 
       // Verwijder pending registration
       await supabase

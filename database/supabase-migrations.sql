@@ -162,11 +162,16 @@ CREATE INDEX IF NOT EXISTS idx_student_profiles_auth_user ON student_profiles(au
 
 -- ============================================================================
 -- MIGRATION 8: Update pending_registrations - password_hash kolom
--- Wachtwoord wordt tijdelijk gehasht opgeslagen tot account activatie
+-- Wachtwoord wordt tijdelijk versleuteld opgeslagen tot account activatie
 -- ============================================================================
--- Hernoem oude kolom naar nieuwe naam als deze bestaat
 ALTER TABLE pending_registrations DROP COLUMN IF EXISTS password_encrypted;
 ALTER TABLE pending_registrations ADD COLUMN IF NOT EXISTS password_hash TEXT;
+
+-- ============================================================================
+-- MIGRATION 9: Verwijder username - login is nu via email
+-- ============================================================================
+ALTER TABLE pending_registrations DROP COLUMN IF EXISTS username;
+DROP INDEX IF EXISTS idx_pending_username;
 
 -- ============================================================================
 -- MIGRATION COMPLETE

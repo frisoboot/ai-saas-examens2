@@ -22,7 +22,7 @@ type PaymentState = 'checking' | 'paid' | 'pending' | 'failed' | 'no_payment';
 export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRetry }) => {
   const [state, setState] = useState<PaymentState>('checking');
   const [message, setMessage] = useState('');
-  const [username, setUsername] = useState<string | null>(null);
+  const [email, setEmail] = useState<string | null>(null);
   const [accountReady, setAccountReady] = useState(false);
   const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
@@ -47,7 +47,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
       const result = await checkPaymentStatus(paymentId);
 
       if (result.success) {
-        setUsername(result.username);
+        setEmail(result.email);
         setAccountReady(result.accountReady);
 
         switch (result.status) {
@@ -148,7 +148,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               Betaling geslaagd!
             </h1>
             <p className="text-xl text-gray-600 mb-6">
-              Welkom bij AI Examentrainer{username ? `, ${username}` : ''}!
+              Welkom bij AI Examentrainer!
             </p>
 
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 mb-6">
@@ -210,11 +210,11 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
             </div>
 
             {/* Login Credentials Reminder */}
-            {accountReady && username && (
+            {accountReady && email && (
               <div className="bg-blue-50 rounded-xl p-4 border border-blue-100 text-left">
                 <p className="font-medium text-blue-800 mb-2">Je inloggegevens:</p>
                 <div className="space-y-1 text-sm text-blue-700">
-                  <p><span className="font-medium">Gebruikersnaam:</span> {username}</p>
+                  <p><span className="font-medium">E-mail:</span> {email}</p>
                   <p><span className="font-medium">Wachtwoord:</span> Het wachtwoord dat je hebt gekozen</p>
                 </div>
               </div>
