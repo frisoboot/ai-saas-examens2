@@ -16,7 +16,7 @@ import { setCorsHeaders } from './utils/cors';
 let _ai: GoogleGenAI | null = null;
 
 // Model configuration - use Gemini 3 Flash for all AI operations
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
 const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash';
 
 const getAI = (): GoogleGenAI => {
