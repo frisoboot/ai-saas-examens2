@@ -28,6 +28,12 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
       setSubscription(status);
     } catch (error) {
       console.error('Error loading subscription:', error);
+      // Set a default status on error
+      setSubscription({
+        hasAccess: false,
+        status: 'none',
+        message: 'Kon abonnement niet laden'
+      });
     } finally {
       setLoading(false);
     }
@@ -163,8 +169,33 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                 {/* Status Message */}
                 <div className="flex items-center justify-between py-3 border-b border-slate-100">
                   <span className="text-slate-500">Status</span>
-                  <span className="font-medium text-slate-900">{subscription?.message || 'Onbekend'}</span>
+                  <span className="font-medium text-slate-900">
+                    {subscription?.message === 'Database fout'
+                      ? 'Kon gegevens niet ophalen'
+                      : (subscription?.message || 'Onbekend')}
+                  </span>
                 </div>
+
+                {/* Error/No subscription message */}
+                {(subscription?.message === 'Database fout' || subscription?.status === 'none') && (
+                  <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-amber-900">
+                          {subscription?.message === 'Database fout'
+                            ? 'Er ging iets mis bij het ophalen van je abonnementsgegevens.'
+                            : 'Je hebt nog geen actief abonnement.'}
+                        </p>
+                        <p className="text-sm text-amber-700 mt-1">
+                          {subscription?.message === 'Database fout'
+                            ? 'Probeer de pagina te vernieuwen. Als het probleem aanhoudt, neem contact op met support.'
+                            : 'Start een proefperiode om toegang te krijgen tot alle functies.'}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Trial Info */}
                 {subscription?.status === 'trial' && subscription.trialEndsAt && (
