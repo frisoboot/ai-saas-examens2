@@ -3,17 +3,14 @@ import { StudentProfile } from '../types';
 import { createSubjectChat } from '../services/geminiService';
 import { Button } from './Button';
 import { Send, ArrowLeft, Bot, User, Sparkles } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import { sanitizeText } from '../utils/sanitize';
+
 // Chat interface returned by createSubjectChat (server-side wrapper)
 interface ChatInterface {
   sessionId: string;
   sendMessage: (message: string) => Promise<string>;
 }
-import ReactMarkdown from 'react-markdown';
-
-// Sanitize user input to prevent XSS attacks - strips HTML tags entirely
-const sanitizeText = (text: string): string => {
-  return text.replace(/<[^>]*>/g, '');
-};
 
 interface SubjectChatProps {
   subject: string;

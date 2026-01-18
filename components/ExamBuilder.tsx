@@ -1,15 +1,9 @@
 import React, { useState } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { saveQuestion } from '../services/storageService';
-import { imageStorage } from '../services/imageStorageService';
 import { Button } from './Button';
-import { Plus, Save, Trash2, Image as ImageIcon, FileText, CheckCircle, ArrowLeft, Eye } from 'lucide-react';
-
-const SUBJECTS = [
-  'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
-  'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
-  'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
-];
+import { Plus, Save, Trash2, FileText, ArrowLeft, Eye } from 'lucide-react';
+import { SUBJECTS } from '../constants/subjects';
 
 interface ExamMetadata {
   subject: string;

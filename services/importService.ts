@@ -1,21 +1,16 @@
 import { Question, BulkImportQuestion, ImportResult, ImportError, StudentLevel, QuestionType } from '../types';
 import { saveQuestion } from './storageService';
-
-const VALID_SUBJECTS = [
-  'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
-  'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
-  'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
-];
+import { SUBJECTS } from '../constants/subjects';
 
 // Validate a single question
 const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => {
   const errors: ImportError[] = [];
 
-  if (!q.subject || !VALID_SUBJECTS.includes(q.subject)) {
+  if (!q.subject || !SUBJECTS.includes(q.subject)) {
     errors.push({
       row,
       field: 'subject',
-      message: `Ongeldig vak: ${q.subject}. Geldige vakken: ${VALID_SUBJECTS.join(', ')}`
+      message: `Ongeldig vak: ${q.subject}. Geldige vakken: ${SUBJECTS.join(', ')}`
     });
   }
 

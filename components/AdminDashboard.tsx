@@ -7,6 +7,7 @@ import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
 import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2 } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
+import { SUBJECTS } from '../constants/subjects';
 
 interface AdminDashboardProps {
   onBack: () => void | Promise<void>;
@@ -14,12 +15,6 @@ interface AdminDashboardProps {
 }
 
 type AdminTab = 'questions' | 'students' | 'import' | 'exam-builder';
-
-const SUBJECTS = [
-  'Aardrijkskunde', 'Bedrijfseconomie', 'Biologie', 'Duits', 'Economie',
-  'Engels', 'Frans', 'Geschiedenis', 'Kunst Algemeen', 'Maatschappijwetenschappen',
-  'Natuurkunde', 'Nederlands', 'Scheikunde', 'Wiskunde A', 'Wiskunde B', 'Wiskunde C'
-];
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('exam-builder');
