@@ -269,7 +269,7 @@ export const dbStudents = {
 
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
-      .upsert(profile, { onConflict: 'name' })
+      .upsert(profile, { onConflict: 'email' })
       .select()
       .single();
 

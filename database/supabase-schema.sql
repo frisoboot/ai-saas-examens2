@@ -30,12 +30,13 @@ CREATE TABLE IF NOT EXISTS exam_results (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Tabel voor student profielen
+-- Tabel voor student profielen (EMAIL is primaire sleutel)
 CREATE TABLE IF NOT EXISTS student_profiles (
-  name TEXT PRIMARY KEY,
-  password TEXT NOT NULL,
+  email TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
   level TEXT NOT NULL CHECK (level IN ('VMBO-TL', 'HAVO', 'VWO')),
   struggle_points TEXT,
+  is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
