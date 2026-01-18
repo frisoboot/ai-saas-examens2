@@ -241,6 +241,8 @@ const AppContent: React.FC = () => {
   const handleLogout = async () => {
     await signOut();
     setView('PUBLIC_LANDING');
+    // Force page refresh om state volledig te resetten
+    window.location.href = '/';
   };
 
   const renderContent = () => {
