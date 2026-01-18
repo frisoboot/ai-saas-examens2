@@ -23,22 +23,6 @@ interface AuthContextType extends AuthState {
 }
 
 // ============================================================================
-// HELPERS
-// ============================================================================
-
-// Check of email in admin lijst staat (via VITE_ADMIN_EMAILS env var)
-const getAdminEmails = (): string[] => {
-  const adminEmailsStr = import.meta.env?.VITE_ADMIN_EMAILS as string || '';
-  return adminEmailsStr.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
-};
-
-const isAdminEmail = (email: string | undefined): boolean => {
-  if (!email) return false;
-  const adminEmails = getAdminEmails();
-  return adminEmails.includes(email.toLowerCase());
-};
-
-// ============================================================================
 // CONTEXT
 // ============================================================================
 
@@ -57,6 +41,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAuthenticated: false,
     isAdmin: false
   });
+
+  const fetchAdminStatus = useCallback(async (token: string | undefined | null): Promise<boolean> => {
+    if (!token) return false;
+
+    try {
+      const response = await fetch('/api/admin/is-admin', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = await response.json();
+      return Boolean(data?.isAdmin);
+    } catch (error) {
+      console.error('Fout bij ophalen admin status:', error);
+      return false;
+    }
+  }, []);
 
   // Laad profiel voor huidige user
   const loadProfile = useCallback(async () => {
@@ -79,13 +86,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           user: session.user,
           session,
           isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email),
-          isLoading: false
+          isLoading: true
         }));
 
-        // Laad profiel apart
-        const profile = await userProfile.getCurrentProfile();
-        setState(prev => ({ ...prev, profile }));
+        const [profile, isAdmin] = await Promise.all([
+          userProfile.getCurrentProfile(),
+          fetchAdminStatus(session.access_token)
+        ]);
+
+        setState(prev => ({
+          ...prev,
+          profile,
+          isAdmin,
+          isLoading: false
+        }));
       } else {
         setState(prev => ({
           ...prev,
@@ -101,12 +115,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('Auth state change:', event);
 
       if (session?.user) {
+        const isAdmin = await fetchAdminStatus(session.access_token);
+
         setState(prev => ({
           ...prev,
           user: session.user,
           session,
           isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email)
+          isAdmin
         }));
 
         // Laad profiel bij login

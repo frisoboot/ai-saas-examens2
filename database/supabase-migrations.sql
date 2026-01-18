@@ -46,29 +46,18 @@ CREATE TRIGGER update_student_progress_updated_at BEFORE UPDATE ON student_progr
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================================================
--- MIGRATION 3: Create admin_users table
+-- MIGRATION 3: Create admin_users table (Supabase Auth gekoppeld)
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS admin_users (
-  id TEXT PRIMARY KEY,
-  username TEXT UNIQUE NOT NULL,
-  password_hash TEXT NOT NULL,
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  auth_user_id UUID UNIQUE NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  last_login TIMESTAMP WITH TIME ZONE
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Insert default admin (password: admin123)
--- Hash generated with: bcrypt.hash('admin123', 10)
-INSERT INTO admin_users (id, username, password_hash, email)
-VALUES (
-  'admin-001',
-  'admin',
-  '$2b$10$N9qo8uLOickgx2ZMRZoMwOFzZaGLqEdc8Xp0hT5xKqvBnqvC6aOWG',
-  'admin@examentrainer.nl'
-) ON CONFLICT (username) DO NOTHING;
-
--- Index for login queries
-CREATE INDEX IF NOT EXISTS idx_admin_username ON admin_users(username);
+-- Index for admin lookups
+CREATE INDEX IF NOT EXISTS idx_admin_auth_user_id ON admin_users(auth_user_id);
 
 -- ============================================================================
 -- MIGRATION 4: Update student_profiles table
@@ -129,9 +118,9 @@ CREATE POLICY "Allow public insert access to student_progress" ON student_progre
 CREATE POLICY "Allow public update access to student_progress" ON student_progress
     FOR UPDATE USING (true);
 
--- Policies for admin_users (allow login queries)
-CREATE POLICY "Allow admin login queries" ON admin_users
-    FOR SELECT USING (true);
+-- Policies for admin_users (manage via service role/edge functions only)
+CREATE POLICY "Admin roles managed server-side only" ON admin_users
+    FOR ALL USING (false) WITH CHECK (false);
 
 -- Policies for import_history
 CREATE POLICY "Allow public access to import_history" ON import_history
@@ -149,7 +138,7 @@ CREATE POLICY "Allow public access to import_history" ON import_history
 -- SELECT tablename FROM pg_tables WHERE tablename IN ('student_progress', 'admin_users', 'import_history');
 
 -- Check if admin user exists
--- SELECT username FROM admin_users WHERE username = 'admin';
+-- SELECT auth_user_id FROM admin_users LIMIT 1;
 
 -- ============================================================================
 -- MIGRATION COMPLETE

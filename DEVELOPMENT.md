@@ -6,7 +6,7 @@ Dit systeem gebruikt **uitsluitend Supabase Auth** voor alle authenticatie. Er z
 
 ### Admin Account Aanmaken
 
-Admins worden bepaald op basis van email adres:
+Admins worden bepaald op basis van een server-side tabel (`admin_users`) gekoppeld aan Supabase Auth users:
 
 1. Ga naar je Supabase project → Authentication → Users
 2. Klik "Add user" → "Create new user"
@@ -14,7 +14,11 @@ Admins worden bepaald op basis van email adres:
    - **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
    - **Wachtwoord**: Minimaal 12 karakters, sterk wachtwoord
    - **Auto confirm**: Aan
-4. Voeg het email adres toe aan `VITE_ADMIN_EMAILS` in je `.env` bestand
+4. Voeg de user toe aan `admin_users` via de SQL editor:
+   ```sql
+   insert into admin_users (auth_user_id, email)
+   values ('<supabase-auth-user-id>', 'admin@jouwdomein.nl');
+   ```
 
 ### Student Accounts
 
@@ -34,9 +38,6 @@ Maak een `.env` bestand aan met:
 # Supabase (VERPLICHT)
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
-
-# Admin email adressen (komma-gescheiden)
-VITE_ADMIN_EMAILS=admin@jouwdomein.nl
 
 # Server-side only (voor API endpoints)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
@@ -105,7 +106,7 @@ npm run dev
 
 1. **Service Role Key**: NOOIT in de browser, alleen in `/api/*` endpoints
 2. **RLS Policies**: Alle tabellen zijn beveiligd met Row Level Security
-3. **Role-based Access**: Admin rol wordt bepaald via `VITE_ADMIN_EMAILS` environment variable
+3. **Role-based Access**: Admin rol wordt bepaald via `admin_users` (server-side)
 
 ## 📚 Architectuur
 
@@ -118,7 +119,7 @@ npm run dev
    ↓
 3. Supabase Auth signInWithPassword()
    ↓
-4. Email check: staat in VITE_ADMIN_EMAILS?
+4. Server-side check: bestaat er een actieve rij in `admin_users`?
    ↓
 5. Ja → Admin Dashboard
    Nee → Student profiel ophalen → Student Dashboard

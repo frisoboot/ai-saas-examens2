@@ -19,23 +19,24 @@ Alle authenticatie verloopt via Supabase Auth. Er zijn geen fallbacks of alterna
 VITE_SUPABASE_URL=https://your-project.supabase.co
 VITE_SUPABASE_ANON_KEY=your-anon-key
 
-# Admin email adressen (komma-gescheiden)
-VITE_ADMIN_EMAILS=admin@jouwdomein.nl,backup@jouwdomein.nl
-
 # Server-side only (GEEN VITE_ prefix!)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 #### Admin Account Aanmaken
 
-Admins worden bepaald op basis van email adres via `VITE_ADMIN_EMAILS`:
+Admins worden bepaald via de server-side `admin_users` tabel (gekoppeld aan Supabase Auth):
 
 1. Ga naar Supabase → Authentication → Users
 2. Klik "Add user" → "Create new user"
 3. **Email**: Je echte email adres (bijv. `admin@jouwdomein.nl`)
 4. **Wachtwoord**: Minimaal 12 karakters
 5. **Auto confirm**: Aan
-6. **Voeg email toe aan VITE_ADMIN_EMAILS** in je environment variabelen
+6. Voeg de user toe aan `admin_users` via de SQL editor:
+   ```sql
+   insert into admin_users (auth_user_id, email)
+   values ('<supabase-auth-user-id>', 'admin@jouwdomein.nl');
+   ```
 
 **Wachtwoord eisen**:
 - ✅ Minimaal 12 karakters (16+ aanbevolen)
@@ -61,7 +62,7 @@ openssl rand -base64 24
 - ✅ **Unified login** - Één login form voor iedereen
 - ✅ **Session persistence** - Gebruikers blijven ingelogd
 - ✅ **Proper logout** - `signOut()` verwijdert sessie volledig
-- ✅ **Role-based access** - Via `VITE_ADMIN_EMAILS` environment variable
+- ✅ **Role-based access** - Via `admin_users` (server-side)
 - ✅ **RLS policies** - Alle data beveiligd op database niveau
 
 #### 🔄 Aanbevolen voor de toekomst:
@@ -82,7 +83,7 @@ Alle admin operaties gaan via server-side API endpoints:
 
 Deze endpoints:
 - Verifiëren de JWT token
-- Checken of de user admin is (via metadata)
+- Checken of de user admin is (via `admin_users`)
 - Gebruiken de service role key (nooit in browser)
 
 ### 3. Row Level Security (RLS)
@@ -183,11 +184,11 @@ Content-Security-Policy: default-src 'self'
 
 ## 📝 Changelog
 
-### v2.1.0 (2026-01-17) - Admin via Environment Variable
-- ✅ **BREAKING**: Admin rol nu bepaald via `VITE_ADMIN_EMAILS` environment variable
-- ✅ Verwijderd: Afhankelijkheid van `user_metadata.role` voor admin detectie
-- ✅ Toegevoegd: `isAdminEmail()` helper functie
-- ✅ Verbeterd: Makkelijker admin toevoegen zonder Supabase metadata aan te passen
+### v2.2.0 (2026-01-17) - Admin via server-side tabel
+- ✅ **BREAKING**: Admin rol nu bepaald via `admin_users` tabel
+- ✅ Verwijderd: Afhankelijkheid van `VITE_ADMIN_EMAILS` en client-side checks
+- ✅ Toegevoegd: Server-side admin check endpoint (`/api/admin/is-admin`)
+- ✅ Verbeterd: Admin beheer alleen via service role/edge functions
 
 ### v2.0.0 (2026-01-17) - Supabase Auth Only
 - ✅ **BREAKING**: Verwijderd: Server-side admin-login API endpoint
@@ -211,4 +212,4 @@ Content-Security-Policy: default-src 'self'
 ---
 
 **Laatst bijgewerkt**: 17 januari 2026
-**Versie**: 2.1.0
+**Versie**: 2.2.0
