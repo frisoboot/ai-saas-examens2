@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { GoogleGenAI } from "@google/genai";
-import { setCorsHeaders } from './utils/cors';
+import { setCorsHeaders } from './utils/cors.js';
 
 /**
  * Gemini API Endpoint - Server-side AI calls
@@ -39,7 +39,11 @@ async function generateWithFallback(
   contents: string,
   config?: { systemInstruction?: string }
 ): Promise<string> {
+  let lastError: any = null;
+
+  // Try primary model
   try {
+    console.log(`[Gemini API] Trying primary model: ${GEMINI_MODEL}`);
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL,
       contents,
@@ -47,13 +51,23 @@ async function generateWithFallback(
     });
     return response.text || '';
   } catch (error: any) {
-    console.warn(`[Gemini API] Primary model ${GEMINI_MODEL} failed, trying fallback ${GEMINI_MODEL_FALLBACK}:`, error.message);
+    console.warn(`[Gemini API] Primary model ${GEMINI_MODEL} failed:`, error.message);
+    lastError = error;
+  }
+
+  // Try fallback model
+  try {
+    console.log(`[Gemini API] Trying fallback model: ${GEMINI_MODEL_FALLBACK}`);
     const response = await ai.models.generateContent({
       model: GEMINI_MODEL_FALLBACK,
       contents,
       config,
     });
     return response.text || '';
+  } catch (error: any) {
+    console.error(`[Gemini API] Fallback model ${GEMINI_MODEL_FALLBACK} also failed:`, error.message);
+    // Throw the last error with more context
+    throw new Error(`AI modellen niet beschikbaar. Primary: ${lastError?.message || 'unknown'}. Fallback: ${error.message}`);
   }
 }
 
