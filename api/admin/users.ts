@@ -24,11 +24,11 @@ const isAdminEmail = (email: string | undefined): boolean => {
   return adminEmails.includes(email.toLowerCase());
 };
 
-// Genereer een veilig random wachtwoord
+// Genereer een veilig random wachtwoord (alleen letters en cijfers voor compatibiliteit)
 const generatePassword = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
   let password = '';
-  for (let i = 0; i < 12; i++) {
+  for (let i = 0; i < 16; i++) {
     password += chars.charAt(Math.floor(Math.random() * chars.length));
   }
   return password;
