@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
@@ -16,6 +16,7 @@ interface StudentDashboardProps {
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
   onLogout?: () => void;
   onAdminDashboard?: () => void;
+  onSettings?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -26,7 +27,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartFlashcards,
   onStartLookalikeExam,
   onLogout,
-  onAdminDashboard
+  onAdminDashboard,
+  onSettings
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -116,9 +118,18 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
            </div>
         </nav>
 
-        {/* Logout Button */}
-        {onLogout && (
-          <div className="p-6 border-t border-slate-100">
+        {/* Settings & Logout Buttons */}
+        <div className="p-6 border-t border-slate-100 space-y-2">
+          {onSettings && (
+            <button
+              onClick={onSettings}
+              className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
+            >
+              <Settings className="w-5 h-5" />
+              <span className="text-sm font-medium">Instellingen</span>
+            </button>
+          )}
+          {onLogout && (
             <button
               onClick={onLogout}
               className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-slate-700 transition-colors"
@@ -126,8 +137,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <LogOut className="w-5 h-5" />
               <span className="text-sm font-medium">Uitloggen</span>
             </button>
-          </div>
-        )}
+          )}
+        </div>
       </aside>
 
       {/* Main Content */}
@@ -140,15 +151,26 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </div>
               <span className="font-bold text-slate-800">{student.name}</span>
            </div>
-           {onLogout && (
-             <button
-               onClick={onLogout}
-               className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-               title="Uitloggen"
-             >
-               <LogOut className="w-5 h-5" />
-             </button>
-           )}
+           <div className="flex items-center gap-2">
+             {onSettings && (
+               <button
+                 onClick={onSettings}
+                 className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                 title="Instellingen"
+               >
+                 <Settings className="w-5 h-5" />
+               </button>
+             )}
+             {onLogout && (
+               <button
+                 onClick={onLogout}
+                 className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
+                 title="Uitloggen"
+               >
+                 <LogOut className="w-5 h-5" />
+               </button>
+             )}
+           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12">
