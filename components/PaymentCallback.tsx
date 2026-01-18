@@ -44,41 +44,47 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     paymentIdRef.current = paymentId;
 
     const checkStatus = async () => {
-      const result = await checkPaymentStatus(paymentId);
+      try {
+        const result = await checkPaymentStatus(paymentId);
 
-      if (result.success) {
-        setEmail(result.email);
-        setAccountReady(result.accountReady);
+        if (result.success) {
+          setEmail(result.email);
+          setAccountReady(result.accountReady);
 
-        switch (result.status) {
-          case 'paid':
-            setState('paid');
-            setMessage(result.message);
-            // Verwijder payment ID uit localStorage (ref blijft beschikbaar)
-            localStorage.removeItem('pending_payment_id');
-            break;
-          case 'pending':
-          case 'open':
-            setState('pending');
-            setMessage(result.message);
-            // Blijf checken voor pending payments
-            if (checkCount < 30) { // Max 30 checks (2.5 minuten)
-              setTimeout(() => setCheckCount(c => c + 1), 5000);
-            }
-            break;
-          case 'failed':
-          case 'canceled':
-          case 'expired':
-            setState('failed');
-            setMessage(result.message);
-            // Verwijder payment ID uit localStorage
-            localStorage.removeItem('pending_payment_id');
-            break;
+          switch (result.status) {
+            case 'paid':
+              setState('paid');
+              setMessage(result.message);
+              // Verwijder payment ID uit localStorage (ref blijft beschikbaar)
+              localStorage.removeItem('pending_payment_id');
+              break;
+            case 'pending':
+            case 'open':
+              setState('pending');
+              setMessage(result.message);
+              // Blijf checken voor pending payments
+              if (checkCount < 30) { // Max 30 checks (2.5 minuten)
+                setTimeout(() => setCheckCount(c => c + 1), 5000);
+              }
+              break;
+            case 'failed':
+            case 'canceled':
+            case 'expired':
+              setState('failed');
+              setMessage(result.message);
+              // Verwijder payment ID uit localStorage
+              localStorage.removeItem('pending_payment_id');
+              break;
+          }
+        } else {
+          setState('failed');
+          setMessage(result.message || 'Er ging iets mis bij het ophalen van de betaalstatus.');
+          localStorage.removeItem('pending_payment_id');
         }
-      } else {
+      } catch (error) {
+        console.error('Payment status check error:', error);
         setState('failed');
-        setMessage(result.message || 'Er ging iets mis bij het ophalen van de betaalstatus.');
-        localStorage.removeItem('pending_payment_id');
+        setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
       }
     };
 
@@ -92,10 +98,16 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
       const paymentId = paymentIdRef.current;
       if (paymentId) {
         const timer = setTimeout(async () => {
-          const result = await checkPaymentStatus(paymentId);
-          if (result.accountReady) {
-            setAccountReady(true);
-          } else {
+          try {
+            const result = await checkPaymentStatus(paymentId);
+            if (result.accountReady) {
+              setAccountReady(true);
+            } else {
+              setCheckCount(c => c + 1);
+            }
+          } catch (error) {
+            console.error('Account ready check error:', error);
+            // Bij error, blijf proberen
             setCheckCount(c => c + 1);
           }
         }, 2000);
@@ -310,6 +322,24 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               Naar registratie
               <ArrowRight className="w-5 h-5 ml-2" />
             </Button>
+          </div>
+        );
+
+      default:
+        // Fallback voor onverwachte states
+        return (
+          <div className="text-center">
+            <div className="flex justify-center mb-6">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-xl">
+                <Loader2 className="w-8 h-8 text-white animate-spin" />
+              </div>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Even geduld...
+            </h1>
+            <p className="text-gray-600">
+              We verwerken je verzoek
+            </p>
           </div>
         );
     }
