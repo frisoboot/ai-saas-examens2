@@ -26,6 +26,9 @@ export interface Question {
   imageUrl?: string;
   source?: string;
 
+  // Scoring
+  score?: number; // Points awarded for this question (default: 1)
+
   // For Multiple Choice
   options?: string[];
   correctIndex?: number;
@@ -104,6 +107,7 @@ export interface BulkImportQuestion {
   examYear?: number;
   contextText?: string;
   source?: string;
+  score?: number; // Points awarded for this question
   options?: string[];
   correctAnswer?: string; // Will be converted to correctIndex
   modelAnswer?: string;

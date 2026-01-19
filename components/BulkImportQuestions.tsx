@@ -425,13 +425,14 @@ export const BulkImportQuestions: React.FC = () => {
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
         <h3 className="text-sm font-bold text-blue-900 mb-2">CSV Template Formaat:</h3>
         <div className="text-xs text-blue-800 font-mono">
-          subject,level,type,text,year,context,source,options,correctanswer,modelanswer
+          subject,level,type,text,year,context,source,score,options,correctanswer,modelanswer
         </div>
         <ul className="mt-3 space-y-1 text-xs text-blue-800">
           <li><strong>subject:</strong> Vak (bijv. "Geschiedenis", "Wiskunde A")</li>
           <li><strong>level:</strong> VMBO-TL, HAVO, of VWO</li>
           <li><strong>type:</strong> MULTIPLE_CHOICE of OPEN</li>
           <li><strong>year:</strong> Examenjaar (optioneel, bijv. 2024)</li>
+          <li><strong>score:</strong> Punten per vraag (optioneel, bijv. 2)</li>
           <li><strong>options:</strong> Meerkeuze opties gescheiden door | (bijv. "A|B|C|D")</li>
           <li><strong>correctanswer:</strong> Juiste antwoord voor meerkeuze</li>
           <li><strong>modelanswer:</strong> Model antwoord voor open vragen</li>

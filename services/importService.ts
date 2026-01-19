@@ -84,7 +84,8 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     examType: q.examYear ? 'official_exam' : 'practice',
     contextText: q.contextText,
     imageUrl: q.imageUrl,
-    source: q.source
+    source: q.source,
+    score: q.score
   };
 
   if (q.type === 'MULTIPLE_CHOICE' && q.options && q.correctAnswer) {
@@ -151,6 +152,10 @@ export const parseCSV = (csvText: string): BulkImportQuestion[] => {
         case 'source':
         case 'bron':
           question.source = value;
+          break;
+        case 'score':
+        case 'punten':
+          question.score = value ? parseInt(value) : undefined;
           break;
         case 'options':
         case 'opties':
@@ -263,6 +268,7 @@ export const generateCSVTemplate = (): string => {
     'year',
     'context',
     'source',
+    'score',
     'options',
     'correctanswer',
     'modelanswer'
@@ -277,6 +283,7 @@ export const generateCSVTemplate = (): string => {
       '2023',
       '',
       'Examen 2023',
+      '2',
       '1987|1989|1991|1993',
       '1989',
       ''
@@ -289,6 +296,7 @@ export const generateCSVTemplate = (): string => {
       '2024',
       '[Lange brontekst hier]',
       'Examen 2024 VWO',
+      '2',
       '',
       '',
       'De auteur gebruikt veel metaforen en beeldspraak om...'
@@ -301,6 +309,7 @@ export const generateCSVTemplate = (): string => {
       '',
       '',
       '',
+      '2',
       '16|18|20|22',
       '20',
       ''
