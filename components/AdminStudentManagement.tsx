@@ -46,8 +46,11 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    console.log('[AdminStudentManagement] Component mounted, loading students...');
     loadStudents();
-  }, [adminUsername]); // Herlaad studenten als admin verandert (logout/login)
+    // Empty dependency array: laad altijd verse data bij mount
+    // Component krijgt een nieuwe key bij nieuwe login (zie App.tsx AdminDashboard key prop)
+  }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
     const { session } = await auth.getSession();
