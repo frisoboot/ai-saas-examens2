@@ -438,6 +438,7 @@ const AppContent: React.FC = () => {
         <Route path="/admin" element={
           <AdminRoute>
             <AdminDashboard
+              key={user?.id || 'no-user'} // Force remount bij nieuwe login
               onBack={handleLogout}
               adminUsername={user?.email || 'admin'}
             />
