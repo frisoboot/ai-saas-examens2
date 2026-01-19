@@ -523,6 +523,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           text: draft.text,
           examYear: examMeta.year,
           examType: 'official_exam',
+          tijdvak: examMeta.tijdvak,
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,

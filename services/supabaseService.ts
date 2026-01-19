@@ -52,6 +52,7 @@ interface DbQuestion {
   model_answer?: string;
   exam_year?: number;
   exam_type?: 'practice' | 'official_exam';
+  tijdvak?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -71,7 +72,8 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     correctIndex: dbQuestion.correct_index,
     modelAnswer: dbQuestion.model_answer,
     examYear: dbQuestion.exam_year,
-    examType: dbQuestion.exam_type
+    examType: dbQuestion.exam_type,
+    tijdvak: dbQuestion.tijdvak
   };
 };
 
@@ -90,7 +92,8 @@ const questionToDb = (question: Question): DbQuestion => {
     correct_index: question.correctIndex,
     model_answer: question.modelAnswer,
     exam_year: question.examYear,
-    exam_type: question.examType
+    exam_type: question.examType,
+    tijdvak: question.tijdvak
   };
 };
 

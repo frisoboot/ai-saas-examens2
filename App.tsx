@@ -101,7 +101,7 @@ const AppContent: React.FC = () => {
     isActive: true
   };
 
-  const startExam = async (subject: string, year?: number) => {
+  const startExam = async (subject: string, year?: number, tijdvak?: number) => {
     try {
       const allQuestions = await getQuestions();
       let subjectQuestions = allQuestions.filter(q =>
@@ -113,10 +113,19 @@ const AppContent: React.FC = () => {
         subjectQuestions = subjectQuestions.filter(q => q.examYear === year);
       }
 
+      // Filter by tijdvak if specified
+      if (tijdvak !== undefined) {
+        subjectQuestions = subjectQuestions.filter(q => q.tijdvak === tijdvak);
+      }
+
       if (subjectQuestions.length === 0) {
-          const message = year
-            ? `Er zijn nog geen vragen voor ${subject} uit ${year} op ${currentProfile.level} niveau.`
-            : `Er zijn nog geen vragen voor ${subject} op ${currentProfile.level} niveau.`;
+          let message = `Er zijn nog geen vragen voor ${subject}`;
+          if (year && tijdvak) {
+            message += ` uit ${year} Tijdvak ${tijdvak}`;
+          } else if (year) {
+            message += ` uit ${year}`;
+          }
+          message += ` op ${currentProfile.level} niveau.`;
           alert(message);
           return;
       }

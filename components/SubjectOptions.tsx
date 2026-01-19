@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap } from 'lucide-react';
 import { StudentProfile } from '../types';
-import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
+import { getAvailableYears, getQuestionCountByYear, getAvailableTijdvakkenForYear, getQuestionCountByYearAndTijdvak } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
@@ -14,7 +14,7 @@ interface SubjectOptionsProps {
   onBack: () => void;
   onStartChat: () => void;
   onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
-  onStartExam: (year?: number) => void;
+  onStartExam: (year?: number, tijdvak?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
   onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
 }
@@ -31,8 +31,11 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
 }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [yearTijdvakken, setYearTijdvakken] = useState<Map<number, number[]>>(new Map());
+  const [tijdvakCounts, setTijdvakCounts] = useState<Map<string, number>>(new Map());
   const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup' | 'lookalike-setup'>('default');
-  
+
   const SubjectIcon = getSubjectIcon(subject);
   const subjectColorClass = getSubjectColor(subject);
 
@@ -56,6 +59,29 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
     };
     loadYears();
   }, [student.level]);
+
+  // Load tijdvakken when a year is selected
+  useEffect(() => {
+    const loadTijdvakken = async () => {
+      if (!selectedYear) return;
+
+      try {
+        const tijdvakken = await getAvailableTijdvakkenForYear(selectedYear, student.level);
+        setYearTijdvakken(prev => new Map(prev).set(selectedYear, tijdvakken));
+
+        // Load question counts per tijdvak
+        const counts = new Map<string, number>();
+        for (const tijdvak of tijdvakken) {
+          const count = await getQuestionCountByYearAndTijdvak(selectedYear, tijdvak, student.level);
+          counts.set(`${selectedYear}-${tijdvak}`, count);
+        }
+        setTijdvakCounts(prev => new Map([...prev, ...counts]));
+      } catch (error) {
+        console.error('Fout bij ophalen tijdvakken:', error);
+      }
+    };
+    loadTijdvakken();
+  }, [selectedYear, student.level]);
 
   if (view === 'ai-setup') {
     return (
@@ -254,49 +280,109 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Calendar className="w-3 h-3" />
-                  Beschikbare Examens
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {availableYears.map(year => (
-                    <button
-                      key={year}
-                      onClick={() => onStartExam(year)}
-                      className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-6 h-6 rounded-lg bg-green-50 text-green-600 flex items-center justify-center transition-colors">
-                          <Calendar className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="font-bold text-base text-slate-900">
-                          {year}
-                        </span>
-                      </div>
-                      <span className="text-xs text-slate-500 font-medium">
-                        {yearCounts.get(year) || 0} vragen
-                      </span>
-                    </button>
-                  ))}
-
-                  {/* Random exam option */}
-                  <button
-                    onClick={() => onStartExam()}
-                    className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center transition-all">
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-bold text-base text-slate-900">
-                        Mix
-                      </span>
+                {/* If no year selected, show year selection */}
+                {!selectedYear ? (
+                  <>
+                    <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                      <Calendar className="w-3 h-3" />
+                      Kies een Examenjaar
                     </div>
-                    <span className="text-xs text-slate-500 font-medium">
-                      Alle jaren
-                    </span>
-                  </button>
-                </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {availableYears.map(year => (
+                        <button
+                          key={year}
+                          onClick={() => setSelectedYear(year)}
+                          className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-lg bg-green-50 text-green-600 flex items-center justify-center transition-colors">
+                              <Calendar className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="font-bold text-base text-slate-900">
+                              {year}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {yearCounts.get(year) || 0} vragen
+                          </span>
+                        </button>
+                      ))}
+
+                      {/* Random exam option */}
+                      <button
+                        onClick={() => onStartExam()}
+                        className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center transition-all">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold text-base text-slate-900">
+                            Mix
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-medium">
+                          Alle jaren
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  /* If year selected, show tijdvak selection */
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        Examen {selectedYear} - Kies Tijdvak
+                      </div>
+                      <button
+                        onClick={() => setSelectedYear(null)}
+                        className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                      >
+                        ← Andere jaar
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {yearTijdvakken.get(selectedYear)?.map(tijdvak => (
+                        <button
+                          key={tijdvak}
+                          onClick={() => onStartExam(selectedYear, tijdvak)}
+                          className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-blue-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center transition-colors">
+                              <span className="text-xs font-bold">{tijdvak}</span>
+                            </div>
+                            <span className="font-bold text-base text-slate-900">
+                              Tijdvak {tijdvak}
+                            </span>
+                          </div>
+                          <span className="text-xs text-slate-500 font-medium">
+                            {tijdvakCounts.get(`${selectedYear}-${tijdvak}`) || 0} vragen
+                          </span>
+                        </button>
+                      ))}
+
+                      {/* All tijdvakken option */}
+                      <button
+                        onClick={() => onStartExam(selectedYear)}
+                        className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-purple-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="w-6 h-6 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center transition-all">
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="font-bold text-base text-slate-900">
+                            Alle tijdvakken
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-500 font-medium">
+                          {yearCounts.get(selectedYear) || 0} vragen
+                        </span>
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </div>

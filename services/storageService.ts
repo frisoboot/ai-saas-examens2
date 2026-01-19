@@ -54,3 +54,39 @@ export const getQuestionCountByYear = async (year: number, level?: StudentLevel)
   const questions = await getQuestionsByYear(year, level);
   return questions.length;
 };
+
+// Tijdvak-based filtering
+export const getQuestionsByYearAndTijdvak = async (
+  year: number,
+  tijdvak: number,
+  level?: StudentLevel
+): Promise<Question[]> => {
+  requireDatabase();
+  const allQuestions = await dbQuestions.getAll();
+  return allQuestions.filter(q =>
+    q.examYear === year &&
+    q.tijdvak === tijdvak &&
+    (!level || q.level === level)
+  );
+};
+
+export const getAvailableTijdvakkenForYear = async (
+  year: number,
+  level?: StudentLevel
+): Promise<number[]> => {
+  const questions = await getQuestionsByYear(year, level);
+  const tijdvakken = questions
+    .map(q => q.tijdvak)
+    .filter((tijdvak): tijdvak is number => tijdvak !== undefined && tijdvak !== null);
+
+  return [...new Set(tijdvakken)].sort((a, b) => a - b);
+};
+
+export const getQuestionCountByYearAndTijdvak = async (
+  year: number,
+  tijdvak: number,
+  level?: StudentLevel
+): Promise<number> => {
+  const questions = await getQuestionsByYearAndTijdvak(year, tijdvak, level);
+  return questions.length;
+};

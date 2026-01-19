@@ -18,6 +18,7 @@ export interface Question {
   // Year-based exam fields
   examYear?: number; // e.g., 2024, 2023, null for practice questions
   examType?: ExamType; // 'practice' or 'official_exam'
+  tijdvak?: number; // 1, 2, or 3 (herkansing)
 
   // For context/reading comprehension
   contextText?: string;
