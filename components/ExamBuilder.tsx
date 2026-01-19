@@ -3,7 +3,7 @@ import { Question, QuestionType, StudentLevel } from '../types';
 import { saveQuestion, getQuestions } from '../services/storageService';
 import { Button } from './Button';
 import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon } from 'lucide-react';
-import { SUBJECTS } from '../constants/subjects';
+import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
 interface ExamMetadata {
   subject: string;
@@ -376,8 +376,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       }
 
       // Update exam metadata if provided
-      if (data.subject && SUBJECTS.includes(data.subject)) {
-        setExamMeta(prev => ({ ...prev, subject: data.subject! }));
+      if (data.subject && isValidSubject(data.subject)) {
+        setExamMeta(prev => ({ ...prev, subject: data.subject }));
       }
       if (data.year && !isNaN(data.year)) {
         setExamMeta(prev => ({ ...prev, year: data.year! }));

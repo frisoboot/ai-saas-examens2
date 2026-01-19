@@ -22,3 +22,11 @@ export const SUBJECTS = [
 ] as const;
 
 export type Subject = typeof SUBJECTS[number];
+
+/**
+ * Type guard to check if a string is a valid Subject
+ * This provides proper type narrowing for TypeScript
+ */
+export function isValidSubject(subject: string): subject is Subject {
+  return (SUBJECTS as readonly string[]).includes(subject);
+}

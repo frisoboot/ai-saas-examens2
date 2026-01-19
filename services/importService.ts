@@ -1,12 +1,12 @@
 import { Question, BulkImportQuestion, ImportResult, ImportError, StudentLevel, QuestionType } from '../types';
 import { saveQuestion } from './storageService';
-import { SUBJECTS } from '../constants/subjects';
+import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
 // Validate a single question
 const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => {
   const errors: ImportError[] = [];
 
-  if (!q.subject || !SUBJECTS.includes(q.subject)) {
+  if (!q.subject || !isValidSubject(q.subject)) {
     errors.push({
       row,
       field: 'subject',
