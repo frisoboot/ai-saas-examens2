@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { CheckCircle, Home, FileText, ChevronRight, X, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards } from './exam';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExamTakerProps {
   session: ExamSession;
@@ -21,6 +22,7 @@ interface ExamSummary {
 }
 
 export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, onFinish }) => {
+  const { user } = useAuth();
   const [session, setSession] = useState(initialSession);
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -128,7 +130,8 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       examYear: session.examYear,
       examType: session.examType,
       durationSeconds,
-      level: session.questions[0]?.level
+      level: session.questions[0]?.level,
+      user_id: user?.id // Link result to authenticated user for RLS
     };
 
     try {

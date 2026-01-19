@@ -201,6 +201,59 @@ export const dbQuestions = {
   }
 };
 
+// Database interface for exam_results table
+interface DbExamResult {
+  id: string;
+  student_name: string;
+  subject: string;
+  score: number;
+  total_questions: number;
+  date: string;
+  answers: any[];
+  exam_year?: number;
+  exam_type?: string;
+  duration_seconds?: number;
+  level?: string;
+  user_id?: string; // For RLS enforcement
+  created_at?: string;
+}
+
+// Convert database object to TypeScript ExamResult
+const dbToExamResult = (dbResult: DbExamResult): ExamResult => {
+  return {
+    id: dbResult.id,
+    studentName: dbResult.student_name,
+    subject: dbResult.subject,
+    score: dbResult.score,
+    totalQuestions: dbResult.total_questions,
+    date: dbResult.date,
+    answers: dbResult.answers,
+    examYear: dbResult.exam_year,
+    examType: dbResult.exam_type as any,
+    durationSeconds: dbResult.duration_seconds,
+    level: dbResult.level as any,
+    user_id: dbResult.user_id
+  };
+};
+
+// Convert TypeScript ExamResult to database object
+const examResultToDb = (result: ExamResult): DbExamResult => {
+  return {
+    id: result.id,
+    student_name: result.studentName,
+    subject: result.subject,
+    score: result.score,
+    total_questions: result.totalQuestions,
+    date: result.date,
+    answers: result.answers as any,
+    exam_year: result.examYear,
+    exam_type: result.examType,
+    duration_seconds: result.durationSeconds,
+    level: result.level,
+    user_id: result.user_id
+  };
+};
+
 // Resultaten operaties
 export const dbResults = {
   async getAll(): Promise<ExamResult[]> {
@@ -218,7 +271,7 @@ export const dbResults = {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(dbToExamResult);
   },
 
   async save(result: ExamResult): Promise<ExamResult> {
@@ -226,9 +279,12 @@ export const dbResults = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
+    // Convert to database format
+    const dbResult = examResultToDb(result);
+
     const { data, error } = await supabase
       .from(TABLES.RESULTS)
-      .insert(result)
+      .insert(dbResult)
       .select()
       .single();
 
@@ -237,7 +293,7 @@ export const dbResults = {
       throw error;
     }
 
-    return data;
+    return dbToExamResult(data);
   }
 };
 
@@ -249,7 +305,8 @@ const mapDbToProfile = (row: any): StudentProfile | null => {
     level: row.level,
     strugglePoints: row.struggle_points || '',
     email: row.email,
-    isActive: row.is_active ?? true
+    isActive: row.is_active ?? true,
+    isAdmin: row.is_admin ?? false
   };
 };
 
@@ -285,7 +342,9 @@ export const dbStudents = {
       name: profile.name,
       level: profile.level,
       struggle_points: profile.strugglePoints || '',
-      is_active: profile.isActive ?? true
+      is_active: profile.isActive ?? true,
+      // NOTE: is_admin is protected by RLS policy - normal users can't change it
+      is_admin: profile.isAdmin ?? false
     };
 
     const { data, error } = await supabase

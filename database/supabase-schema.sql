@@ -1,3 +1,12 @@
+-- ⚠️⚠️⚠️ WAARSCHUWING: DIT SCHEMA IS ONVEILIG ⚠️⚠️⚠️
+-- Dit originele schema heeft OPEN RLS policies die iedereen toegang geven!
+--
+-- GEBRUIK NIET IN PRODUCTIE!
+-- Gebruik in plaats daarvan: database/migration-secure-rls.sql
+--
+-- Voor meer info: database/SECURITY-FIX-README.md
+-- ⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️⚠️
+
 -- Supabase Database Schema voor AI Examentrainer
 -- Voer dit script uit in de SQL Editor van je Supabase project
 

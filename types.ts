@@ -56,6 +56,9 @@ export interface ExamResult {
   examType?: 'subject_practice' | 'year_exam';
   durationSeconds?: number;
   level?: StudentLevel; // Student level at time of exam
+
+  // Security: link exam result to authenticated user
+  user_id?: string; // UUID of auth.users - for RLS enforcement
 }
 
 export interface StudentProfile {
@@ -64,6 +67,7 @@ export interface StudentProfile {
   strugglePoints: string;
   email?: string;
   isActive?: boolean;
+  isAdmin?: boolean; // Admin role flag for RLS
 }
 
 export type ViewState = 'PUBLIC_LANDING' | 'LOGIN' | 'CHECKOUT' | 'PAYMENT_CALLBACK' | 'PAYMENT_SUCCESS' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'FLASHCARD_STUDY' | 'SETTINGS';
