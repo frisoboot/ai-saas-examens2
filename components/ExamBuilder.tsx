@@ -504,6 +504,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setSavedCount(0);
 
     try {
+      const savedQuestions: Question[] = [];
+
       for (let i = 0; i < questions.length; i++) {
         const draft = questions[i];
         const questionNumber = draft.questionNumber || (i + 1);
@@ -534,14 +536,27 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         };
 
         await saveQuestion(question);
+        savedQuestions.push(question);
         setSavedCount(i + 1);
       }
 
       showNotification('success', `${questions.length} vragen succesvol opgeslagen!`);
       localStorage.removeItem(DRAFT_STORAGE_KEY);
 
-      const updatedQuestions = await getQuestions();
-      setExistingQuestions(updatedQuestions);
+      // Update existing questions list with newly saved questions
+      // This is more efficient than fetching all questions from the database
+      setExistingQuestions(prev => {
+        const updated = [...prev];
+        savedQuestions.forEach(saved => {
+          const index = updated.findIndex(q => q.id === saved.id);
+          if (index >= 0) {
+            updated[index] = saved;
+          } else {
+            updated.push(saved);
+          }
+        });
+        return updated;
+      });
 
       setQuestions([]);
       resetCurrentQuestion();
