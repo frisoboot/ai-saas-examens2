@@ -66,7 +66,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Inner app die useAuth kan gebruiken
 const AppContent: React.FC = () => {
-  const { isAuthenticated, isAdmin, user, profile, signIn, signOut } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, user, profile, signIn, signOut } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
@@ -327,7 +327,14 @@ const AppContent: React.FC = () => {
         } />
 
         <Route path="/login" element={
-          isAuthenticated ? (
+          isLoading ? (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+              <div className="text-center">
+                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Even geduld...</p>
+              </div>
+            </div>
+          ) : isAuthenticated ? (
             <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />
           ) : (
             <LoginPage
