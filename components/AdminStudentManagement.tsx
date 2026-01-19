@@ -60,12 +60,30 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const loadStudents = async () => {
     setLoading(true);
     setError('');
+    console.log('[AdminStudentManagement] Starting to load students...');
+
+    // Timeout om te voorkomen dat het eindeloos blijft laden
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT')), 15000)
+    );
+
     try {
-      const data = await dbStudents.getAll();
+      const data = await Promise.race([
+        dbStudents.getAll(),
+        timeoutPromise
+      ]);
+      console.log('[AdminStudentManagement] Students loaded:', data.length);
       setStudents(data);
-    } catch (err) {
-      setError('Fout bij laden van studenten');
-      console.error(err);
+    } catch (err: any) {
+      console.error('[AdminStudentManagement] Error loading students:', err);
+
+      if (err.message === 'TIMEOUT') {
+        setError('Het laden van studenten duurt te lang. Controleer je database RLS policies en of je admin account correct is ingesteld.');
+      } else if (err.message?.includes('permission') || err.message?.includes('RLS') || err.code === 'PGRST301') {
+        setError('Geen toegang. Zorg ervoor dat je admin account is_admin = TRUE heeft in de database.');
+      } else {
+        setError(`Fout bij laden van studenten: ${err.message || 'Onbekende fout'}`);
+      }
     } finally {
       setLoading(false);
     }
@@ -198,10 +216,11 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     s.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
+  if (loading && !error) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-slate-500">Laden...</div>
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-slate-500">Studenten laden...</div>
       </div>
     );
   }
@@ -222,12 +241,33 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
       {/* Messages */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          {error}
-          <button onClick={() => setError('')} className="ml-auto">
-            <X className="w-4 h-4" />
-          </button>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setError('');
+                loadStudents();
+              }}
+            >
+              Opnieuw proberen
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
+            >
+              Database controleren
+            </Button>
+          </div>
         </div>
       )}
 

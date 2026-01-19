@@ -6,7 +6,7 @@ import { AdminHealthCheck } from './AdminHealthCheck';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -21,6 +21,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [activeTab, setActiveTab] = useState<AdminTab>('exam-builder');
   const [questions, setQuestions] = useState<Question[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filterSubject, setFilterSubject] = useState<string | 'ALL'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,10 +240,97 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     q.subject.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleLogout = async () => {
+    console.log('[AdminDashboard] Uitloggen clicked');
+    try {
+      await onBack();
+    } catch (err) {
+      console.error('[AdminDashboard] Logout error:', err);
+      window.location.href = '/';
+    }
+  };
+
   return (
-    <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden md:flex z-10">
+    <div className="flex flex-col h-screen bg-[#f8fafc] overflow-hidden">
+      {/* Mobile Header */}
+      <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="bg-indigo-600 p-2 rounded-lg">
+            <LayoutGrid className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-slate-800">Beheer</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleLogout}
+            className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Uitloggen"
+          >
+            <LogOut className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Menu Dropdown */}
+      {mobileMenuOpen && (
+        <div className="md:hidden bg-white border-b border-slate-200 p-4 space-y-2">
+          <button
+            onClick={() => { setActiveTab('exam-builder'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'exam-builder' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <BookOpen className="w-4 h-4" />
+            Examen Toevoegen
+          </button>
+          <button
+            onClick={() => { setActiveTab('questions'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'questions' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <FileText className="w-4 h-4" />
+            Alle Vragen
+          </button>
+          <button
+            onClick={() => { setActiveTab('students'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'students' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Users className="w-4 h-4" />
+            Leerlingen
+          </button>
+          <button
+            onClick={() => { setActiveTab('import'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'import' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Upload className="w-4 h-4" />
+            CSV/JSON Import
+          </button>
+          <button
+            onClick={() => { setActiveTab('health-check'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'health-check' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Activity className="w-4 h-4" />
+            Systeem Status
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-1 overflow-hidden">
+      {/* Sidebar Navigation - Desktop only */}
+      <aside className="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex z-10">
          <div className="p-6 border-b border-slate-100">
              <div className="flex items-center gap-3 mb-4">
                 <div className="bg-indigo-600 p-2 rounded-lg">
@@ -368,8 +456,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
          )}
 
          <div className="p-4 border-t border-slate-100 mt-auto">
-            <Button variant="secondary" onClick={() => { onBack(); }} className="w-full justify-start text-slate-500">
-               <ArrowLeft className="w-4 h-4 mr-2" />
+            <Button
+              variant="secondary"
+              onClick={handleLogout}
+              className="w-full justify-start text-slate-500"
+            >
+               <LogOut className="w-4 h-4 mr-2" />
                Uitloggen
             </Button>
          </div>
@@ -723,6 +815,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
           </>
         )}
       </main>
+      </div>
     </div>
   );
 };
