@@ -150,12 +150,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Sign out functie
   const signOut = async (): Promise<{ error: string | null }> => {
     try {
+      console.log('[AuthContext] Starting sign out...');
       const { error } = await auth.signOut();
 
       if (error) {
-        console.error('Uitloggen mislukt:', error);
+        console.error('[AuthContext] Uitloggen mislukt:', error);
         return { error };
       }
+
+      console.log('[AuthContext] Sign out successful, resetting state...');
 
       // Reset state alleen na succesvolle logout
       setState({
@@ -170,7 +173,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { error: null };
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Onbekende fout bij uitloggen';
-      console.error('Uitloggen exception:', errorMessage);
+      console.error('[AuthContext] Uitloggen exception:', errorMessage);
       return { error: errorMessage };
     }
   };

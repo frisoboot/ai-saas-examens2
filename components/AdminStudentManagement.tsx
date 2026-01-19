@@ -47,7 +47,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
   useEffect(() => {
     loadStudents();
-  }, []);
+  }, [adminUsername]); // Herlaad studenten als admin verandert (logout/login)
 
   const getAuthToken = async (): Promise<string | null> => {
     const { session } = await auth.getSession();

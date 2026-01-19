@@ -307,6 +307,10 @@ export const dbStudents = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
+    // Log timestamp voor debugging van cache problemen
+    const timestamp = Date.now();
+    console.log(`[dbStudents.getAll] Ophalen studenten (timestamp: ${timestamp})`);
+
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
       .select('*')
@@ -317,6 +321,7 @@ export const dbStudents = {
       throw error;
     }
 
+    console.log(`[dbStudents.getAll] Studenten opgehaald: ${data?.length} records`);
     return (data || []).map(row => mapDbToProfile(row)!);
   },
 
@@ -399,6 +404,23 @@ export const auth = {
       if (error) {
         console.error('Uitlogfout:', error);
         return { error: error.message || 'Supabase logout failed' };
+      }
+
+      // BELANGRIJK: Wis alle Supabase en app-gerelateerde localStorage items
+      // Dit voorkomt dat gecachte data en sessies blijven hangen na logout
+      try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key === 'pending_payment_id')) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log('localStorage items gewist:', keysToRemove.length);
+      } catch (storageError) {
+        console.warn('Kon localStorage niet wissen:', storageError);
+        // Ga door, dit is niet fataal
       }
 
       return { error: null };
