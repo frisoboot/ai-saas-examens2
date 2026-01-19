@@ -75,6 +75,29 @@ is_current_user_admin()
 is_profile_owner(profile_email)
 ```
 
+### 4. Privilege Escalation Protection (CRITICAL)
+
+**⚠️ BELANGRIJK:** RLS policies werken op ROW-level, NIET op COLUMN-level!
+
+**Het Probleem:**
+- De UPDATE policy staat toe dat users hun eigen profiel wijzigen
+- Dit betekent dat ze ALLE kolommen kunnen wijzigen, inclusief `is_admin`
+- Een normale student kan zichzelf admin maken met:
+  ```sql
+  UPDATE student_profiles SET is_admin = TRUE WHERE email = 'my@email.com';
+  ```
+
+**De Oplossing:**
+- ✅ BEFORE UPDATE trigger `prevent_is_admin_escalation()`
+- ✅ Controleert of `is_admin` kolom wordt gewijzigd
+- ✅ Blokkeert wijziging als current user geen admin is
+- ✅ Alleen admins kunnen admin privileges toekennen/intrekken
+
+**PostgreSQL Documentatie:**
+> "Row security policies are applied to the table at the row level. RLS does not protect against modifications to specific columns within a row."
+
+Voor column-level security is een trigger nodig, niet alleen RLS!
+
 ---
 
 ## 🚀 Migratie Uitvoeren
@@ -171,6 +194,35 @@ VITE_ADMIN_EMAILS=admin@example.com,admin2@example.com
 1. Log uit
 2. Probeer questions te lezen via Supabase client → Moet FALEN
 3. Probeer exam results te zien → Moet FALEN
+
+### Test 4: Privilege Escalation Protection (CRITICAL)
+
+**Test als normale student:**
+
+```sql
+-- Log in als normale student en probeer jezelf admin te maken
+UPDATE student_profiles
+SET is_admin = TRUE
+WHERE email = 'jouw-student-email@example.com';
+
+-- Verwacht resultaat: ERROR
+-- ERROR: Permission denied: Only admins can modify is_admin flag
+-- HINT: Contact an administrator if you need admin access
+```
+
+**Test als admin:**
+
+```sql
+-- Log in als admin en probeer iemand anders admin te maken
+UPDATE student_profiles
+SET is_admin = TRUE
+WHERE email = 'andere-student@example.com';
+
+-- Verwacht resultaat: SUCCESS
+-- Query returned successfully: 1 row affected
+```
+
+✅ Als de student ERROR krijgt en admin SUCCESS, dan werkt de trigger correct!
 
 ---
 

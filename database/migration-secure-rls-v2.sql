@@ -207,6 +207,45 @@ CREATE POLICY "Only admins can delete profiles"
   USING (is_current_user_admin());
 
 -- ============================================================================
+-- STAP 6B: CRITICAL - Prevent is_admin Privilege Escalation
+-- ============================================================================
+-- SECURITY: RLS works at ROW level, not COLUMN level. Users who can UPDATE
+-- their own profile could also change is_admin to TRUE, escalating privileges.
+-- Solution: BEFORE UPDATE trigger blocks non-admins from changing is_admin.
+
+DROP TRIGGER IF EXISTS prevent_is_admin_escalation ON student_profiles;
+DROP FUNCTION IF EXISTS prevent_is_admin_escalation();
+
+CREATE OR REPLACE FUNCTION prevent_is_admin_escalation()
+RETURNS TRIGGER AS $$
+DECLARE
+  user_is_admin BOOLEAN;
+BEGIN
+  -- Check if is_admin column is being changed
+  IF OLD.is_admin IS DISTINCT FROM NEW.is_admin THEN
+    -- Check if current user is admin
+    SELECT COALESCE(
+      (SELECT is_admin FROM student_profiles WHERE auth_user_id = auth.uid() LIMIT 1),
+      FALSE
+    ) INTO user_is_admin;
+
+    -- If not admin, block the change
+    IF NOT user_is_admin THEN
+      RAISE EXCEPTION 'Permission denied: Only admins can modify is_admin flag'
+        USING HINT = 'Contact an administrator if you need admin access';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER prevent_is_admin_escalation
+  BEFORE UPDATE ON student_profiles
+  FOR EACH ROW
+  EXECUTE FUNCTION prevent_is_admin_escalation();
+
+-- ============================================================================
 -- STAP 7: Data migratie - koppel bestaande exam_results aan users
 -- ============================================================================
 
