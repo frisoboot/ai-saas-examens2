@@ -7,6 +7,7 @@ import { Button } from './Button';
 import { CheckCircle, Home, FileText, ChevronRight, X, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards } from './exam';
+import { useAuth } from '../contexts/AuthContext';
 
 interface ExamTakerProps {
   session: ExamSession;
@@ -21,9 +22,11 @@ interface ExamSummary {
 }
 
 export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, onFinish }) => {
+  const { user } = useAuth();
   const [session, setSession] = useState(initialSession);
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [activeQuestionIdx, setActiveQuestionIdx] = useState(0);
   const [openAnswerInput, setOpenAnswerInput] = useState('');
 
@@ -100,6 +103,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     if (isFinishingRef.current) return;
     isFinishingRef.current = true;
     setIsSubmitting(true);
+    setSubmissionError(null);
 
     let finalAnswers = { ...session.answers };
     if (currentQuestion.type === 'OPEN') {
@@ -117,6 +121,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       ? Math.floor((Date.now() - session.startTime) / 1000)
       : undefined;
 
+    // CRITICAL: Validate user is authenticated before attempting save
+    if (!user?.id) {
+      const errorMsg = 'Je bent niet ingelogd. Log opnieuw in om je resultaat op te slaan.';
+      console.error('Cannot save exam result: user.id is undefined');
+      setSubmissionError(errorMsg);
+      setIsSubmitting(false);
+      isFinishingRef.current = false;
+      return;
+    }
+
     const result: ExamResult = {
       id: Date.now().toString(),
       studentName: session.studentName,
@@ -128,12 +142,17 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       examYear: session.examYear,
       examType: session.examType,
       durationSeconds,
-      level: session.questions[0]?.level
+      level: session.questions[0]?.level,
+      user_id: user.id // Link result to authenticated user for RLS
     };
 
     try {
       await saveResult(result);
       await updateProgressAfterExam(result);
+
+      // SUCCESS: Move state updates inside try block
+      setSession(prev => ({ ...prev, answers: finalAnswers }));
+      setIsFinished(true);
 
       if (!examSummary && !loadingSummary) {
         setLoadingSummary(true);
@@ -154,10 +173,22 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         }
       }
     } catch (error) {
+      // Enhanced error handling with user feedback
       console.error('Fout bij opslaan resultaat:', error);
+
+      let errorMessage = 'Er is een fout opgetreden bij het opslaan van je resultaat.';
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+
+      setSubmissionError(errorMessage);
+
+      // Reset flags to allow retry
+      setIsSubmitting(false);
+      isFinishingRef.current = false;
     }
-    setSession(prev => ({ ...prev, answers: finalAnswers }));
-    setIsFinished(true);
   };
 
   const handleRequestAIExplanation = async (question: Question) => {
@@ -172,6 +203,43 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     setAiExplanations(prev => ({ ...prev, [question.id]: explanation }));
     setLoadingExplanation(null);
   };
+
+  // --- ERROR SCREEN ---
+  if (submissionError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-purple-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 border border-red-100">
+          <div className="text-center mb-6">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <X className="w-8 h-8 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Fout bij opslaan</h2>
+            <p className="text-gray-600">{submissionError}</p>
+          </div>
+
+          <div className="space-y-3">
+            <Button
+              variant="primary"
+              onClick={() => {
+                setSubmissionError(null);
+                finishExam();
+              }}
+              className="w-full"
+            >
+              Opnieuw proberen
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={onFinish}
+              className="w-full"
+            >
+              Terug naar dashboard
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // --- SUBMITTING LOADING SCREEN ---
   if (isSubmitting && !isFinished) {
