@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
+import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
 import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } from 'lucide-react';
@@ -79,9 +80,14 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
   return (
     <div className="flex h-screen bg-[#f8fafc] overflow-hidden">
-      
+      <SEO
+        title="Dashboard"
+        description="Oefen voor je eindexamen met AI-gegenereerde vragen, flashcards en persoonlijke begeleiding."
+        noindex={true}
+      />
+
       {/* Sidebar - Profile & Stats */}
-      <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden lg:flex">
+      <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden lg:flex" role="complementary" aria-label="Profiel en voortgang">
         <div className="p-8 border-b border-slate-100">
            <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-200">

@@ -1,5 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter } from 'react-router-dom';
+import { HelmetProvider } from 'react-helmet-async';
 import App from './App';
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { Analytics } from "@vercel/analytics/react";
@@ -13,9 +15,13 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <NotificationProvider>
-      <App />
-    </NotificationProvider>
+    <BrowserRouter>
+      <HelmetProvider>
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
+      </HelmetProvider>
+    </BrowserRouter>
     <SpeedInsights />
     <Analytics />
   </React.StrictMode>
