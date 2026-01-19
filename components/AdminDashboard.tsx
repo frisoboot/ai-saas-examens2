@@ -8,7 +8,7 @@ import { ExamBuilder } from './ExamBuilder';
 import { Button } from './Button';
 import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
-import { SUBJECTS } from '../constants/subjects';
+import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
 interface AdminDashboardProps {
   onBack: () => void | Promise<void>;
@@ -116,8 +116,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setQuestionLevel(q.level);
     setNewQuestionText(q.text);
     setContextText(q.contextText || '');
-    
-    if (SUBJECTS.includes(q.subject)) {
+
+    if (isValidSubject(q.subject)) {
       setSelectedSubject(q.subject);
       setCustomSubject('');
     } else {
