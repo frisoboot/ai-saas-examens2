@@ -284,35 +284,53 @@ const AppContent: React.FC = () => {
   };
 
   const handleLogout = async () => {
-    // Probeer uit te loggen met retry voor stabiliteit
-    let retries = 3;
-    let lastError: string | null = null;
+    console.log('[App] handleLogout: Starting logout process...');
 
-    while (retries > 0) {
+    try {
+      // Stap 1: Roep signOut aan
       const { error } = await signOut();
 
-      if (!error) {
-        // Logout gelukt - navigeer naar landing
-        navigate('/');
-        // Force page refresh om state volledig te resetten
-        window.location.href = '/';
-        return;
+      if (error) {
+        console.error('[App] handleLogout: SignOut returned error:', error);
+      } else {
+        console.log('[App] handleLogout: SignOut successful');
       }
 
-      lastError = error;
-      retries--;
+      // Stap 2: Wacht even om er zeker van te zijn dat de auth state is bijgewerkt
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (retries > 0) {
-        // Wacht even voordat we opnieuw proberen
-        await new Promise(resolve => setTimeout(resolve, 500));
+      // Stap 3: Clear alle mogelijke gecachte auth data
+      try {
+        // Verwijder alle Supabase gerelateerde items uit localStorage
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+            keysToRemove.push(key);
+          }
+        }
+        keysToRemove.forEach(key => {
+          console.log('[App] handleLogout: Removing localStorage key:', key);
+          localStorage.removeItem(key);
+        });
+
+        // Clear sessionStorage ook
+        sessionStorage.clear();
+      } catch (storageError) {
+        console.warn('[App] handleLogout: Could not clear storage:', storageError);
       }
+
+      console.log('[App] handleLogout: Redirecting to landing page...');
+
+      // Stap 4: Gebruik window.location voor een harde redirect (niet navigate)
+      // Dit zorgt ervoor dat de hele app opnieuw wordt geladen met schone state
+      window.location.replace('/');
+
+    } catch (err) {
+      console.error('[App] handleLogout: Exception during logout:', err);
+      // Forceer toch een redirect bij error
+      window.location.replace('/');
     }
-
-    // Als alle retries gefaald zijn, toch doorsturen maar log de error
-    console.error('Uitloggen mislukt na meerdere pogingen:', lastError);
-    // Forceer toch een refresh om lokale state te clearen
-    navigate('/');
-    window.location.href = '/';
   };
 
   return (
