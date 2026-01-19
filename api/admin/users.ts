@@ -147,7 +147,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           name: cleanName,
           level,
           struggle_points: '',
-          is_active: true
+          is_active: true,
+          auth_user_id: newUser.user.id
         }, { onConflict: 'email' });
 
       return res.status(201).json({
