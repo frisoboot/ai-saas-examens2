@@ -312,25 +312,6 @@ const mapDbToProfile = (row: any): StudentProfile | null => {
 
 // Student profielen operaties
 export const dbStudents = {
-  async getByName(name: string): Promise<StudentProfile | null> {
-    if (!supabase) {
-      throw new Error('Supabase niet geconfigureerd');
-    }
-
-    const { data, error } = await supabase
-      .from(TABLES.STUDENTS)
-      .select('*')
-      .eq('name', name)
-      .maybeSingle();
-
-    if (error) {
-      console.error('Fout bij ophalen student:', error);
-      throw error;
-    }
-
-    return mapDbToProfile(data);
-  },
-
   async save(profile: StudentProfile): Promise<StudentProfile> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');
@@ -553,40 +534,22 @@ export const auth = {
 
 export const userProfile = {
   /**
-   * Haal volledig profiel op voor ingelogde gebruiker
-   * Combineert Supabase Auth user met student_profiles tabel
+   * Haal profiel op voor ingelogde gebruiker via email
    */
   async getCurrentProfile(): Promise<StudentProfile | null> {
     try {
       const { user, error: userError } = await auth.getUser();
 
-      if (userError || !user) {
+      if (userError || !user?.email) {
         return null;
       }
 
-      // Probeer profiel te vinden via email
-      try {
-        const profile = await dbStudents.getByEmail(user.email || '');
-        if (profile) {
-          return profile;
-        }
-      } catch (e) {
-        console.log('Geen profiel gevonden via email, probeer naam');
-      }
+      // Haal profiel op via email
+      const profile = await dbStudents.getByEmail(user.email);
 
-      // Fallback: probeer via naam (voor oudere accounts)
-      try {
-        const profileByName = await dbStudents.getByName(user.email?.split('@')[0] || '');
-        if (profileByName) {
-          return profileByName;
-        }
-      } catch (e) {
-        console.log('Geen profiel gevonden via naam');
-      }
-
-      // Als geen profiel gevonden, maak een default profiel voor admins
-      return {
-        name: user.email?.split('@')[0] || 'User',
+      // Return profiel of default voor admins zonder profiel
+      return profile || {
+        name: user.email.split('@')[0],
         level: 'HAVO',
         strugglePoints: '',
         email: user.email,
