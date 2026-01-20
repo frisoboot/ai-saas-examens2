@@ -1,0 +1,425 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import { Question, StudentLevel } from '../types';
+import { getQuestions, deleteQuestion } from '../services/storageService';
+import { Button } from './Button';
+import {
+  FolderOpen,
+  Folder,
+  ChevronRight,
+  ChevronDown,
+  FileText,
+  Calendar,
+  Trash2,
+  Pencil,
+  Search,
+  RefreshCw,
+  BookOpen
+} from 'lucide-react';
+import { SUBJECTS } from '../constants/subjects';
+
+interface ExamLibraryProps {
+  onEditQuestion?: (question: Question) => void;
+}
+
+interface YearGroup {
+  year: number;
+  questions: Question[];
+  byLevel: {
+    'VMBO-TL': Question[];
+    'HAVO': Question[];
+    'VWO': Question[];
+  };
+}
+
+interface SubjectGroup {
+  subject: string;
+  totalQuestions: number;
+  years: YearGroup[];
+}
+
+export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
+  const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedLevel, setSelectedLevel] = useState<StudentLevel | 'ALL'>('ALL');
+
+  useEffect(() => {
+    loadQuestions();
+  }, []);
+
+  const loadQuestions = async () => {
+    setLoading(true);
+    try {
+      const data = await getQuestions();
+      setQuestions(data);
+    } catch (error) {
+      console.error('Fout bij laden vragen:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Groepeer vragen per vak en jaar
+  const groupedData = useMemo(() => {
+    let filtered = questions;
+
+    // Filter op niveau
+    if (selectedLevel !== 'ALL') {
+      filtered = filtered.filter(q => q.level === selectedLevel);
+    }
+
+    // Filter op zoekterm
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(q =>
+        q.text.toLowerCase().includes(query) ||
+        q.subject.toLowerCase().includes(query) ||
+        (q.source && q.source.toLowerCase().includes(query))
+      );
+    }
+
+    // Groepeer per vak
+    const subjectMap = new Map<string, Question[]>();
+    filtered.forEach(q => {
+      const list = subjectMap.get(q.subject) || [];
+      list.push(q);
+      subjectMap.set(q.subject, list);
+    });
+
+    // Sorteer vakken volgens SUBJECTS volgorde
+    const result: SubjectGroup[] = [];
+
+    // Eerst bekende vakken
+    SUBJECTS.forEach(subject => {
+      const subjectQuestions = subjectMap.get(subject);
+      if (subjectQuestions && subjectQuestions.length > 0) {
+        result.push(createSubjectGroup(subject, subjectQuestions));
+        subjectMap.delete(subject);
+      }
+    });
+
+    // Dan overige vakken
+    subjectMap.forEach((subjectQuestions, subject) => {
+      result.push(createSubjectGroup(subject, subjectQuestions));
+    });
+
+    return result;
+  }, [questions, selectedLevel, searchQuery]);
+
+  function createSubjectGroup(subject: string, questions: Question[]): SubjectGroup {
+    // Groepeer per jaar
+    const yearMap = new Map<number, Question[]>();
+    const noYear: Question[] = [];
+
+    questions.forEach(q => {
+      if (q.examYear) {
+        const list = yearMap.get(q.examYear) || [];
+        list.push(q);
+        yearMap.set(q.examYear, list);
+      } else {
+        noYear.push(q);
+      }
+    });
+
+    // Sorteer jaren (nieuwste eerst)
+    const years: YearGroup[] = [];
+    const sortedYears = [...yearMap.keys()].sort((a, b) => b - a);
+
+    sortedYears.forEach(year => {
+      const yearQuestions = yearMap.get(year)!;
+      years.push({
+        year,
+        questions: yearQuestions,
+        byLevel: {
+          'VMBO-TL': yearQuestions.filter(q => q.level === 'VMBO-TL'),
+          'HAVO': yearQuestions.filter(q => q.level === 'HAVO'),
+          'VWO': yearQuestions.filter(q => q.level === 'VWO'),
+        }
+      });
+    });
+
+    // Voeg vragen zonder jaar toe als "Overig"
+    if (noYear.length > 0) {
+      years.push({
+        year: 0, // 0 = geen jaar
+        questions: noYear,
+        byLevel: {
+          'VMBO-TL': noYear.filter(q => q.level === 'VMBO-TL'),
+          'HAVO': noYear.filter(q => q.level === 'HAVO'),
+          'VWO': noYear.filter(q => q.level === 'VWO'),
+        }
+      });
+    }
+
+    return {
+      subject,
+      totalQuestions: questions.length,
+      years
+    };
+  }
+
+  const toggleSubject = (subject: string) => {
+    const next = new Set(expandedSubjects);
+    if (next.has(subject)) {
+      next.delete(subject);
+    } else {
+      next.add(subject);
+    }
+    setExpandedSubjects(next);
+  };
+
+  const toggleYear = (key: string) => {
+    const next = new Set(expandedYears);
+    if (next.has(key)) {
+      next.delete(key);
+    } else {
+      next.add(key);
+    }
+    setExpandedYears(next);
+  };
+
+  const handleDelete = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm('Weet je zeker dat je deze vraag wilt verwijderen?')) {
+      try {
+        await deleteQuestion(id);
+        await loadQuestions();
+      } catch (error) {
+        console.error('Fout bij verwijderen:', error);
+        alert('Kon vraag niet verwijderen.');
+      }
+    }
+  };
+
+  const totalQuestions = groupedData.reduce((sum, g) => sum + g.totalQuestions, 0);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <RefreshCw className="w-8 h-8 text-indigo-600 animate-spin" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      {/* Header */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-900 mb-2">Examenbibliotheek</h1>
+        <p className="text-slate-500">Bekijk en beheer alle examenvragen per vak en jaar</p>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-xl border border-slate-200 p-4 mb-6 flex flex-wrap gap-4 items-center">
+        <div className="flex-1 min-w-[200px]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Zoek in vragen..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:bg-white outline-none text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-slate-500">Niveau:</span>
+          <select
+            value={selectedLevel}
+            onChange={(e) => setSelectedLevel(e.target.value as StudentLevel | 'ALL')}
+            className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 outline-none"
+          >
+            <option value="ALL">Alle niveaus</option>
+            <option value="VMBO-TL">VMBO-TL</option>
+            <option value="HAVO">HAVO</option>
+            <option value="VWO">VWO</option>
+          </select>
+        </div>
+
+        <Button variant="secondary" size="sm" onClick={loadQuestions}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Vernieuwen
+        </Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-2xl font-bold text-slate-900">{totalQuestions}</div>
+          <div className="text-sm text-slate-500">Totaal vragen</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-2xl font-bold text-indigo-600">{groupedData.length}</div>
+          <div className="text-sm text-slate-500">Vakken</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-2xl font-bold text-green-600">
+            {new Set(questions.filter(q => q.examYear).map(q => q.examYear)).size}
+          </div>
+          <div className="text-sm text-slate-500">Examenjaren</div>
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 p-4">
+          <div className="text-2xl font-bold text-orange-600">
+            {questions.filter(q => q.type === 'OPEN').length}
+          </div>
+          <div className="text-sm text-slate-500">Open vragen</div>
+        </div>
+      </div>
+
+      {/* Folder Structure */}
+      {groupedData.length === 0 ? (
+        <div className="bg-white rounded-xl border border-slate-200 p-12 text-center">
+          <BookOpen className="w-12 h-12 text-slate-300 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-slate-700 mb-2">
+            {searchQuery ? 'Geen resultaten' : 'Geen examens gevonden'}
+          </h3>
+          <p className="text-slate-500 text-sm">
+            {searchQuery
+              ? `Geen vragen gevonden voor "${searchQuery}"`
+              : 'Voeg examenvragen toe via "Examen Toevoegen" of "CSV/JSON Import"'
+            }
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          {groupedData.map((subjectGroup, idx) => {
+            const isSubjectExpanded = expandedSubjects.has(subjectGroup.subject);
+
+            return (
+              <div key={subjectGroup.subject} className={idx > 0 ? 'border-t border-slate-100' : ''}>
+                {/* Subject Row */}
+                <button
+                  onClick={() => toggleSubject(subjectGroup.subject)}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-slate-50 transition-colors text-left"
+                >
+                  {isSubjectExpanded ? (
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  ) : (
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  )}
+                  {isSubjectExpanded ? (
+                    <FolderOpen className="w-5 h-5 text-indigo-500" />
+                  ) : (
+                    <Folder className="w-5 h-5 text-indigo-500" />
+                  )}
+                  <span className="font-semibold text-slate-800 flex-1">{subjectGroup.subject}</span>
+                  <span className="text-sm text-slate-500 bg-slate-100 px-2 py-0.5 rounded">
+                    {subjectGroup.totalQuestions} {subjectGroup.totalQuestions === 1 ? 'vraag' : 'vragen'}
+                  </span>
+                </button>
+
+                {/* Years */}
+                {isSubjectExpanded && (
+                  <div className="bg-slate-50/50">
+                    {subjectGroup.years.map(yearGroup => {
+                      const yearKey = `${subjectGroup.subject}-${yearGroup.year}`;
+                      const isYearExpanded = expandedYears.has(yearKey);
+                      const yearLabel = yearGroup.year === 0 ? 'Overig' : yearGroup.year.toString();
+
+                      return (
+                        <div key={yearKey}>
+                          {/* Year Row */}
+                          <button
+                            onClick={() => toggleYear(yearKey)}
+                            className="w-full flex items-center gap-3 pl-10 pr-4 py-2.5 hover:bg-slate-100 transition-colors text-left"
+                          >
+                            {isYearExpanded ? (
+                              <ChevronDown className="w-4 h-4 text-slate-400" />
+                            ) : (
+                              <ChevronRight className="w-4 h-4 text-slate-400" />
+                            )}
+                            <Calendar className="w-4 h-4 text-green-500" />
+                            <span className="font-medium text-slate-700 flex-1">{yearLabel}</span>
+
+                            {/* Level badges */}
+                            <div className="flex gap-2">
+                              {yearGroup.byLevel['VMBO-TL'].length > 0 && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded bg-blue-100 text-blue-700">
+                                  VMBO: {yearGroup.byLevel['VMBO-TL'].length}
+                                </span>
+                              )}
+                              {yearGroup.byLevel['HAVO'].length > 0 && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700">
+                                  HAVO: {yearGroup.byLevel['HAVO'].length}
+                                </span>
+                              )}
+                              {yearGroup.byLevel['VWO'].length > 0 && (
+                                <span className="text-xs font-medium px-2 py-0.5 rounded bg-purple-100 text-purple-700">
+                                  VWO: {yearGroup.byLevel['VWO'].length}
+                                </span>
+                              )}
+                            </div>
+                          </button>
+
+                          {/* Questions */}
+                          {isYearExpanded && (
+                            <div className="bg-white border-t border-slate-100">
+                              {yearGroup.questions.map(q => (
+                                <div
+                                  key={q.id}
+                                  className="flex items-start gap-3 pl-16 pr-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-b-0 group"
+                                >
+                                  <FileText className="w-4 h-4 text-slate-400 mt-0.5 flex-shrink-0" />
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-slate-700 line-clamp-2">{q.text}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className={`text-xs font-medium px-1.5 py-0.5 rounded ${
+                                        q.level === 'VMBO-TL' ? 'bg-blue-50 text-blue-600' :
+                                        q.level === 'HAVO' ? 'bg-orange-50 text-orange-600' :
+                                        'bg-purple-50 text-purple-600'
+                                      }`}>
+                                        {q.level}
+                                      </span>
+                                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                                        q.type === 'MULTIPLE_CHOICE'
+                                          ? 'bg-indigo-50 text-indigo-600'
+                                          : 'bg-amber-50 text-amber-600'
+                                      }`}>
+                                        {q.type === 'MULTIPLE_CHOICE' ? 'MC' : 'Open'}
+                                      </span>
+                                      {q.source && (
+                                        <span className="text-xs text-slate-400 truncate">
+                                          {q.source}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    {onEditQuestion && (
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); onEditQuestion(q); }}
+                                        className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                        title="Bewerken"
+                                      >
+                                        <Pencil className="w-4 h-4" />
+                                      </button>
+                                    )}
+                                    <button
+                                      onClick={(e) => handleDelete(q.id, e)}
+                                      className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg"
+                                      title="Verwijderen"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+};
