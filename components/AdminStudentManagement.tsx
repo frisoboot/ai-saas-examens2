@@ -48,6 +48,19 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
   useEffect(() => {
     loadStudents(false);
+
+    // Log uit wanneer gebruiker van tab wisselt
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        console.log('[AdminStudentManagement] Tab hidden, logging out...');
+        localStorage.clear();
+        auth.signOut();
+        window.location.href = '/login';
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
