@@ -96,11 +96,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    // Luister naar auth changes
+    // DEBUG: onAuthStateChange uitgeschakeld voor debugging
+    // Dit voorkomt automatisch uitloggen bij tab switching
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event);
+      console.log('Auth state change:', event, '- DEBUG: alleen loggen, geen actie');
 
-      if (session?.user) {
+      // DEBUG: Alleen SIGNED_IN en SIGNED_OUT afhandelen, rest negeren
+      if (event === 'SIGNED_IN' && session?.user) {
         setState(prev => ({
           ...prev,
           user: session.user,
@@ -108,13 +110,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAuthenticated: true,
           isAdmin: isAdminEmail(session.user.email)
         }));
-
-        // Laad profiel bij login
-        if (event === 'SIGNED_IN') {
-          const profile = await userProfile.getCurrentProfile();
-          setState(prev => ({ ...prev, profile }));
-        }
-      } else {
+        const profile = await userProfile.getCurrentProfile();
+        setState(prev => ({ ...prev, profile }));
+      } else if (event === 'SIGNED_OUT') {
         setState({
           user: null,
           session: null,
@@ -124,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: false
         });
       }
+      // DEBUG: TOKEN_REFRESHED en andere events worden genegeerd
     });
 
     return () => {
