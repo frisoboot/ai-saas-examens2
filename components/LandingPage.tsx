@@ -110,7 +110,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
             </p>
           </div>
 
-          {/* Preview Card */}
+          {/* Preview Card - Open vraag met fout antwoord */}
           <div className="mt-20 max-w-4xl mx-auto">
             <div className="bg-white rounded-3xl shadow-2xl shadow-gray-200/50 overflow-hidden border border-gray-100">
               <div className="p-8 sm:p-10">
@@ -119,47 +119,44 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                     <Brain className="w-6 h-6 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-gray-900">Wiskunde B - HAVO</h3>
-                    <p className="text-sm text-gray-500">Differentiëren · Vraag 3 van 10</p>
+                    <h3 className="font-semibold text-gray-900">Biologie - HAVO</h3>
+                    <p className="text-sm text-gray-500">Erfelijkheid · Vraag 5 van 10</p>
                   </div>
                 </div>
 
                 <div className="bg-amber-50/50 rounded-2xl p-6 mb-6 border border-amber-100">
                   <p className="text-gray-800 leading-relaxed">
-                    Gegeven is de functie f(x) = x³ - 6x² + 9x + 2. Bepaal de coördinaten van de extreme waarden van f.
+                    Leg uit waarom kinderen van twee ouders met bruine ogen toch blauwe ogen kunnen hebben. Gebruik de begrippen 'allel', 'dominant' en 'recessief' in je antwoord.
                   </p>
                 </div>
 
-                <div className="space-y-3">
-                  {['(1, 6) en (3, 2)', '(1, 6) en (3, -2)', '(3, 2) en (1, 6)', '(0, 2) en (3, 2)'].map((option, i) => (
-                    <div
-                      key={i}
-                      className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                        i === 0
-                          ? 'border-emerald-400 bg-emerald-50'
-                          : 'border-gray-100 hover:border-gray-200 bg-white'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-medium ${
-                          i === 0 ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-600'
-                        }`}>
-                          {i === 0 ? <CheckCircle2 className="w-4 h-4" /> : String.fromCharCode(65 + i)}
-                        </div>
-                        <span className={i === 0 ? 'text-emerald-700 font-medium' : 'text-gray-700'}>{option}</span>
-                      </div>
-                    </div>
-                  ))}
+                {/* Student's answer */}
+                <div className="mb-6">
+                  <p className="text-sm font-medium text-gray-500 mb-2">Jouw antwoord:</p>
+                  <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                    <p className="text-gray-700 leading-relaxed">
+                      Blauwe ogen zijn dominant over bruine ogen. Als beide ouders het gen voor blauwe ogen hebben, kan het kind blauwe ogen krijgen.
+                    </p>
+                  </div>
                 </div>
 
-                <div className="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 bg-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Sparkles className="w-4 h-4 text-white" />
+                {/* AI Feedback */}
+                <div className="p-5 bg-amber-50 rounded-2xl border border-amber-200">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <Sparkles className="w-5 h-5 text-white" />
                     </div>
-                    <div>
-                      <p className="font-medium text-emerald-800 mb-1">Goed gedaan!</p>
-                      <p className="text-sm text-emerald-700">De afgeleide f'(x) = 3x² - 12x + 9 = 0 geeft x = 1 en x = 3. Invullen levert de extremen.</p>
+                    <div className="flex-1">
+                      <p className="font-semibold text-amber-900 mb-2">Bijna! Maar let op de dominantie.</p>
+                      <p className="text-amber-800 text-sm leading-relaxed mb-3">
+                        Je hebt het net andersom: <strong>bruin is dominant</strong> en <strong>blauw is recessief</strong>.
+                        Hier is hoe je het beter kunt opschrijven:
+                      </p>
+                      <div className="bg-white rounded-xl p-4 border border-amber-100">
+                        <p className="text-gray-700 text-sm leading-relaxed">
+                          <span className="text-emerald-600 font-medium">"Bruin (B) is dominant over blauw (b). Als beide ouders het genotype Bb hebben (bruin, maar drager van blauw), is er 25% kans dat een kind bb krijgt en dus blauwe ogen heeft. Het recessieve allel komt alleen tot uiting als het kind het van beide ouders erft."</span>
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>
