@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
 import { dbStudents, auth } from '../services/supabaseService';
 import { Button } from './Button';
@@ -46,37 +46,8 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleteConfirm, setDeleteConfirm] = useState<StudentProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Ref om te voorkomen dat we te vaak data ophalen
-  const lastFetchRef = useRef<number>(0);
-  const MIN_FETCH_INTERVAL = 2000; // Minimaal 2 seconden tussen fetches
-
   useEffect(() => {
     loadStudents(false);
-
-    // Herlaad data wanneer browser tab weer zichtbaar wordt
-    const handleVisibilityChange = async () => {
-      if (document.visibilityState === 'visible') {
-        const now = Date.now();
-        const timeSinceLastFetch = now - lastFetchRef.current;
-
-        // Voorkom te veel requests - minimaal 2 seconden tussen fetches
-        if (timeSinceLastFetch >= MIN_FETCH_INTERVAL) {
-          console.log('[AdminStudentManagement] Tab visible, waiting for auth to stabilize...');
-
-          // Wacht even zodat de auth state kan stabiliseren na tab switch
-          // Dit voorkomt race conditions met SIGNED_IN events
-          await new Promise(resolve => setTimeout(resolve, 500));
-
-          console.log('[AdminStudentManagement] Reloading data...');
-          loadStudents(true); // true = silent refresh, geen full-page loader
-        } else {
-          console.log('[AdminStudentManagement] Tab visible, but skipping reload (too recent)');
-        }
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -103,43 +74,27 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     }
 
     try {
-      console.log('[AdminStudentManagement] Fetching students...');
-
-      // Timeout wrapper om te voorkomen dat de UI blijft hangen
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('TIMEOUT')), 10000); // 10 seconden timeout
-      });
-
-      const data = await Promise.race([
-        dbStudents.getAll(),
-        timeoutPromise
-      ]);
-
-      console.log('[AdminStudentManagement] Fetched', data.length, 'students');
+      const data = await dbStudents.getAll();
       setStudents(data);
-      lastFetchRef.current = Date.now(); // Update timestamp na succesvolle fetch
     } catch (err: any) {
       console.error('[AdminStudentManagement] Error:', err);
 
-      if (err.message === 'TIMEOUT') {
-        console.log('[AdminStudentManagement] Request timed out, keeping existing data');
-        // Bij timeout: behoud bestaande data, toon geen error als we al data hebben
-        if (students.length === 0) {
-          setError('Laden duurde te lang. Probeer opnieuw.');
-        }
-        // Bij refresh met bestaande data: negeer timeout silently
-      } else if (err.message?.includes('JWT') || err.code === 'PGRST301') {
-        // Als auth error, redirect naar login
+      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
         localStorage.clear();
         window.location.href = '/login';
         return;
-      } else {
-        setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
       }
+
+      setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
+  };
+
+  // Handmatige refresh functie
+  const handleRefresh = () => {
+    loadStudents(true);
   };
 
   const handleAddStudent = async (e: React.FormEvent) => {
@@ -282,14 +237,19 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-            Studenten Beheer
-            {isRefreshing && (
-              <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
-            )}
-          </h2>
-          <p className="text-slate-500 text-sm mt-1">{students.length} studenten totaal</p>
+        <div className="flex items-center gap-3">
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Studenten Beheer</h2>
+            <p className="text-slate-500 text-sm mt-1">{students.length} studenten totaal</p>
+          </div>
+          <button
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-50"
+            title="Ververs lijst"
+          >
+            <RefreshCw className={`w-5 h-5 ${isRefreshing ? 'animate-spin' : ''}`} />
+          </button>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
           <Plus className="w-4 h-4" />
