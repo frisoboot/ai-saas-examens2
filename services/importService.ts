@@ -204,14 +204,46 @@ const parseCSVLine = (line: string): string[] => {
   return result;
 };
 
-// Parse JSON format
+// Parse JSON format - supports both array format and object with questions property
 export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
   try {
     const data = JSON.parse(jsonText);
-    if (!Array.isArray(data)) {
-      throw new Error('JSON moet een array van vragen zijn');
+
+    // Case 1: Direct array of questions
+    if (Array.isArray(data)) {
+      return data as BulkImportQuestion[];
     }
-    return data as BulkImportQuestion[];
+
+    // Case 2: Object with questions array (common exam format)
+    if (data && typeof data === 'object' && Array.isArray(data.questions)) {
+      // Extract metadata from wrapper object
+      const metadata: Partial<BulkImportQuestion> = {};
+
+      if (data.subject) metadata.subject = data.subject;
+      if (data.level) metadata.level = data.level as StudentLevel;
+      if (data.year || data.examYear) metadata.examYear = data.year || data.examYear;
+      if (data.source) metadata.source = data.source;
+
+      // Map questions and inherit metadata where not specified
+      return data.questions.map((q: any) => ({
+        ...metadata,
+        ...q,
+        // Handle correctIndex -> correctAnswer conversion if needed
+        correctAnswer: q.correctAnswer || (q.correctIndex !== undefined && q.options ? q.options[q.correctIndex] : undefined),
+        // Ensure type is uppercase
+        type: q.type?.toUpperCase() as QuestionType || metadata.type,
+        // Ensure level is correct format
+        level: (q.level || metadata.level) as StudentLevel,
+      })) as BulkImportQuestion[];
+    }
+
+    // Case 3: Single question object
+    if (data && typeof data === 'object' && data.text) {
+      return [data as BulkImportQuestion];
+    }
+
+    console.error('JSON format niet herkend. Verwacht: array van vragen of object met questions property');
+    return [];
   } catch (error) {
     console.error('JSON parse error:', error);
     return [];
