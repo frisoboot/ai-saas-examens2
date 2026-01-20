@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
+import { GraduationCap, Mail, Lock, ArrowRight, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
 import { SEO } from './SEO';
 import { Button } from './Button';
 
@@ -85,6 +85,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="font-bold text-xl text-gray-900">AI Examentrainer</span>
+            </button>
+            <button
+              onClick={onLanding}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Terug naar home
             </button>
           </div>
         </div>
