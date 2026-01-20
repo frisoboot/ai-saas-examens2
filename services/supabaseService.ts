@@ -448,46 +448,53 @@ export const auth = {
 
   /**
    * Uitloggen
-   * Gebruikt scope: 'global' om alle sessies te beëindigen voor betere stabiliteit
+   * Wist eerst localStorage en roept dan Supabase signOut aan
    */
   async signOut(): Promise<{ error: string | null }> {
     if (!supabase) {
       return { error: 'Supabase niet geconfigureerd' };
     }
 
+    console.log('[auth.signOut] Starting sign out process...');
+
+    // STAP 1: Wis localStorage EERST (voordat we Supabase aanroepen)
+    // Dit voorkomt race conditions waarbij de client de sessie opnieuw laadt
     try {
-      // Gebruik 'global' scope om alle sessies te beëindigen
-      // Dit voorkomt problemen met stale sessies
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && (key.startsWith('sb-') || key.includes('supabase') || key === 'pending_payment_id')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(key => {
+        console.log('[auth.signOut] Removing localStorage key:', key);
+        localStorage.removeItem(key);
+      });
+      console.log('[auth.signOut] localStorage items gewist:', keysToRemove.length);
+    } catch (storageError) {
+      console.warn('[auth.signOut] Kon localStorage niet wissen:', storageError);
+    }
+
+    try {
+      // STAP 2: Roep Supabase signOut aan met 'local' scope
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
 
       if (error) {
-        console.error('Uitlogfout:', error);
-        return { error: error.message || 'Supabase logout failed' };
+        console.error('[auth.signOut] Supabase signOut error:', error);
+        // We gaan toch door - localStorage is al gewist
+      } else {
+        console.log('[auth.signOut] Supabase signOut successful');
       }
 
-      // BELANGRIJK: Wis alle Supabase en app-gerelateerde localStorage items
-      // Dit voorkomt dat gecachte data en sessies blijven hangen na logout
-      try {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('sb-') || key === 'pending_payment_id')) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => localStorage.removeItem(key));
-        console.log('localStorage items gewist:', keysToRemove.length);
-      } catch (storageError) {
-        console.warn('Kon localStorage niet wissen:', storageError);
-        // Ga door, dit is niet fataal
-      }
-
+      console.log('[auth.signOut] Sign out process completed');
       return { error: null };
+
     } catch (err) {
-      // Vang network errors en andere exceptions op
       const errorMessage = err instanceof Error ? err.message : 'Onbekende fout bij uitloggen';
-      console.error('Uitloggen exception:', errorMessage);
-      return { error: errorMessage };
+      console.error('[auth.signOut] Exception:', errorMessage);
+      // Return null error omdat we localStorage al hebben gewist
+      return { error: null };
     }
   },
 

@@ -46,10 +46,16 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    console.log('[AdminStudentManagement] Component mounted, loading students...');
     loadStudents();
-    // Empty dependency array: laad altijd verse data bij mount
-    // Component krijgt een nieuwe key bij nieuwe login (zie App.tsx AdminDashboard key prop)
+
+    // Herlaad data wanneer browser tab weer focus krijgt
+    const handleFocus = () => {
+      console.log('[AdminStudentManagement] Tab focused, reloading...');
+      loadStudents();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -60,12 +66,30 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const loadStudents = async () => {
     setLoading(true);
     setError('');
+
+    // Check sessie eerst - als niet ingelogd, redirect
+    const { session } = await auth.getSession();
+    if (!session) {
+      console.log('[AdminStudentManagement] No session, redirecting to login...');
+      localStorage.clear();
+      window.location.href = '/login';
+      return;
+    }
+
     try {
       const data = await dbStudents.getAll();
       setStudents(data);
-    } catch (err) {
-      setError('Fout bij laden van studenten');
-      console.error(err);
+    } catch (err: any) {
+      console.error('[AdminStudentManagement] Error:', err);
+
+      // Als auth error, redirect naar login
+      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
+        localStorage.clear();
+        window.location.href = '/login';
+        return;
+      }
+
+      setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
       setLoading(false);
     }
@@ -198,10 +222,11 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     s.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
+  if (loading && !error) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-slate-500">Laden...</div>
+      <div className="flex flex-col items-center justify-center py-12 space-y-4">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="text-slate-500">Studenten laden...</div>
       </div>
     );
   }
@@ -222,12 +247,33 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
       {/* Messages */}
       {error && (
-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
-          <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-          {error}
-          <button onClick={() => setError('')} className="ml-auto">
-            <X className="w-4 h-4" />
-          </button>
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+            <span className="flex-1">{error}</span>
+            <button onClick={() => setError('')} className="p-1 hover:bg-red-100 rounded">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setError('');
+                loadStudents();
+              }}
+            >
+              Opnieuw proberen
+            </Button>
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => window.open('https://supabase.com/dashboard', '_blank')}
+            >
+              Database controleren
+            </Button>
+          </div>
         </div>
       )}
 
