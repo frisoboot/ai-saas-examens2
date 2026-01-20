@@ -96,11 +96,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    // DEBUG: onAuthStateChange VOLLEDIG uitgeschakeld
-    // Alleen logging, GEEN state changes
+    // DEBUG: Alleen SIGNED_IN en SIGNED_OUT afhandelen
+    // INITIAL_SESSION en TOKEN_REFRESHED negeren (veroorzaken tab switch bugs)
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('🔴 Auth state change GENEGEERD:', event, 'session:', session ? 'exists' : 'null');
-      // NIETS DOEN - state blijft ongewijzigd
+      console.log('🔵 Auth event:', event, 'session:', session ? 'exists' : 'null');
+
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log('✅ SIGNED_IN - state bijwerken');
+        setState(prev => ({
+          ...prev,
+          user: session.user,
+          session,
+          isAuthenticated: true,
+          isAdmin: isAdminEmail(session.user.email),
+          isLoading: false
+        }));
+        const profile = await userProfile.getCurrentProfile();
+        setState(prev => ({ ...prev, profile }));
+      } else if (event === 'SIGNED_OUT') {
+        console.log('✅ SIGNED_OUT - state resetten');
+        setState({
+          user: null,
+          session: null,
+          profile: null,
+          isLoading: false,
+          isAuthenticated: false,
+          isAdmin: false
+        });
+      } else {
+        console.log('🔴 Event GENEGEERD:', event);
+      }
     });
 
     return () => {
