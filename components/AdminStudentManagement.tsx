@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
 import { dbStudents, auth } from '../services/supabaseService';
 import { Button } from './Button';
-import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Copy, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Copy, Check, AlertTriangle, Eye, EyeOff, RefreshCw } from 'lucide-react';
 
 interface AdminStudentManagementProps {
   adminUsername: string;
@@ -24,6 +24,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
@@ -46,12 +47,12 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    loadStudents();
+    loadStudents(false);
 
     // Herlaad data wanneer browser tab weer focus krijgt
     const handleFocus = () => {
       console.log('[AdminStudentManagement] Tab focused, reloading...');
-      loadStudents();
+      loadStudents(true); // true = silent refresh, geen full-page loader
     };
 
     window.addEventListener('focus', handleFocus);
@@ -63,8 +64,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     return session?.access_token || null;
   };
 
-  const loadStudents = async () => {
-    setLoading(true);
+  const loadStudents = async (isRefresh: boolean = false) => {
+    // Bij refresh: gebruik subtiele indicator, niet full-page loader
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
     setError('');
 
     // Check sessie eerst - als niet ingelogd, redirect
@@ -92,6 +98,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -141,7 +148,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       setShowPassword(false);
 
       // Herlaad studenten lijst
-      await loadStudents();
+      await loadStudents(true);
 
     } catch (err: any) {
       setError(err.message || 'Er ging iets mis bij het aanmaken van de student');
@@ -187,7 +194,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       setDeleteConfirm(null);
 
       // Herlaad studenten lijst
-      await loadStudents();
+      await loadStudents(true);
 
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
@@ -236,7 +243,12 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Studenten Beheer</h2>
+          <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
+            Studenten Beheer
+            {isRefreshing && (
+              <RefreshCw className="w-4 h-4 text-indigo-500 animate-spin" />
+            )}
+          </h2>
           <p className="text-slate-500 text-sm mt-1">{students.length} studenten totaal</p>
         </div>
         <Button onClick={() => setShowAddModal(true)} className="flex items-center gap-2">
@@ -261,7 +273,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
               variant="secondary"
               onClick={() => {
                 setError('');
-                loadStudents();
+                loadStudents(true);
               }}
             >
               Opnieuw proberen
