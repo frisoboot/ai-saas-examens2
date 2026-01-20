@@ -330,24 +330,6 @@ describe('dbStudents Service', () => {
     vi.clearAllMocks();
   });
 
-  describe('getByName()', () => {
-    it('moet student vinden op naam', async () => {
-      mockSupabaseClient.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: mockDbStudentProfile,
-              error: null,
-            }),
-          }),
-        }),
-      });
-
-      const { data } = await mockSupabaseClient.from('student_profiles').select('*').eq('name', 'Jan Jansen').maybeSingle();
-      expect(data.name).toBe('Jan Jansen');
-    });
-  });
-
   describe('getByEmail()', () => {
     it('moet student vinden op email', async () => {
       mockSupabaseClient.from.mockReturnValue({

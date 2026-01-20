@@ -47,15 +47,6 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
   useEffect(() => {
     loadStudents();
-
-    // Herlaad data wanneer browser tab weer focus krijgt
-    const handleFocus = () => {
-      console.log('[AdminStudentManagement] Tab focused, reloading...');
-      loadStudents();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -67,29 +58,12 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     setLoading(true);
     setError('');
 
-    // Check sessie eerst - als niet ingelogd, redirect
-    const { session } = await auth.getSession();
-    if (!session) {
-      console.log('[AdminStudentManagement] No session, redirecting to login...');
-      localStorage.clear();
-      window.location.href = '/login';
-      return;
-    }
-
     try {
       const data = await dbStudents.getAll();
       setStudents(data);
     } catch (err: any) {
       console.error('[AdminStudentManagement] Error:', err);
-
-      // Als auth error, redirect naar login
-      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
-        localStorage.clear();
-        window.location.href = '/login';
-        return;
-      }
-
-      setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
+      setError('Fout bij laden studenten. Probeer opnieuw.');
     } finally {
       setLoading(false);
     }

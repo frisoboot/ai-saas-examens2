@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { auth, userProfile } from '../services/supabaseService';
 import { StudentProfile } from '../types';
@@ -26,7 +26,6 @@ interface AuthContextType extends AuthState {
 // HELPERS
 // ============================================================================
 
-// Check of email in admin lijst staat (via VITE_ADMIN_EMAILS env var)
 const getAdminEmails = (): string[] => {
   const adminEmailsStr = import.meta.env?.VITE_ADMIN_EMAILS as string || '';
   return adminEmailsStr.split(',').map(e => e.trim().toLowerCase()).filter(Boolean);
@@ -34,8 +33,7 @@ const getAdminEmails = (): string[] => {
 
 const isAdminEmail = (email: string | undefined): boolean => {
   if (!email) return false;
-  const adminEmails = getAdminEmails();
-  return adminEmails.includes(email.toLowerCase());
+  return getAdminEmails().includes(email.toLowerCase());
 };
 
 // ============================================================================
@@ -58,22 +56,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAdmin: false
   });
 
-  // Laad profiel voor huidige user
-  const loadProfile = useCallback(async () => {
-    try {
-      const profile = await userProfile.getCurrentProfile();
-      setState(prev => ({ ...prev, profile }));
-    } catch (error) {
-      console.error('Fout bij laden profiel:', error);
-    }
-  }, []);
-
-  // Initialiseer auth state bij mount
+  // Initialiseer auth en luister naar changes
   useEffect(() => {
+    let mounted = true;
+
+    const loadUserProfile = async (user: User) => {
+      const profile = await userProfile.getCurrentProfile();
+      if (mounted) {
+        setState(prev => ({ ...prev, profile }));
+      }
+    };
+
     const initAuth = async () => {
       const { session } = await auth.getSession();
 
-      if (session?.user) {
+      if (session?.user && mounted) {
         setState(prev => ({
           ...prev,
           user: session.user,
@@ -82,23 +79,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAdmin: isAdminEmail(session.user.email),
           isLoading: false
         }));
-
-        // Laad profiel apart
-        const profile = await userProfile.getCurrentProfile();
-        setState(prev => ({ ...prev, profile }));
-      } else {
-        setState(prev => ({
-          ...prev,
-          isLoading: false
-        }));
+        loadUserProfile(session.user);
+      } else if (mounted) {
+        setState(prev => ({ ...prev, isLoading: false }));
       }
     };
 
     initAuth();
 
-    // Luister naar auth changes
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event);
+      if (!mounted) return;
 
       if (session?.user) {
         setState(prev => ({
@@ -108,11 +98,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           isAuthenticated: true,
           isAdmin: isAdminEmail(session.user.email)
         }));
-
-        // Laad profiel bij login
         if (event === 'SIGNED_IN') {
-          const profile = await userProfile.getCurrentProfile();
-          setState(prev => ({ ...prev, profile }));
+          loadUserProfile(session.user);
         }
       } else {
         setState({
@@ -127,6 +114,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -184,7 +172,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Refresh profile
   const refreshProfile = async () => {
-    await loadProfile();
+    const profile = await userProfile.getCurrentProfile();
+    setState(prev => ({ ...prev, profile }));
   };
 
   return (
