@@ -50,20 +50,20 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-amber-100" role="navigation">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200 flex-shrink-0">
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-semibold text-lg text-gray-800">AI Examentrainer</span>
+              <span className="font-semibold text-lg text-gray-800 truncate">AI Examentrainer</span>
             </div>
-            <div className="hidden md:flex items-center gap-8">
-              <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Functies</button>
-              <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Prijzen</button>
-              <button onClick={() => scrollToSection('faq')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Vragen</button>
+            <div className="hidden md:flex items-center justify-center gap-8 flex-1 px-8">
+              <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm whitespace-nowrap">Functies</button>
+              <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm whitespace-nowrap">Prijzen</button>
+              <button onClick={() => scrollToSection('faq')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm whitespace-nowrap">Vragen</button>
             </div>
             <button
               onClick={onLogin}
-              className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors whitespace-nowrap flex-shrink-0"
             >
               Inloggen
             </button>
