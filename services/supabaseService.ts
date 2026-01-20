@@ -20,7 +20,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Public client - gebruikt door studenten en voor login
 // De anon key is veilig om te gebruiken in de browser (beschermd door RLS)
 export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Automatisch sessie verversen wanneer access token bijna verloopt
+        autoRefreshToken: true,
+        // Sessie opslaan in localStorage zodat deze bewaard blijft
+        persistSession: true,
+        // Token verversen wanneer tab weer zichtbaar wordt
+        detectSessionInUrl: true,
+      }
+    })
   : null;
 
 // NOTE: supabaseAdmin is verwijderd uit de browser code voor veiligheid
@@ -366,10 +375,6 @@ export const dbStudents = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
-    // Log timestamp voor debugging van cache problemen
-    const timestamp = Date.now();
-    console.log(`[dbStudents.getAll] Ophalen studenten (timestamp: ${timestamp})`);
-
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
       .select('*')
@@ -380,7 +385,6 @@ export const dbStudents = {
       throw error;
     }
 
-    console.log(`[dbStudents.getAll] Studenten opgehaald: ${data?.length} records`);
     return (data || []).map(row => mapDbToProfile(row)!);
   },
 
