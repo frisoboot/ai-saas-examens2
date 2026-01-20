@@ -47,7 +47,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-amber-100" role="navigation">
+      <nav className="bg-white/80 backdrop-blur-xl border-b border-amber-100" role="navigation">
         <div className="max-w-6xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3 min-w-0">
@@ -72,7 +72,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-6 lg:px-8">
+      <section className="pt-16 pb-24 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm border border-amber-100 mb-8">
