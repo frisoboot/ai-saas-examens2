@@ -283,54 +283,11 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleLogout = async () => {
-    console.log('[App] handleLogout: Starting logout process...');
-
-    try {
-      // Stap 1: Roep signOut aan
-      const { error } = await signOut();
-
-      if (error) {
-        console.error('[App] handleLogout: SignOut returned error:', error);
-      } else {
-        console.log('[App] handleLogout: SignOut successful');
-      }
-
-      // Stap 2: Wacht even om er zeker van te zijn dat de auth state is bijgewerkt
-      await new Promise(resolve => setTimeout(resolve, 100));
-
-      // Stap 3: Clear alle mogelijke gecachte auth data
-      try {
-        // Verwijder alle Supabase gerelateerde items uit localStorage
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < localStorage.length; i++) {
-          const key = localStorage.key(i);
-          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-            keysToRemove.push(key);
-          }
-        }
-        keysToRemove.forEach(key => {
-          console.log('[App] handleLogout: Removing localStorage key:', key);
-          localStorage.removeItem(key);
-        });
-
-        // Clear sessionStorage ook
-        sessionStorage.clear();
-      } catch (storageError) {
-        console.warn('[App] handleLogout: Could not clear storage:', storageError);
-      }
-
-      console.log('[App] handleLogout: Redirecting to landing page...');
-
-      // Stap 4: Gebruik window.location voor een harde redirect (niet navigate)
-      // Dit zorgt ervoor dat de hele app opnieuw wordt geladen met schone state
-      window.location.replace('/');
-
-    } catch (err) {
-      console.error('[App] handleLogout: Exception during logout:', err);
-      // Forceer toch een redirect bij error
-      window.location.replace('/');
-    }
+  const handleLogout = () => {
+    // Simpel en robuust: wis alles en redirect
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '/';
   };
 
   return (
