@@ -181,14 +181,14 @@ describe('Subscription Service', () => {
   });
 
   describe('Trial Period Calculation', () => {
-    it('moet 30 dagen trial berekenen', () => {
-      const trialDays = 30;
+    it('moet 3 dagen trial berekenen', () => {
+      const trialDays = 3;
       const trialStart = new Date();
       const trialEnd = new Date(trialStart.getTime() + trialDays * 24 * 60 * 60 * 1000);
 
       const daysDifference = Math.round((trialEnd.getTime() - trialStart.getTime()) / (1000 * 60 * 60 * 24));
 
-      expect(daysDifference).toBe(30);
+      expect(daysDifference).toBe(3);
     });
 
     it('moet resterende trial dagen correct berekenen', () => {
@@ -197,7 +197,7 @@ describe('Subscription Service', () => {
       const daysLeft = Math.ceil((trialEndDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
       expect(daysLeft).toBeGreaterThan(0);
-      expect(daysLeft).toBeLessThanOrEqual(30);
+      expect(daysLeft).toBeLessThanOrEqual(23); // Mock heeft 23 dagen over
     });
 
     it('moet verlopen trial correct detecteren', () => {
@@ -303,7 +303,7 @@ describe('Subscription Database Operations', () => {
 
     it('moet trial activeren met correcte datums', async () => {
       const now = new Date();
-      const trialEnds = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+      const trialEnds = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
 
       const updateData = {
         status: 'trial',
