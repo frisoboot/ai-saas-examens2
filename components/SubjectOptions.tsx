@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap } from 'lucide-react';
 import { StudentProfile } from '../types';
-import { getAvailableYears, getQuestionCountByYear } from '../services/storageService';
+import { getAvailableYearsForSubject, getQuestionCountBySubjectAndYear } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
@@ -39,13 +39,14 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   useEffect(() => {
     const loadYears = async () => {
       try {
-        const years = await getAvailableYears();
+        // Get years only for this specific subject and level
+        const years = await getAvailableYearsForSubject(subject, student.level);
         setAvailableYears(years);
 
-        // Load question counts per year
+        // Load question counts per year for this subject
         const counts = new Map<number, number>();
         for (const year of years) {
-          const count = await getQuestionCountByYear(year, student.level);
+          const count = await getQuestionCountBySubjectAndYear(subject, year, student.level);
           counts.set(year, count);
         }
         setYearCounts(counts);
@@ -55,7 +56,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
       }
     };
     loadYears();
-  }, [student.level]);
+  }, [subject, student.level]);
 
   if (view === 'ai-setup') {
     return (
