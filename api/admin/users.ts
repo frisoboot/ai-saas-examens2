@@ -122,6 +122,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
         email: cleanEmail,
         password: password,
+        email_confirm: true,
         user_metadata: { name: cleanName, level: level }
       });
 
@@ -129,27 +130,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (createError.message.includes('already been registered')) {
           return res.status(400).json({ error: 'Dit email adres is al geregistreerd' });
         }
-        return res.status(500).json({ error: 'Kon gebruiker niet aanmaken: ' + createError.message });
+        return res.status(500).json({ error: createError.message });
       }
 
-      // Bevestig email
-      if (newUser?.user?.id) {
-        await supabaseAdmin.auth.admin.updateUserById(newUser.user.id, {
-          email_confirm: true
-        });
+      if (!newUser?.user) {
+        return res.status(500).json({ error: 'Gebruiker niet aangemaakt' });
       }
 
-      // Maak student profiel aan
-      await supabaseAdmin
-        .from('student_profiles')
-        .upsert({
-          email: cleanEmail,
-          name: cleanName,
-          level,
-          struggle_points: '',
-          is_active: true,
-          auth_user_id: newUser.user.id
-        }, { onConflict: 'email' });
+      // Maak student profiel aan (negeer errors - user bestaat al in Auth)
+      try {
+        await supabaseAdmin
+          .from('student_profiles')
+          .upsert({
+            email: cleanEmail,
+            name: cleanName,
+            level: level,
+            struggle_points: '',
+            is_active: true,
+            is_admin: false,
+            auth_user_id: newUser.user.id
+          }, { onConflict: 'email' });
+      } catch (profileError) {
+        console.error('Profiel aanmaken warning:', profileError);
+        // Ga door - de user is aangemaakt in Auth
+      }
 
       return res.status(201).json({
         success: true,
