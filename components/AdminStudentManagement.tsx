@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
 import { dbStudents, auth } from '../services/supabaseService';
 import { Button } from './Button';
@@ -46,17 +46,31 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleteConfirm, setDeleteConfirm] = useState<StudentProfile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
+  // Ref om te voorkomen dat we te vaak data ophalen
+  const lastFetchRef = useRef<number>(0);
+  const MIN_FETCH_INTERVAL = 2000; // Minimaal 2 seconden tussen fetches
+
   useEffect(() => {
     loadStudents(false);
 
-    // Herlaad data wanneer browser tab weer focus krijgt
-    const handleFocus = () => {
-      console.log('[AdminStudentManagement] Tab focused, reloading...');
-      loadStudents(true); // true = silent refresh, geen full-page loader
+    // Herlaad data wanneer browser tab weer zichtbaar wordt
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const now = Date.now();
+        const timeSinceLastFetch = now - lastFetchRef.current;
+
+        // Voorkom te veel requests - minimaal 2 seconden tussen fetches
+        if (timeSinceLastFetch >= MIN_FETCH_INTERVAL) {
+          console.log('[AdminStudentManagement] Tab visible, reloading...');
+          loadStudents(true); // true = silent refresh, geen full-page loader
+        } else {
+          console.log('[AdminStudentManagement] Tab visible, but skipping reload (too recent)');
+        }
+      }
     };
 
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -83,8 +97,11 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     }
 
     try {
+      console.log('[AdminStudentManagement] Fetching students...');
       const data = await dbStudents.getAll();
+      console.log('[AdminStudentManagement] Fetched', data.length, 'students');
       setStudents(data);
+      lastFetchRef.current = Date.now(); // Update timestamp na succesvolle fetch
     } catch (err: any) {
       console.error('[AdminStudentManagement] Error:', err);
 

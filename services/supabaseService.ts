@@ -20,7 +20,16 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Public client - gebruikt door studenten en voor login
 // De anon key is veilig om te gebruiken in de browser (beschermd door RLS)
 export const supabase = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey)
+  ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        // Automatisch sessie verversen wanneer access token bijna verloopt
+        autoRefreshToken: true,
+        // Sessie opslaan in localStorage zodat deze bewaard blijft
+        persistSession: true,
+        // Token verversen wanneer tab weer zichtbaar wordt
+        detectSessionInUrl: true,
+      }
+    })
   : null;
 
 // NOTE: supabaseAdmin is verwijderd uit de browser code voor veiligheid
