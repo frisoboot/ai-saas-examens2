@@ -48,14 +48,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   useEffect(() => {
     loadStudents();
 
-    // Herlaad data wanneer browser tab weer focus krijgt
-    const handleFocus = () => {
-      console.log('[AdminStudentManagement] Tab focused, reloading...');
-      loadStudents();
-    };
-
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
+    // DEBUG: Tab focus detectie uitgeschakeld voor debugging
+    // const handleFocus = () => {
+    //   console.log('[AdminStudentManagement] Tab focused, reloading...');
+    //   loadStudents();
+    // };
+    // window.addEventListener('focus', handleFocus);
+    // return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -67,14 +66,14 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     setLoading(true);
     setError('');
 
-    // Check sessie eerst - als niet ingelogd, redirect
-    const { session } = await auth.getSession();
-    if (!session) {
-      console.log('[AdminStudentManagement] No session, redirecting to login...');
-      localStorage.clear();
-      window.location.href = '/login';
-      return;
-    }
+    // DEBUG: Sessie check uitgeschakeld voor debugging
+    // const { session } = await auth.getSession();
+    // if (!session) {
+    //   console.log('[AdminStudentManagement] No session, redirecting to login...');
+    //   localStorage.clear();
+    //   window.location.href = '/login';
+    //   return;
+    // }
 
     try {
       const data = await dbStudents.getAll();
@@ -82,12 +81,12 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     } catch (err: any) {
       console.error('[AdminStudentManagement] Error:', err);
 
-      // Als auth error, redirect naar login
-      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
-        localStorage.clear();
-        window.location.href = '/login';
-        return;
-      }
+      // DEBUG: Auth error redirect uitgeschakeld voor debugging
+      // if (err.message?.includes('JWT') || err.code === 'PGRST301') {
+      //   localStorage.clear();
+      //   window.location.href = '/login';
+      //   return;
+      // }
 
       setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
