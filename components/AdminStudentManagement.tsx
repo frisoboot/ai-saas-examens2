@@ -54,14 +54,20 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     loadStudents(false);
 
     // Herlaad data wanneer browser tab weer zichtbaar wordt
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       if (document.visibilityState === 'visible') {
         const now = Date.now();
         const timeSinceLastFetch = now - lastFetchRef.current;
 
         // Voorkom te veel requests - minimaal 2 seconden tussen fetches
         if (timeSinceLastFetch >= MIN_FETCH_INTERVAL) {
-          console.log('[AdminStudentManagement] Tab visible, reloading...');
+          console.log('[AdminStudentManagement] Tab visible, waiting for auth to stabilize...');
+
+          // Wacht even zodat de auth state kan stabiliseren na tab switch
+          // Dit voorkomt race conditions met SIGNED_IN events
+          await new Promise(resolve => setTimeout(resolve, 500));
+
+          console.log('[AdminStudentManagement] Reloading data...');
           loadStudents(true); // true = silent refresh, geen full-page loader
         } else {
           console.log('[AdminStudentManagement] Tab visible, but skipping reload (too recent)');
@@ -98,21 +104,38 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
 
     try {
       console.log('[AdminStudentManagement] Fetching students...');
-      const data = await dbStudents.getAll();
+
+      // Timeout wrapper om te voorkomen dat de UI blijft hangen
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => reject(new Error('TIMEOUT')), 10000); // 10 seconden timeout
+      });
+
+      const data = await Promise.race([
+        dbStudents.getAll(),
+        timeoutPromise
+      ]);
+
       console.log('[AdminStudentManagement] Fetched', data.length, 'students');
       setStudents(data);
       lastFetchRef.current = Date.now(); // Update timestamp na succesvolle fetch
     } catch (err: any) {
       console.error('[AdminStudentManagement] Error:', err);
 
-      // Als auth error, redirect naar login
-      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
+      if (err.message === 'TIMEOUT') {
+        console.log('[AdminStudentManagement] Request timed out, keeping existing data');
+        // Bij timeout: behoud bestaande data, toon geen error als we al data hebben
+        if (students.length === 0) {
+          setError('Laden duurde te lang. Probeer opnieuw.');
+        }
+        // Bij refresh met bestaande data: negeer timeout silently
+      } else if (err.message?.includes('JWT') || err.code === 'PGRST301') {
+        // Als auth error, redirect naar login
         localStorage.clear();
         window.location.href = '/login';
         return;
+      } else {
+        setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
       }
-
-      setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
       setLoading(false);
       setIsRefreshing(false);

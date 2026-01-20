@@ -379,6 +379,18 @@ export const dbStudents = {
     const timestamp = Date.now();
     console.log(`[dbStudents.getAll] Ophalen studenten (timestamp: ${timestamp})`);
 
+    // Forceer sessie refresh om stale token te voorkomen
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) {
+      console.error('[dbStudents.getAll] Session error:', sessionError);
+      throw sessionError;
+    }
+    if (!sessionData.session) {
+      console.error('[dbStudents.getAll] No session found');
+      throw new Error('Geen actieve sessie');
+    }
+    console.log(`[dbStudents.getAll] Session valid, fetching data...`);
+
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
       .select('*')
