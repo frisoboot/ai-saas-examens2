@@ -47,23 +47,23 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       />
 
       {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-amber-100" role="navigation">
-        <div className="max-w-6xl mx-auto px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
-                <GraduationCap className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-semibold text-lg text-gray-800">AI Examentrainer</span>
+      <nav className="bg-white border-b border-amber-100" role="navigation">
+        <div className="max-w-6xl mx-auto px-6 lg:px-8 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-amber-200">
+              <GraduationCap className="w-5 h-5 text-white" />
             </div>
-            <div className="hidden md:flex items-center gap-8">
+            <span className="font-semibold text-lg text-gray-800">AI Examentrainer</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-6">
               <button onClick={() => scrollToSection('features')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Functies</button>
               <button onClick={() => scrollToSection('pricing')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Prijzen</button>
               <button onClick={() => scrollToSection('faq')} className="text-gray-600 hover:text-gray-900 transition-colors text-sm">Vragen</button>
             </div>
             <button
               onClick={onLogin}
-              className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+              className="text-sm font-medium text-amber-600 hover:text-amber-700 transition-colors"
             >
               Inloggen
             </button>
@@ -72,7 +72,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-24 px-6 lg:px-8">
+      <section className="pt-16 pb-24 px-6 lg:px-8">
         <div className="max-w-6xl mx-auto">
           <div className="max-w-3xl mx-auto text-center">
             <div className="inline-flex items-center gap-2 bg-white rounded-full px-4 py-2 shadow-sm border border-amber-100 mb-8">
