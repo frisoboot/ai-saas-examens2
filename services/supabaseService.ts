@@ -537,22 +537,27 @@ export const userProfile = {
    * Haal profiel op voor ingelogde gebruiker via email
    */
   async getCurrentProfile(): Promise<StudentProfile | null> {
-    const { user, error: userError } = await auth.getUser();
+    try {
+      const { user, error: userError } = await auth.getUser();
 
-    if (userError || !user?.email) {
+      if (userError || !user?.email) {
+        return null;
+      }
+
+      // Haal profiel op via email
+      const profile = await dbStudents.getByEmail(user.email);
+
+      // Return profiel of default voor admins zonder profiel
+      return profile || {
+        name: user.email.split('@')[0],
+        level: 'HAVO',
+        strugglePoints: '',
+        email: user.email,
+        isActive: true
+      };
+    } catch (error) {
+      console.error('Fout bij ophalen profiel:', error);
       return null;
     }
-
-    // Haal profiel op via email
-    const profile = await dbStudents.getByEmail(user.email);
-
-    // Return profiel of default voor admins zonder profiel
-    return profile || {
-      name: user.email.split('@')[0],
-      level: 'HAVO',
-      strugglePoints: '',
-      email: user.email,
-      isActive: true
-    };
   }
 };
