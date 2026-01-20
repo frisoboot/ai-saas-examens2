@@ -96,33 +96,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     initAuth();
 
-    // DEBUG: onAuthStateChange uitgeschakeld voor debugging
-    // Dit voorkomt automatisch uitloggen bij tab switching
+    // DEBUG: onAuthStateChange VOLLEDIG uitgeschakeld
+    // Alleen logging, GEEN state changes
     const { data: { subscription } } = auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, '- DEBUG: alleen loggen, geen actie');
-
-      // DEBUG: Alleen SIGNED_IN en SIGNED_OUT afhandelen, rest negeren
-      if (event === 'SIGNED_IN' && session?.user) {
-        setState(prev => ({
-          ...prev,
-          user: session.user,
-          session,
-          isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email)
-        }));
-        const profile = await userProfile.getCurrentProfile();
-        setState(prev => ({ ...prev, profile }));
-      } else if (event === 'SIGNED_OUT') {
-        setState({
-          user: null,
-          session: null,
-          profile: null,
-          isLoading: false,
-          isAuthenticated: false,
-          isAdmin: false
-        });
-      }
-      // DEBUG: TOKEN_REFRESHED en andere events worden genegeerd
+      console.log('🔴 Auth state change GENEGEERD:', event, 'session:', session ? 'exists' : 'null');
+      // NIETS DOEN - state blijft ongewijzigd
     });
 
     return () => {
