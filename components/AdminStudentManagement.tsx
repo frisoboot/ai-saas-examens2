@@ -46,10 +46,16 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    console.log('[AdminStudentManagement] Component mounted, loading students...');
     loadStudents();
-    // Empty dependency array: laad altijd verse data bij mount
-    // Component krijgt een nieuwe key bij nieuwe login (zie App.tsx AdminDashboard key prop)
+
+    // Herlaad data wanneer browser tab weer focus krijgt
+    const handleFocus = () => {
+      console.log('[AdminStudentManagement] Tab focused, reloading...');
+      loadStudents();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
   }, []);
 
   const getAuthToken = async (): Promise<string | null> => {
@@ -60,30 +66,30 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
   const loadStudents = async () => {
     setLoading(true);
     setError('');
-    console.log('[AdminStudentManagement] Starting to load students...');
 
-    // Timeout om te voorkomen dat het eindeloos blijft laden
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), 15000)
-    );
+    // Check sessie eerst - als niet ingelogd, redirect
+    const { session } = await auth.getSession();
+    if (!session) {
+      console.log('[AdminStudentManagement] No session, redirecting to login...');
+      localStorage.clear();
+      window.location.href = '/login';
+      return;
+    }
 
     try {
-      const data = await Promise.race([
-        dbStudents.getAll(),
-        timeoutPromise
-      ]);
-      console.log('[AdminStudentManagement] Students loaded:', data.length);
+      const data = await dbStudents.getAll();
       setStudents(data);
     } catch (err: any) {
-      console.error('[AdminStudentManagement] Error loading students:', err);
+      console.error('[AdminStudentManagement] Error:', err);
 
-      if (err.message === 'TIMEOUT') {
-        setError('Het laden van studenten duurt te lang. Controleer je database RLS policies en of je admin account correct is ingesteld.');
-      } else if (err.message?.includes('permission') || err.message?.includes('RLS') || err.code === 'PGRST301') {
-        setError('Geen toegang. Zorg ervoor dat je admin account is_admin = TRUE heeft in de database.');
-      } else {
-        setError(`Fout bij laden van studenten: ${err.message || 'Onbekende fout'}`);
+      // Als auth error, redirect naar login
+      if (err.message?.includes('JWT') || err.code === 'PGRST301') {
+        localStorage.clear();
+        window.location.href = '/login';
+        return;
       }
+
+      setError('Fout bij laden. Probeer opnieuw of log opnieuw in.');
     } finally {
       setLoading(false);
     }
