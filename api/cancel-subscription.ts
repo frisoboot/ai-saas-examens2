@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
+import { sendSubscriptionCancelledEmail } from './utils/email.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
@@ -84,12 +85,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Bepaal einddatum
     let accessUntil: string | null = null;
+    let accessUntilDate: Date | null = null;
 
     if (subscription.status === 'trial' && subscription.trial_ends_at) {
       accessUntil = subscription.trial_ends_at;
+      accessUntilDate = new Date(subscription.trial_ends_at);
     } else if (subscription.current_period_end) {
       accessUntil = subscription.current_period_end;
+      accessUntilDate = new Date(subscription.current_period_end);
     }
+
+    // Verstuur bevestigingsemail
+    await sendSubscriptionCancelledEmail(email.toLowerCase(), accessUntilDate);
 
     return res.status(200).json({
       success: true,

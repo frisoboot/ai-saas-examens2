@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { sendWelcomeEmail, sendAdminNewUserNotification } from '../utils/email.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -154,6 +155,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.error('Profiel aanmaken warning:', profileError);
         // Ga door - de user is aangemaakt in Auth
       }
+
+      // Verstuur welkom email naar student
+      await sendWelcomeEmail(cleanEmail, cleanName, level);
+
+      // Verstuur admin notificatie
+      await sendAdminNewUserNotification(cleanEmail, cleanName, level, 'admin');
 
       return res.status(201).json({
         success: true,

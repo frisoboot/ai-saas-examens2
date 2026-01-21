@@ -4,6 +4,12 @@
       "runtime": "@vercel/node@5.5.17"
     }
   },
+  "crons": [
+    {
+      "path": "/api/cron/trial-reminder",
+      "schedule": "0 9 * * *"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",
