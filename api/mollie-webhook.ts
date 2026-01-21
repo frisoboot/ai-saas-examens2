@@ -11,6 +11,12 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
+import {
+  sendWelcomeEmail,
+  sendPaymentSuccessEmail,
+  sendSubscriptionRenewedEmail,
+  sendAdminNewUserNotification
+} from './utils/email.js';
 
 /**
  * Genereer een veilig random wachtwoord (fallback als geen opgeslagen wachtwoord)
@@ -309,6 +315,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Deleted pending registration');
       }
 
+      // ====================================================================
+      // VERSTUUR EMAILS
+      // ====================================================================
+
+      // Welkom email naar student
+      await sendWelcomeEmail(email, email, level);
+
+      // Betaling bevestiging email
+      await sendPaymentSuccessEmail(email, 100, trialEnds);
+
+      // Admin notificatie
+      await sendAdminNewUserNotification(email, email, level, 'payment');
+
       console.log('Account activation complete for:', email);
     }
 
@@ -370,6 +389,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             payment_method: payment.method || null,
             paid_at: payment.paidAt || new Date().toISOString()
           });
+
+        // Verstuur abonnement verlengd email
+        await sendSubscriptionRenewedEmail(subscription.user_email, 1250, periodEnd);
 
         console.log('Subscription payment processed for:', subscription.user_email);
       } else {
@@ -450,6 +472,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           payment_method: payment.method || null,
           paid_at: payment.paidAt || new Date().toISOString()
         });
+
+      // Verstuur abonnement verlengd email
+      if (metadata.email) {
+        await sendSubscriptionRenewedEmail(metadata.email, 1250, periodEnd);
+      }
 
       console.log('LEGACY subscription payment processed for:', metadata.email);
     }
