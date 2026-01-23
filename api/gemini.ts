@@ -40,7 +40,7 @@ const getAI = (): GoogleGenAI => {
     throw new Error('GEMINI_API_KEY environment variable not set');
   }
   // Log that we have an API key (don't log the key itself for security)
-  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL);
+  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL_FLASH);
   if (!_ai) {
     _ai = new GoogleGenAI({ apiKey });
   }
