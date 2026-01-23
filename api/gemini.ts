@@ -15,9 +15,23 @@ import { setCorsHeaders } from './utils/cors.js';
 // Lazy initialization
 let _ai: GoogleGenAI | null = null;
 
-// Model configuration - use Gemini 3 Flash for all AI operations
-const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
-const GEMINI_MODEL_FALLBACK = 'gemini-2.5-flash';
+// Model configuration
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-2.5-pro';
+const GEMINI_MODEL_FALLBACK = 'gemini-3-flash-preview'; // Fallback naar stabiele Gemini 3 Flash
+
+// Exacte vakken die een sterker model nodig hebben voor HAVO/VWO
+const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
+const PRO_LEVELS = ['HAVO', 'VWO'];
+
+// Bepaal welk model te gebruiken op basis van vak en niveau
+function getModelForSubject(subject?: string, level?: string): string {
+  if (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) {
+    console.log(`[Gemini API] Using Pro model for ${subject} (${level})`);
+    return GEMINI_MODEL_PRO;
+  }
+  return GEMINI_MODEL_FLASH;
+}
 
 const getAI = (): GoogleGenAI => {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -26,7 +40,7 @@ const getAI = (): GoogleGenAI => {
     throw new Error('GEMINI_API_KEY environment variable not set');
   }
   // Log that we have an API key (don't log the key itself for security)
-  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL);
+  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL_FLASH);
   if (!_ai) {
     _ai = new GoogleGenAI({ apiKey });
   }
@@ -37,21 +51,23 @@ const getAI = (): GoogleGenAI => {
 async function generateWithFallback(
   ai: GoogleGenAI,
   contents: string,
-  config?: { systemInstruction?: string }
+  config?: { systemInstruction?: string },
+  preferredModel?: string
 ): Promise<string> {
   let lastError: any = null;
+  const primaryModel = preferredModel || GEMINI_MODEL_FLASH;
 
   // Try primary model
   try {
-    console.log(`[Gemini API] Trying primary model: ${GEMINI_MODEL}`);
+    console.log(`[Gemini API] Trying primary model: ${primaryModel}`);
     const response = await ai.models.generateContent({
-      model: GEMINI_MODEL,
+      model: primaryModel,
       contents,
       config,
     });
     return response.text || '';
   } catch (error: any) {
-    console.warn(`[Gemini API] Primary model ${GEMINI_MODEL} failed:`, error.message);
+    console.warn(`[Gemini API] Primary model ${primaryModel} failed:`, error.message);
     lastError = error;
   }
 
@@ -208,8 +224,10 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
     `;
   }
 
+  // Gebruik Pro model voor exacte vakken op HAVO/VWO
+  const model = getModelForSubject(question.subject, question.level);
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model,
     contents: prompt,
   });
   return response.text || "Geen uitleg beschikbaar.";
@@ -343,8 +361,10 @@ async function generateAIQuestions(
     Geef ALLEEN de JSON array terug, geen extra tekst.
   `;
 
+  // Gebruik Pro model voor exacte vakken op HAVO/VWO
+  const model = getModelForSubject(subject, level);
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model,
     contents: prompt,
   });
 
@@ -502,8 +522,10 @@ async function generateLookalikeExamQuestions(
     Geef ALLEEN de JSON array terug.
   `;
 
+  // Gebruik Pro model voor exacte vakken op HAVO/VWO
+  const modelLookalike = getModelForSubject(subject, level);
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: modelLookalike,
     contents: prompt,
   });
 
@@ -626,8 +648,11 @@ async function generateExamSummary(
     Geef ALLEEN de JSON terug.
   `;
 
+  // Haal level uit eerste vraag voor model selectie
+  const level = questions[0]?.level;
+  const modelSummary = getModelForSubject(subject, level);
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: modelSummary,
     contents: prompt,
   });
 
@@ -708,8 +733,10 @@ async function generateFlashcards(
     Geef ALLEEN de JSON array terug.
   `;
 
+  // Gebruik Pro model voor exacte vakken op HAVO/VWO
+  const modelFlashcards = getModelForSubject(subject, level);
   const response = await ai.models.generateContent({
-    model: GEMINI_MODEL,
+    model: modelFlashcards,
     contents: prompt,
   });
 
