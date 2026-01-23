@@ -3,12 +3,20 @@
 
 User-agent: *
 Allow: /
+Allow: /login
+Allow: /checkout
 
-# Sitemap
+# Sitemap locatie voor Google Search Console
 Sitemap: https://ai-examentrainer.nl/sitemap.xml
 
-# Disallow API endpoints
+# Blokkeer API endpoints
 Disallow: /api/
 
-# Disallow internal app routes (these are handled client-side anyway)
-# The app is an SPA, so all content is on the main page
+# Blokkeer beschermde pagina's (vereisen authenticatie)
+Disallow: /dashboard
+Disallow: /exam
+Disallow: /chat
+Disallow: /flashcards
+Disallow: /settings
+Disallow: /admin
+Disallow: /payment/
