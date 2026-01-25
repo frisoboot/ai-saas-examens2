@@ -4,6 +4,21 @@
       "runtime": "@vercel/node@5.5.17"
     }
   },
+  "rewrites": [
+    { "source": "/wiskunde-eindexamen-oefenen", "destination": "/wiskunde-eindexamen-oefenen/index.html" },
+    { "source": "/nederlands-eindexamen-oefenen", "destination": "/nederlands-eindexamen-oefenen/index.html" },
+    { "source": "/engels-eindexamen-oefenen", "destination": "/engels-eindexamen-oefenen/index.html" },
+    { "source": "/biologie-eindexamen-oefenen", "destination": "/biologie-eindexamen-oefenen/index.html" },
+    { "source": "/scheikunde-eindexamen-oefenen", "destination": "/scheikunde-eindexamen-oefenen/index.html" },
+    { "source": "/natuurkunde-eindexamen-oefenen", "destination": "/natuurkunde-eindexamen-oefenen/index.html" },
+    { "source": "/geschiedenis-eindexamen-oefenen", "destination": "/geschiedenis-eindexamen-oefenen/index.html" },
+    { "source": "/aardrijkskunde-eindexamen-oefenen", "destination": "/aardrijkskunde-eindexamen-oefenen/index.html" },
+    { "source": "/economie-eindexamen-oefenen", "destination": "/economie-eindexamen-oefenen/index.html" },
+    { "source": "/havo-examen-oefenen", "destination": "/havo-examen-oefenen/index.html" },
+    { "source": "/vwo-examen-oefenen", "destination": "/vwo-examen-oefenen/index.html" },
+    { "source": "/vmbo-examen-oefenen", "destination": "/vmbo-examen-oefenen/index.html" },
+    { "source": "/((?!api|_next|.*\\..*).*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/(.*)",
