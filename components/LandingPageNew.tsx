@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { SEO } from './SEO';
 import {
   GraduationCap,
@@ -19,7 +19,11 @@ import {
   Award,
   ArrowRight,
   Check,
-  X
+  X,
+  Heart,
+  BarChart3,
+  Wallet,
+  Smile
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -104,6 +108,50 @@ const useAnimatedCounter = (end: number, duration: number = 2000, startOnView: b
   return { count, ref };
 };
 
+// Custom hook for countdown to exam date
+const useCountdown = (targetDate: Date) => {
+  const [daysLeft, setDaysLeft] = useState(0);
+
+  useEffect(() => {
+    const calculateDays = () => {
+      const now = new Date();
+      const diff = targetDate.getTime() - now.getTime();
+      const days = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+      setDaysLeft(days);
+    };
+
+    calculateDays();
+    const interval = setInterval(calculateDays, 60000); // Update every minute
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  return daysLeft;
+};
+
+// Custom hook for simulated online users (Bandwagon Effect)
+const useOnlineUsers = () => {
+  const [onlineUsers, setOnlineUsers] = useState(0);
+
+  useEffect(() => {
+    // Generate random number between 80-150
+    const generateCount = () => Math.floor(Math.random() * (150 - 80 + 1)) + 80;
+    setOnlineUsers(generateCount());
+
+    // Update every 30 seconds with small variation
+    const interval = setInterval(() => {
+      setOnlineUsers((prev) => {
+        const change = Math.floor(Math.random() * 11) - 5; // -5 to +5
+        const newValue = prev + change;
+        return Math.max(80, Math.min(150, newValue));
+      });
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return onlineUsers;
+};
+
 
 // Simple styled button
 const StyledButton: React.FC<{
@@ -158,6 +206,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
   const subjectsCounter = useAnimatedCounter(16);
   const ratingCounter = useAnimatedCounter(48);
 
+  // Countdown to exam date (12 mei 2025)
+  const examDate = useMemo(() => new Date('2025-05-12'), []);
+  const daysUntilExam = useCountdown(examDate);
+
+  // Simulated online users
+  const onlineUsers = useOnlineUsers();
+
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
       <SEO
@@ -209,10 +264,22 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             {/* Badge */}
-            <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg shadow-slate-200/50 border border-white mb-10">
+            <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg shadow-slate-200/50 border border-white mb-4">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-slate-700">AI-gestuurde examenvoorbereiding</span>
             </div>
+
+            {/* Countdown - Urgency */}
+            {daysUntilExam > 0 && (
+              <div className="text-reveal text-reveal-delay-1 mb-8">
+                <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full px-6 py-3 shadow-lg shadow-orange-500/30 animate-pulse">
+                  <Clock className="w-5 h-5 text-white" />
+                  <span className="text-white font-bold">
+                    Nog {daysUntilExam} dagen tot de eindexamens!
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Main Headline */}
             <h1 className="text-reveal text-reveal-delay-2 text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8 tracking-tight">
@@ -317,7 +384,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       {/* Social Proof / Stats */}
       <section className="py-20 px-6 lg:px-8 bg-slate-900">
         <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
             {[
               { value: studentsCounter.count, suffix: '+', label: 'Leerlingen', ref: studentsCounter.ref },
               { value: schoolsCounter.count, suffix: '+', label: 'Scholen', ref: schoolsCounter.ref },
@@ -335,6 +402,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 <div className="text-slate-400 font-medium">{stat.label}</div>
               </div>
             ))}
+            {/* Live online indicator - Bandwagon Effect */}
+            <div className="text-center">
+              <div className="text-4xl md:text-5xl font-bold text-white mb-2 flex items-center justify-center gap-2">
+                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                <span>{onlineUsers}</span>
+              </div>
+              <div className="text-slate-400 font-medium">Nu online</div>
+            </div>
           </div>
         </div>
       </section>
@@ -554,7 +629,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 stagger-children">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
             {[
               {
                 name: 'Sophie de Vries',
@@ -576,6 +651,20 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 text: 'De flashcards zijn perfect voor het leren van begrippen. Ik kan nu overal oefenen, zelfs in de trein!',
                 avatar: 'E',
                 gradient: 'from-emerald-500 to-teal-500'
+              },
+              {
+                name: 'Marieke van Dijk',
+                school: 'Moeder van HAVO-leerling',
+                text: 'Eindelijk minder stress thuis rond de examens. Mijn dochter oefent zelfstandig en ik zie duidelijke verbetering in haar cijfers.',
+                avatar: 'M',
+                gradient: 'from-amber-500 to-orange-500'
+              },
+              {
+                name: 'Dhr. de Jong',
+                school: 'Wiskundedocent · Den Haag',
+                text: 'Bespaart mij enorm veel tijd. Leerlingen komen beter voorbereid naar de les en de resultaten van mijn klas zijn zichtbaar verbeterd.',
+                avatar: 'J',
+                gradient: 'from-cyan-500 to-blue-500'
               }
             ].map((testimonial, index) => (
               <div key={index} className="glass-card rounded-3xl p-8 scroll-reveal hover:shadow-xl transition-shadow duration-300">
@@ -594,6 +683,60 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                     <p className="text-slate-500">{testimonial.school}</p>
                   </div>
                 </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Voor Ouders Section */}
+      <section className="py-32 px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16 scroll-reveal">
+            <span className="inline-block px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold mb-6">
+              Voor Ouders
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
+              Investeer in het succes van je kind
+            </h2>
+            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+              AI Examentrainer helpt niet alleen leerlingen, maar geeft ouders ook rust en overzicht.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 stagger-children">
+            {[
+              {
+                icon: BarChart3,
+                title: 'Voortgangsrapport',
+                description: 'Zie precies wat je kind leert en waar ze aan werken. Volg de ontwikkeling zonder over de schouder mee te hoeven kijken.',
+                gradient: 'from-indigo-500 to-purple-500',
+                shadowColor: 'shadow-indigo-500/20'
+              },
+              {
+                icon: Wallet,
+                title: 'Goedkoper dan bijles',
+                description: 'Voor minder dan €0,50 per dag krijgt je kind onbeperkt toegang. Eén uurtje bijles kost al snel €30-50.',
+                gradient: 'from-emerald-500 to-teal-500',
+                shadowColor: 'shadow-emerald-500/20'
+              },
+              {
+                icon: Smile,
+                title: 'Minder stress',
+                description: 'Je kind oefent zelfstandig op eigen tempo. Geen gedoe meer over huiswerk of discussies over leren.',
+                gradient: 'from-amber-500 to-orange-500',
+                shadowColor: 'shadow-amber-500/20'
+              }
+            ].map((benefit) => (
+              <div
+                key={benefit.title}
+                className="bg-white rounded-3xl p-8 border border-slate-100 scroll-reveal hover:shadow-lg transition-shadow"
+              >
+                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center mb-6 shadow-lg ${benefit.shadowColor}`}>
+                  <benefit.icon className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="font-bold text-xl text-slate-900 mb-3">{benefit.title}</h3>
+                <p className="text-slate-600 leading-relaxed">{benefit.description}</p>
               </div>
             ))}
           </div>
@@ -629,9 +772,19 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   <p className="text-slate-500">Perfect voor leerlingen</p>
                 </div>
 
-                <div className="mb-8">
+                <div className="mb-4">
                   <span className="text-5xl font-bold text-slate-900">€12,50</span>
                   <span className="text-slate-500 ml-2">/ maand</span>
+                </div>
+
+                {/* Mental Accounting - Price Framing */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 rounded-full text-sm font-medium text-slate-600">
+                    = €0,42 per dag
+                  </span>
+                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-sm font-medium text-emerald-700">
+                    Goedkoper dan 1 uur bijles
+                  </span>
                 </div>
 
                 <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl px-5 py-4 mb-8 border border-orange-100">
@@ -745,6 +898,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               {
                 question: 'Hoe betrouwbaar zijn de AI-vragen?',
                 answer: 'Onze AI is getraind op duizenden echte examenvragen en volgt de exameneisen van het CITO. De vragen zijn qua stijl, moeilijkheid en format vergelijkbaar met echte eindexamens.'
+              },
+              {
+                question: 'Is dit hetzelfde als ChatGPT?',
+                answer: 'Nee, AI Examentrainer is specifiek ontwikkeld voor Nederlandse eindexamens. Onze AI genereert vragen in CITO-stijl, kent de exameneisen per vak en niveau, en geeft feedback die aansluit bij hoe examens worden beoordeeld. ChatGPT is een algemene chatbot zonder deze specialisatie.'
+              },
+              {
+                question: 'Wat als mijn kind het niet gebruikt?',
+                answer: 'We sturen automatisch herinneringen om te blijven oefenen. Als ouder kun je de voortgang volgen en zien wanneer je kind voor het laatst heeft geoefend. Zo kun je tijdig bijsturen als het even niet lekker loopt.'
               }
             ].map((faq, index) => (
               <details key={index} className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
