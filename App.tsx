@@ -10,25 +10,19 @@ import { AdminDashboard } from './components/AdminDashboard';
 import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
-import { LandingPage } from './components/LandingPage';
+import { LandingPageNew as LandingPage } from './components/LandingPageNew';
 import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
+import { LoadingScreen } from './components/LoadingScreen';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Even geduld...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Profiel laden..." />;
   }
 
   if (!isAuthenticated) {
@@ -43,14 +37,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, isAdmin, isLoading } = useAuth();
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Even geduld...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen message="Admin verificatie..." />;
   }
 
   if (!isAuthenticated) {
@@ -303,12 +290,7 @@ const AppContent: React.FC = () => {
 
         <Route path="/login" element={
           isLoading ? (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-                <p className="text-gray-600">Even geduld...</p>
-              </div>
-            </div>
+            <LoadingScreen message="Inloggen..." />
           ) : isAuthenticated ? (
             <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />
           ) : (
