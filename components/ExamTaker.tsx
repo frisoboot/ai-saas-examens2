@@ -252,6 +252,19 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
     const openCount = session.questions.filter(q => q.type === 'OPEN').length;
 
+    // Calculate percentage and generate appropriate feedback
+    const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
+
+    const getFeedback = (score: number): { title: string; subtitle: string } => {
+      if (score >= 90) return { title: "Uitstekend gedaan!", subtitle: "Je hebt de stof uitstekend onder de knie." };
+      if (score >= 75) return { title: "Goed gedaan!", subtitle: "Je hebt de meeste vragen correct beantwoord." };
+      if (score >= 55) return { title: "Voldoende!", subtitle: "Je hebt een voldoende gehaald, maar er is ruimte voor verbetering." };
+      if (score >= 40) return { title: "Bijna voldoende", subtitle: "Je bent op de goede weg, maar moet nog wat bijspijkeren." };
+      return { title: "Meer oefening nodig", subtitle: "Bestudeer de stof opnieuw en probeer het nog eens." };
+    };
+
+    const feedback = getFeedback(percentage);
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 py-8 md:py-12 px-4 relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -271,10 +284,10 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 </div>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent mb-4">
-                Geweldig gedaan!
+                {feedback.title}
               </h2>
               <p className="text-slate-700 text-lg max-w-2xl mx-auto leading-relaxed">
-                Je toets is afgerond. Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
+                {feedback.subtitle} Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
               </p>
             </div>
 
