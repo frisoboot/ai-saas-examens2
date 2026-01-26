@@ -94,7 +94,10 @@ export const FlashcardStudy: React.FC<FlashcardStudyProps> = ({
       if (knownCards.size + unknownCards.size >= session.cards.length - 1 ||
           (studyMode === 'unknown' && currentIndex === cardsToStudy.length - 1)) {
         setIsComplete(true);
-        saveProgress();
+        // Save progress with error handling to prevent silent failures
+        saveProgress().catch(error => {
+          console.error('Failed to save flashcard progress:', error);
+        });
       } else {
         setCurrentIndex(0);
       }

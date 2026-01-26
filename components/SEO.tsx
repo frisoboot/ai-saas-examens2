@@ -21,7 +21,9 @@ export const SEO: React.FC<SEOProps> = ({
   noindex = false,
 }) => {
   const fullTitle = title.includes('AI Examentrainer') ? title : `${title} | AI Examentrainer`;
-  const currentUrl = canonical || `https://ai-examentrainer.nl${window.location.pathname}`;
+  // Check if window is available (client-side) to prevent SSR crash
+  const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+  const currentUrl = canonical || `https://ai-examentrainer.nl${pathname}`;
 
   return (
     <Helmet>

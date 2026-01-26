@@ -19,6 +19,7 @@ interface SubjectChatProps {
 }
 
 interface Message {
+  id: string;
   role: 'user' | 'model';
   text: string;
 }
@@ -36,6 +37,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
     
     // Initial greeting (sanitize user input to prevent XSS)
     setMessages([{
+      id: `msg-${Date.now()}-greeting`,
       role: 'model',
       text: `Hoi ${sanitizeText(student.name)}! Ik ben je AI-expert voor **${sanitizeText(subject)}** (${sanitizeText(student.level)}). \n\nJe gaf aan dat je moeite hebt met: *${sanitizeText(student.strugglePoints)}*. \n\nWaar zullen we mee beginnen?`
     }]);
@@ -54,17 +56,18 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
     if (!input.trim() || !chatRef.current) return;
 
     const userMsg = input;
+    const userMsgId = `msg-${Date.now()}-user`;
     setInput('');
-    setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setMessages(prev => [...prev, { id: userMsgId, role: 'user', text: userMsg }]);
     setIsTyping(true);
 
     try {
       const responseText = await chatRef.current.sendMessage(userMsg);
 
-      setMessages(prev => [...prev, { role: 'model', text: responseText || "Sorry, ik begreep dat niet helemaal." }]);
+      setMessages(prev => [...prev, { id: `msg-${Date.now()}-model`, role: 'model', text: responseText || "Sorry, ik begreep dat niet helemaal." }]);
     } catch (error) {
       console.error(error);
-      setMessages(prev => [...prev, { role: 'model', text: "Er ging iets mis met de verbinding. Probeer het opnieuw." }]);
+      setMessages(prev => [...prev, { id: `msg-${Date.now()}-error`, role: 'model', text: "Er ging iets mis met de verbinding. Probeer het opnieuw." }]);
     } finally {
       setIsTyping(false);
     }
@@ -91,8 +94,8 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar">
         <div className="max-w-2xl mx-auto space-y-6">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
+          {messages.map((msg) => (
+            <div key={msg.id} className={`flex items-start gap-3 ${msg.role === 'user' ? 'flex-row-reverse' : ''}`}>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-1 shadow-sm ${msg.role === 'model' ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}>
                 {msg.role === 'model' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
               </div>

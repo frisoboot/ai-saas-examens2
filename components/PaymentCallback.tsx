@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { Button } from './Button';
 import {
   CheckCircle2,
@@ -31,6 +31,9 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
 
   // Check betaalstatus bij laden
   useEffect(() => {
+    let isMounted = true;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     // Gebruik ref als we al een payment ID hebben opgeslagen, anders haal uit localStorage
     const paymentId = paymentIdRef.current || localStorage.getItem('pending_payment_id');
 
@@ -46,6 +49,9 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     const checkStatus = async () => {
       try {
         const result = await checkPaymentStatus(paymentId);
+
+        // Check if component is still mounted before updating state
+        if (!isMounted) return;
 
         if (result.success) {
           setEmail(result.email);
@@ -64,7 +70,9 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               setMessage(result.message);
               // Blijf checken voor pending payments
               if (checkCount < 30) { // Max 30 checks (2.5 minuten)
-                setTimeout(() => setCheckCount(c => c + 1), 5000);
+                timeoutId = setTimeout(() => {
+                  if (isMounted) setCheckCount(c => c + 1);
+                }, 5000);
               }
               break;
             case 'failed':
@@ -83,12 +91,20 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
         }
       } catch (error) {
         console.error('Payment status check error:', error);
-        setState('failed');
-        setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
+        if (isMounted) {
+          setState('failed');
+          setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
+        }
       }
     };
 
     checkStatus();
+
+    // Cleanup function to prevent memory leaks and state updates on unmounted component
+    return () => {
+      isMounted = false;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [checkCount]);
 
   // Bij success: check of account klaar is

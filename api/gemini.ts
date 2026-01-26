@@ -183,8 +183,11 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
 
   if (question.type === 'MULTIPLE_CHOICE') {
     const ansIdx = studentAnswer as number;
-    const ansText = question.options ? question.options[ansIdx] : '';
-    const correctAnsText = question.options && question.correctIndex !== undefined ? question.options[question.correctIndex] : '';
+    const options = question.options || [];
+    // Safe array access with bounds checking
+    const ansText = ansIdx >= 0 && ansIdx < options.length ? options[ansIdx] : '';
+    const correctIdx = question.correctIndex;
+    const correctAnsText = correctIdx !== undefined && correctIdx >= 0 && correctIdx < options.length ? options[correctIdx] : '';
     const isCorrect = ansIdx === question.correctIndex;
 
     prompt = `
