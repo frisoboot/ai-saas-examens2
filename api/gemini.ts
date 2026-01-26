@@ -16,8 +16,8 @@ import { setCorsHeaders } from './utils/cors.js';
 let _ai: GoogleGenAI | null = null;
 
 // Model configuration
-const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-3-flash';
-const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-2.5-pro';
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
+const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-3-pro-preview';
 const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash'; // Fallback naar Gemini 2.0 Flash
 
 // Exacte vakken die een sterker model nodig hebben voor HAVO/VWO
