@@ -183,10 +183,11 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
       // SUCCESS: Move state updates inside try block
       setSession(prev => ({ ...prev, answers: finalAnswers }));
-      setIsFinished(true);
 
-      // Start grading open questions automatically
-      gradeAllOpenQuestions(session.questions, finalAnswers);
+      // Start grading open questions and wait for completion before showing results
+      await gradeAllOpenQuestions(session.questions, finalAnswers);
+      
+      setIsFinished(true);
 
       if (!examSummary && !loadingSummary) {
         setLoadingSummary(true);
