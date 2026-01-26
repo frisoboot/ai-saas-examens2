@@ -218,6 +218,22 @@ export const generateLookalikeExamQuestions = async (
   }
 };
 
+// Grade an open question automatically
+export const gradeOpenQuestion = async (
+  question: Question,
+  studentAnswer: string
+): Promise<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }> => {
+  try {
+    return await callGeminiAPI<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }>('gradeOpenQuestion', {
+      question,
+      studentAnswer,
+    });
+  } catch (error) {
+    console.error("Fout bij nakijken open vraag:", error);
+    return { grade: 'incorrect', feedback: 'Kon antwoord niet automatisch nakijken.' };
+  }
+};
+
 // Generate AI flashcards for a subject
 export const generateFlashcards = async (
   subject: string,

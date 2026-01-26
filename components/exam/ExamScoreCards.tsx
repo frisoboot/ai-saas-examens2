@@ -1,10 +1,11 @@
 import React from 'react';
-import { Target, FileText, TrendingUp } from 'lucide-react';
+import { CheckCircle, FileText, Hash } from 'lucide-react';
 
 interface ExamScoreCardsProps {
   mcScore: number;
   totalMc: number;
   openCount: number;
+  openScore?: { correct: number; partial: number; incorrect: number; ungraded: number };
   totalQuestions: number;
 }
 
@@ -12,49 +13,86 @@ export const ExamScoreCards: React.FC<ExamScoreCardsProps> = ({
   mcScore,
   totalMc,
   openCount,
+  openScore,
   totalQuestions
 }) => {
-  const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
+  const mcPercentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
+
+  // Calculate overall score including open questions if graded
+  const openCorrect = openScore ? openScore.correct + (openScore.partial * 0.5) : 0;
+  const totalScore = mcScore + openCorrect;
+  // Only count successfully graded open questions in the denominator
+  const gradedOpenCount = openScore ? openScore.correct + openScore.partial + openScore.incorrect : openCount;
+  const totalMax = totalMc + gradedOpenCount;
+  const overallPercentage = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
+  const getScoreColor = (pct: number) => {
+    if (pct >= 75) return 'text-green-600';
+    if (pct >= 55) return 'text-amber-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBg = (pct: number) => {
+    if (pct >= 75) return 'bg-green-50 border-green-200';
+    if (pct >= 55) return 'bg-amber-50 border-amber-200';
+    return 'bg-red-50 border-red-200';
+  };
 
   return (
-    <div className="grid md:grid-cols-3 gap-5 mb-10">
-      {totalMc > 0 && (
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
-          <div className="relative bg-gradient-to-br from-indigo-50 via-purple-50/80 to-pink-50/50 rounded-2xl p-8 border-2 border-indigo-200 text-center shadow-lg hover:shadow-xl transition-all">
-            <div className="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
-              <Target className="w-3.5 h-3.5" />
-              Meerkeuze Score
-            </div>
-            <div className="text-6xl font-bold bg-gradient-to-br from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-              {mcScore}<span className="text-3xl opacity-50">/</span>{totalMc}
-            </div>
-            <div className="text-base font-bold text-indigo-700">{percentage}% correct</div>
-          </div>
+    <div className={`rounded-xl border-2 p-4 mb-6 ${getScoreBg(overallPercentage)}`}>
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Main Score */}
+        <div className="flex items-baseline gap-3">
+          <span className={`text-4xl font-bold tabular-nums ${getScoreColor(overallPercentage)}`}>
+            {overallPercentage}%
+          </span>
+          <span className="text-slate-500 text-sm">
+            totaalscore
+          </span>
         </div>
-      )}
-      {openCount > 0 && (
-        <div className="relative group">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500 to-amber-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
-          <div className="relative bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl p-8 border-2 border-orange-200 text-center shadow-lg hover:shadow-xl transition-all">
-            <div className="text-xs font-bold text-orange-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
-              <FileText className="w-3.5 h-3.5" />
-              Open Vragen
+
+        {/* Score Breakdown */}
+        <div className="flex items-center gap-6 text-sm">
+          {totalMc > 0 && (
+            <div className="flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-600">
+                <span className="font-semibold text-slate-900">{mcScore}/{totalMc}</span> meerkeuze
+              </span>
             </div>
-            <div className="text-6xl font-bold bg-gradient-to-br from-orange-500 to-amber-500 bg-clip-text text-transparent mb-2">{openCount}</div>
-            <div className="text-base font-bold text-orange-700">Beantwoord</div>
+          )}
+
+          {openCount > 0 && (
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-slate-400" />
+              <span className="text-slate-600">
+                {openScore ? (
+                  <>
+                    <span className="font-semibold text-green-600">{openScore.correct}</span>
+                    {openScore.partial > 0 && (
+                      <span className="font-semibold text-amber-600">/{openScore.partial}</span>
+                    )}
+                    <span className="font-semibold text-red-600">/{openScore.incorrect}</span>
+                    {openScore.ungraded > 0 && (
+                      <span className="font-semibold text-slate-500">/{openScore.ungraded}</span>
+                    )}
+                    <span className="ml-1">open</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-semibold text-slate-900">{openCount}</span> open
+                  </>
+                )}
+              </span>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 pl-4 border-l border-slate-300">
+            <Hash className="w-4 h-4 text-slate-400" />
+            <span className="text-slate-600">
+              <span className="font-semibold text-slate-900">{totalQuestions}</span> vragen
+            </span>
           </div>
-        </div>
-      )}
-      <div className="relative group">
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl blur-lg opacity-20 group-hover:opacity-30 transition-opacity" />
-        <div className="relative bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl p-8 border-2 border-green-200 text-center shadow-lg hover:shadow-xl transition-all">
-          <div className="text-xs font-bold text-green-600 uppercase tracking-wider mb-3 flex items-center justify-center gap-2">
-            <TrendingUp className="w-3.5 h-3.5" />
-            Totaal Vragen
-          </div>
-          <div className="text-6xl font-bold bg-gradient-to-br from-green-600 to-emerald-600 bg-clip-text text-transparent mb-2">{totalQuestions}</div>
-          <div className="text-base font-bold text-green-700">Gemaakt</div>
         </div>
       </div>
     </div>

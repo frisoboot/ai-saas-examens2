@@ -145,6 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ result });
       }
 
+      case 'gradeOpenQuestion': {
+        const { question, studentAnswer } = payload;
+        const result = await gradeOpenQuestion(ai, question, studentAnswer);
+        return res.status(200).json({ result });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -187,15 +193,21 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
     const correctAnsText = question.options && question.correctIndex !== undefined ? question.options[question.correctIndex] : '';
     const isCorrect = ansIdx === question.correctIndex;
 
+    const escapedQuestionText = escapePromptString(question.text);
+    const escapedSubject = escapePromptString(question.subject);
+    const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 300)) : '';
+    const escapedAnsText = escapePromptString(ansText);
+    const escapedCorrectAnsText = escapePromptString(correctAnsText);
+
     prompt = `
       Je bent een behulpzame leraar. De leerling maakte een meerkeuzevraag.
 
-      Vraag: "${question.text}"
-      Onderwerp: ${question.subject}
-      ${question.contextText ? `Context tekst: "${question.contextText.substring(0, 300)}..."` : ''}
+      Vraag: "${escapedQuestionText}"
+      Onderwerp: ${escapedSubject}
+      ${escapedContextText ? `Context tekst: "${escapedContextText}..."` : ''}
 
-      Leerling antwoord: "${ansText}"
-      Juist antwoord: "${correctAnsText}"
+      Leerling antwoord: "${escapedAnsText}"
+      Juist antwoord: "${escapedCorrectAnsText}"
       Resultaat: ${isCorrect ? 'Correct' : 'Fout'}
 
       Geef uitleg (max 3 zinnen). Als het fout is, leg uit waarom het goede antwoord juist is.
@@ -204,16 +216,22 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
   } else {
     const ansText = studentAnswer as string;
 
+    const escapedQuestionText = escapePromptString(question.text);
+    const escapedSubject = escapePromptString(question.subject);
+    const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 500)) : '';
+    const escapedModelAnswer = escapePromptString(question.modelAnswer);
+    const escapedAnsText = escapePromptString(ansText);
+
     prompt = `
       Je bent een strenge maar eerlijke leraar die een open vraag nakijkt.
 
-      Vraag: "${question.text}"
-      Onderwerp: ${question.subject}
-      ${question.contextText ? `Context tekst: "${question.contextText.substring(0, 500)}..."` : ''}
+      Vraag: "${escapedQuestionText}"
+      Onderwerp: ${escapedSubject}
+      ${escapedContextText ? `Context tekst: "${escapedContextText}..."` : ''}
 
-      Modelantwoord (gebruik dit als referentie voor correctheid): "${question.modelAnswer}"
+      Modelantwoord (gebruik dit als referentie voor correctheid): "${escapedModelAnswer}"
 
-      Het antwoord van de leerling: "${ansText}"
+      Het antwoord van de leerling: "${escapedAnsText}"
 
       Opdracht:
       1. Beoordeel of het antwoord van de leerling inhoudelijk overeenkomt met het modelantwoord.
@@ -624,11 +642,14 @@ async function generateExamSummary(
 
   const percentage = Math.round((score / totalQuestions) * 100);
 
+  const escapedStudentName = escapePromptString(studentName);
+  const escapedSubject = escapePromptString(subject);
+
   const prompt = `
-    Je bent een ervaren ${subject} docent die een examen heeft nagekeken van ${studentName}.
+    Je bent een ervaren ${escapedSubject} docent die een examen heeft nagekeken van ${escapedStudentName}.
 
     EXAMEN RESULTAAT:
-    - Vak: ${subject}
+    - Vak: ${escapedSubject}
     - Score: ${score}/${totalQuestions} (${percentage}%)
 
     GOED BEANTWOORD (${correctQuestions.length}):
@@ -795,4 +816,87 @@ async function generateFlashcards(
 async function chat(ai: GoogleGenAI, message: string, systemInstruction: string): Promise<string> {
   const result = await generateWithFallback(ai, message, { systemInstruction });
   return result || "Geen antwoord.";
+}
+
+/**
+ * Escape special characters in strings to prevent prompt injection attacks
+ */
+function escapePromptString(str: string): string {
+  if (!str) return '';
+  return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+}
+
+async function gradeOpenQuestion(
+  ai: GoogleGenAI,
+  question: any,
+  studentAnswer: string
+): Promise<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }> {
+  const escapedQuestionText = escapePromptString(question.text);
+  const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 500)) : '';
+  const escapedModelAnswer = escapePromptString(question.modelAnswer);
+  const escapedStudentAnswer = escapePromptString(studentAnswer);
+
+  const prompt = `
+    Je bent een strenge maar eerlijke examinator die een open vraag nakijkt.
+    Beoordeel ALLEEN op inhoudelijke correctheid, niet op spelling of grammatica.
+
+    VRAAG: "${escapedQuestionText}"
+    ${escapedContextText ? `CONTEXT: "${escapedContextText}..."` : ''}
+
+    MODELANTWOORD (de standaard voor correctheid): "${escapedModelAnswer}"
+
+    ANTWOORD VAN LEERLING: "${escapedStudentAnswer}"
+
+    BEOORDELING CRITERIA:
+    - CORRECT: Antwoord bevat alle essentiële elementen van het modelantwoord
+    - DEELS CORRECT: Antwoord bevat sommige essentiële elementen maar mist belangrijke onderdelen
+    - INCORRECT: Antwoord mist de essentiële elementen of is feitelijk onjuist
+
+    Geef je antwoord als JSON:
+    {
+      "grade": "correct" | "partial" | "incorrect",
+      "feedback": "Korte uitleg (max 2 zinnen) waarom dit cijfer"
+    }
+
+    Geef ALLEEN de JSON terug.
+  `;
+
+  const model = getModelForSubject(question.subject, question.level);
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+  });
+
+  const responseText = response.text || '';
+  if (!responseText.trim()) {
+    return { grade: 'incorrect', feedback: 'Kon antwoord niet beoordelen.' };
+  }
+
+  let jsonText = responseText.trim();
+  const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+  const match = jsonText.match(codeBlockRegex);
+  if (match) {
+    jsonText = match[1].trim();
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  if (!jsonText.startsWith('{')) {
+    const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      jsonText = objectMatch[0];
+    }
+  }
+
+  try {
+    const result = JSON.parse(jsonText);
+    const validGrades = ['correct', 'partial', 'incorrect'];
+    const grade = validGrades.includes(result.grade) ? result.grade : 'incorrect';
+    return {
+      grade,
+      feedback: result.feedback || 'Geen feedback beschikbaar.'
+    };
+  } catch {
+    return { grade: 'incorrect', feedback: 'Kon beoordeling niet verwerken.' };
+  }
 }
