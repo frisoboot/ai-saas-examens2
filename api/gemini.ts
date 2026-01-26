@@ -145,6 +145,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ result });
       }
 
+      case 'gradeOpenQuestion': {
+        const { question, studentAnswer } = payload;
+        const result = await gradeOpenQuestion(ai, question, studentAnswer);
+        return res.status(200).json({ result });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -795,4 +801,74 @@ async function generateFlashcards(
 async function chat(ai: GoogleGenAI, message: string, systemInstruction: string): Promise<string> {
   const result = await generateWithFallback(ai, message, { systemInstruction });
   return result || "Geen antwoord.";
+}
+
+async function gradeOpenQuestion(
+  ai: GoogleGenAI,
+  question: any,
+  studentAnswer: string
+): Promise<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }> {
+  const prompt = `
+    Je bent een strenge maar eerlijke examinator die een open vraag nakijkt.
+    Beoordeel ALLEEN op inhoudelijke correctheid, niet op spelling of grammatica.
+
+    VRAAG: "${question.text}"
+    ${question.contextText ? `CONTEXT: "${question.contextText.substring(0, 500)}..."` : ''}
+
+    MODELANTWOORD (de standaard voor correctheid): "${question.modelAnswer}"
+
+    ANTWOORD VAN LEERLING: "${studentAnswer}"
+
+    BEOORDELING CRITERIA:
+    - CORRECT: Antwoord bevat alle essentiële elementen van het modelantwoord
+    - DEELS CORRECT: Antwoord bevat sommige essentiële elementen maar mist belangrijke onderdelen
+    - INCORRECT: Antwoord mist de essentiële elementen of is feitelijk onjuist
+
+    Geef je antwoord als JSON:
+    {
+      "grade": "correct" | "partial" | "incorrect",
+      "feedback": "Korte uitleg (max 2 zinnen) waarom dit cijfer"
+    }
+
+    Geef ALLEEN de JSON terug.
+  `;
+
+  const model = getModelForSubject(question.subject, question.level);
+  const response = await ai.models.generateContent({
+    model,
+    contents: prompt,
+  });
+
+  const responseText = response.text || '';
+  if (!responseText.trim()) {
+    return { grade: 'incorrect', feedback: 'Kon antwoord niet beoordelen.' };
+  }
+
+  let jsonText = responseText.trim();
+  const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+  const match = jsonText.match(codeBlockRegex);
+  if (match) {
+    jsonText = match[1].trim();
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  if (!jsonText.startsWith('{')) {
+    const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      jsonText = objectMatch[0];
+    }
+  }
+
+  try {
+    const result = JSON.parse(jsonText);
+    const validGrades = ['correct', 'partial', 'incorrect'];
+    const grade = validGrades.includes(result.grade) ? result.grade : 'incorrect';
+    return {
+      grade,
+      feedback: result.feedback || 'Geen feedback beschikbaar.'
+    };
+  } catch {
+    return { grade: 'incorrect', feedback: 'Kon beoordeling niet verwerken.' };
+  }
 }

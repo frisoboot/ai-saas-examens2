@@ -1,187 +1,224 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Question } from '../../types';
-import { Button } from '../Button';
-import { CheckCircle, XCircle, BrainCircuit } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, ChevronDown, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+
+export type OpenQuestionGrade = 'correct' | 'partial' | 'incorrect' | null;
 
 interface QuestionReviewCardProps {
   question: Question;
   questionIndex: number;
-  totalQuestions: number;
   answer: string | number | undefined;
   aiExplanation?: string;
   isLoadingExplanation: boolean;
   onRequestExplanation: () => void;
+  openQuestionGrade?: OpenQuestionGrade;
+  isGradingOpen?: boolean;
 }
 
 export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   question,
   questionIndex,
-  totalQuestions,
   answer,
   aiExplanation,
   isLoadingExplanation,
-  onRequestExplanation
+  onRequestExplanation,
+  openQuestionGrade,
+  isGradingOpen
 }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const isMC = question.type === 'MULTIPLE_CHOICE';
   const isCorrectMC = isMC && answer === question.correctIndex;
 
+  // Determine status for open questions
+  const getOpenStatus = () => {
+    if (isGradingOpen) return 'grading';
+    if (openQuestionGrade === 'correct') return 'correct';
+    if (openQuestionGrade === 'partial') return 'partial';
+    if (openQuestionGrade === 'incorrect') return 'incorrect';
+    return 'pending';
+  };
+
+  const openStatus = !isMC ? getOpenStatus() : null;
+
+  // Status indicator
+  const getStatusIcon = () => {
+    if (isMC) {
+      return isCorrectMC
+        ? <CheckCircle className="w-5 h-5 text-green-500" />
+        : <XCircle className="w-5 h-5 text-red-500" />;
+    }
+
+    switch (openStatus) {
+      case 'grading':
+        return <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />;
+      case 'correct':
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case 'partial':
+        return <MinusCircle className="w-5 h-5 text-amber-500" />;
+      case 'incorrect':
+        return <XCircle className="w-5 h-5 text-red-500" />;
+      default:
+        return <MinusCircle className="w-5 h-5 text-slate-400" />;
+    }
+  };
+
+  const getStatusText = () => {
+    if (isMC) return isCorrectMC ? 'Correct' : 'Fout';
+
+    switch (openStatus) {
+      case 'grading': return 'Nakijken...';
+      case 'correct': return 'Correct';
+      case 'partial': return 'Deels correct';
+      case 'incorrect': return 'Incorrect';
+      default: return 'Open vraag';
+    }
+  };
+
+  const getStatusColor = () => {
+    if (isMC) return isCorrectMC ? 'text-green-600' : 'text-red-600';
+
+    switch (openStatus) {
+      case 'grading': return 'text-indigo-600';
+      case 'correct': return 'text-green-600';
+      case 'partial': return 'text-amber-600';
+      case 'incorrect': return 'text-red-600';
+      default: return 'text-slate-500';
+    }
+  };
+
+  const getBorderColor = () => {
+    if (isMC) return isCorrectMC ? 'border-l-green-500' : 'border-l-red-500';
+
+    switch (openStatus) {
+      case 'correct': return 'border-l-green-500';
+      case 'partial': return 'border-l-amber-500';
+      case 'incorrect': return 'border-l-red-500';
+      default: return 'border-l-slate-300';
+    }
+  };
+
+  // Get the selected answer text for MC
+  const getSelectedAnswerText = () => {
+    if (!isMC || answer === undefined) return null;
+    return question.options?.[answer as number];
+  };
+
+  // Get correct answer text for MC
+  const getCorrectAnswerText = () => {
+    if (!isMC || question.correctIndex === undefined) return null;
+    return question.options?.[question.correctIndex];
+  };
+
   return (
-    <div className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border-2 overflow-hidden transition-all hover:shadow-2xl">
-      {/* Status Bar */}
-      <div className={`h-2 w-full ${isMC ? (isCorrectMC ? 'bg-gradient-to-r from-green-400 to-green-600' : 'bg-gradient-to-r from-red-400 to-red-600') : 'bg-gradient-to-r from-orange-400 to-orange-600'}`} />
+    <div className={`bg-white rounded-lg border border-slate-200 border-l-4 ${getBorderColor()} overflow-hidden`}>
+      {/* Collapsed Header - Always visible */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
+      >
+        {/* Question number */}
+        <span className="text-sm font-medium text-slate-400 w-6">
+          {questionIndex + 1}.
+        </span>
 
-      <div className="p-6 md:p-8">
-        {/* Question Header */}
-        <div className="flex items-start gap-4 mb-6">
-          <div className="flex-shrink-0">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center shadow-lg ${
-              isMC ? (isCorrectMC ? 'bg-gradient-to-br from-green-400 to-green-600' : 'bg-gradient-to-br from-red-400 to-red-600') : 'bg-gradient-to-br from-orange-400 to-orange-600'
-            }`}>
-              {isMC ? (
-                isCorrectMC ? <CheckCircle className="w-7 h-7 text-white" /> : <XCircle className="w-7 h-7 text-white" />
-              ) : (
-                <BrainCircuit className="w-7 h-7 text-white" />
-              )}
-            </div>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="px-3 py-1 bg-slate-100 text-slate-700 font-bold text-xs rounded-full uppercase tracking-wider">
-                Vraag {questionIndex + 1} van {totalQuestions}
-              </span>
-              {isMC && (
-                <span className={`px-3 py-1 font-bold text-xs rounded-full ${
-                  isCorrectMC
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {isCorrectMC ? '✓ Correct' : '✗ Fout'}
-                </span>
-              )}
-              {!isMC && (
-                <span className="px-3 py-1 bg-orange-100 text-orange-700 font-bold text-xs rounded-full">
-                  Open Vraag
-                </span>
-              )}
-            </div>
-            <h4 className="text-xl md:text-2xl font-bold text-slate-900 leading-tight">{question.text}</h4>
-          </div>
-        </div>
+        {/* Status icon */}
+        {getStatusIcon()}
 
-        {/* Answer Display */}
-        <div className="mb-6">
+        {/* Question text (truncated) */}
+        <span className="flex-1 text-sm text-slate-700 truncate">
+          {question.text}
+        </span>
+
+        {/* Status text */}
+        <span className={`text-xs font-medium ${getStatusColor()}`}>
+          {getStatusText()}
+        </span>
+
+        {/* Expand icon */}
+        <ChevronDown
+          className={`w-4 h-4 text-slate-400 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="px-4 pb-4 border-t border-slate-100">
+          {/* Full question text */}
+          <p className="text-slate-900 font-medium mt-3 mb-4">{question.text}</p>
+
           {isMC ? (
-            <div className="space-y-2">
-              {question.options?.map((opt, optIdx) => {
-                const isSelected = optIdx === (answer as number);
-                const isRealCorrect = optIdx === question.correctIndex;
-
-                return (
-                  <div
-                    key={optIdx}
-                    className={`p-4 rounded-xl flex items-center justify-between transition-all ${
-                      isRealCorrect
-                        ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-300 shadow-md'
-                        : isSelected && !isRealCorrect
-                          ? 'bg-gradient-to-r from-red-50 to-rose-50 border-2 border-red-300 shadow-md'
-                          : 'bg-slate-50 border border-slate-200 opacity-60'
-                    }`}
-                  >
-                    <div className="flex items-center gap-4 flex-1">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                        isRealCorrect
-                          ? 'bg-green-500 text-white'
-                          : isSelected && !isRealCorrect
-                            ? 'bg-red-500 text-white'
-                            : 'bg-slate-300 text-slate-600'
-                      }`}>
-                        {String.fromCharCode(65 + optIdx)}
-                      </div>
-                      <span className={`text-base ${
-                        isRealCorrect || (isSelected && !isRealCorrect)
-                          ? 'font-semibold text-slate-900'
-                          : 'text-slate-600'
-                      }`}>
-                        {opt}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {isSelected && (
-                        <span className="text-xs font-semibold text-slate-600 bg-white px-2 py-1 rounded-full">
-                          Jouw keuze
-                        </span>
-                      )}
-                      {isRealCorrect && <CheckCircle className="w-6 h-6 text-green-600" />}
-                      {isSelected && !isRealCorrect && <XCircle className="w-6 h-6 text-red-600" />}
-                    </div>
+            // Multiple choice answer display
+            <div className="space-y-2 text-sm">
+              {!isCorrectMC && (
+                <div className="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+                  <XCircle className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <span className="text-red-700 font-medium">Jouw antwoord: </span>
+                    <span className="text-red-600">{getSelectedAnswerText()}</span>
                   </div>
-                );
-              })}
+                </div>
+              )}
+              <div className="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+                <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <span className="text-green-700 font-medium">
+                    {isCorrectMC ? 'Jouw antwoord: ' : 'Correct antwoord: '}
+                  </span>
+                  <span className="text-green-600">{getCorrectAnswerText()}</span>
+                </div>
+              </div>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">Je</span>
-                  </div>
-                  <span className="text-sm font-bold text-blue-900 uppercase tracking-wider">Jouw antwoord</span>
-                </div>
-                <p className="text-slate-800 leading-relaxed">{answer as string || 'Geen antwoord gegeven'}</p>
+            // Open question answer display
+            <div className="space-y-3 text-sm">
+              <div className="p-3 bg-slate-50 rounded-lg">
+                <span className="text-slate-500 text-xs font-medium uppercase tracking-wide">Jouw antwoord</span>
+                <p className="text-slate-700 mt-1">{answer as string || 'Geen antwoord gegeven'}</p>
               </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl p-5 border-2 border-green-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-sm font-bold text-green-900 uppercase tracking-wider">Model antwoord</span>
-                </div>
-                <p className="text-slate-800 leading-relaxed">{question.modelAnswer}</p>
+              <div className="p-3 bg-green-50 rounded-lg">
+                <span className="text-green-700 text-xs font-medium uppercase tracking-wide">Modelantwoord</span>
+                <p className="text-green-800 mt-1">{question.modelAnswer}</p>
               </div>
             </div>
           )}
-        </div>
 
-        {/* AI Explanation Section */}
-        {!aiExplanation ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRequestExplanation}
-            disabled={isLoadingExplanation}
-            className="w-full md:w-auto bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 hover:border-indigo-300 hover:shadow-lg"
-          >
-            {isLoadingExplanation ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-500 border-t-transparent mr-2" />
-                AI is aan het denken...
-              </>
-            ) : (
-              <>
-                <BrainCircuit className="w-4 h-4 mr-2" />
-                Vraag AI om uitleg
-              </>
-            )}
-          </Button>
-        ) : (
-          <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/80 to-pink-50/50 rounded-xl p-6 border-2 border-indigo-200 animate-in fade-in slide-in-from-bottom-2 duration-300">
-            <div className="flex items-center gap-3 mb-4 pb-3 border-b border-indigo-200">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center shadow-md">
-                <BrainCircuit className="w-6 h-6 text-white" />
+          {/* AI Explanation */}
+          {aiExplanation ? (
+            <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="w-4 h-4 text-indigo-500" />
+                <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
               </div>
-              <div>
-                <h5 className="font-bold text-slate-900">AI Uitleg</h5>
-                <p className="text-xs text-slate-600">Persoonlijke feedback op jouw antwoord</p>
+              <div className="text-sm text-slate-700 prose prose-sm max-w-none prose-p:my-1">
+                <ReactMarkdown>{aiExplanation}</ReactMarkdown>
               </div>
             </div>
-            <div className="text-slate-700 leading-relaxed prose prose-indigo max-w-none prose-p:my-2 prose-strong:text-indigo-700 prose-ul:my-2">
-              <ReactMarkdown>{aiExplanation}</ReactMarkdown>
-            </div>
-          </div>
-        )}
-      </div>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onRequestExplanation();
+              }}
+              disabled={isLoadingExplanation}
+              className="mt-4 flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50"
+            >
+              {isLoadingExplanation ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  AI analyseert...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="w-4 h-4" />
+                  Vraag AI uitleg
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };

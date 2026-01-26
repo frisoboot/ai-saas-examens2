@@ -2,11 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Question, ExamSession, ExamResult } from '../types';
 import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
-import { getExplanation, generateExamSummary } from '../services/geminiService';
+import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, FileText, ChevronRight, X, Clock } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards } from './exam';
+import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ExamTakerProps {
@@ -35,6 +35,10 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [loadingExplanation, setLoadingExplanation] = useState<string | null>(null);
   const [examSummary, setExamSummary] = useState<ExamSummary | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // Open question grading state
+  const [openQuestionGrades, setOpenQuestionGrades] = useState<Record<string, OpenQuestionGrade>>({});
+  const [gradingQuestions, setGradingQuestions] = useState<Set<string>>(new Set());
 
   // Timer state for Look-alike exams
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
@@ -99,6 +103,33 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
   };
 
+  // Grade all open questions automatically
+  const gradeAllOpenQuestions = async (questions: Question[], answers: Record<string, number | string>) => {
+    const openQuestions = questions.filter(q => q.type === 'OPEN');
+
+    for (const question of openQuestions) {
+      const answer = answers[question.id];
+      if (typeof answer !== 'string' || !answer.trim()) continue;
+
+      setGradingQuestions(prev => new Set(prev).add(question.id));
+
+      try {
+        const result = await gradeOpenQuestion(question, answer);
+        setOpenQuestionGrades(prev => ({ ...prev, [question.id]: result.grade }));
+        // Store feedback as AI explanation
+        setAiExplanations(prev => ({ ...prev, [question.id]: result.feedback }));
+      } catch (error) {
+        console.error('Error grading question:', question.id, error);
+      } finally {
+        setGradingQuestions(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(question.id);
+          return newSet;
+        });
+      }
+    }
+  };
+
   const finishExam = async () => {
     if (isFinishingRef.current) return;
     isFinishingRef.current = true;
@@ -153,6 +184,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       // SUCCESS: Move state updates inside try block
       setSession(prev => ({ ...prev, answers: finalAnswers }));
       setIsFinished(true);
+
+      // Start grading open questions automatically
+      gradeAllOpenQuestions(session.questions, finalAnswers);
 
       if (!examSummary && !loadingSummary) {
         setLoadingSummary(true);
@@ -250,63 +284,58 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   if (isFinished) {
     const mcScore = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && session.answers[q.id] === q.correctIndex).length;
     const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
-    const openCount = session.questions.filter(q => q.type === 'OPEN').length;
+    const openQuestions = session.questions.filter(q => q.type === 'OPEN');
+    const openCount = openQuestions.length;
+
+    // Calculate open question scores
+    const openScore = {
+      correct: Object.values(openQuestionGrades).filter(g => g === 'correct').length,
+      partial: Object.values(openQuestionGrades).filter(g => g === 'partial').length,
+      incorrect: Object.values(openQuestionGrades).filter(g => g === 'incorrect').length,
+    };
 
     // Calculate percentage and generate appropriate feedback
-    const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
+    const totalGraded = mcScore + openScore.correct + (openScore.partial * 0.5);
+    const totalMax = totalMc + openCount;
+    const percentage = totalMax > 0 ? Math.round((totalGraded / totalMax) * 100) : 0;
 
     const getFeedback = (score: number): { title: string; subtitle: string } => {
-      if (score >= 90) return { title: "Uitstekend gedaan!", subtitle: "Je hebt de stof uitstekend onder de knie." };
-      if (score >= 75) return { title: "Goed gedaan!", subtitle: "Je hebt de meeste vragen correct beantwoord." };
-      if (score >= 55) return { title: "Voldoende!", subtitle: "Je hebt een voldoende gehaald, maar er is ruimte voor verbetering." };
-      if (score >= 40) return { title: "Bijna voldoende", subtitle: "Je bent op de goede weg, maar moet nog wat bijspijkeren." };
-      return { title: "Meer oefening nodig", subtitle: "Bestudeer de stof opnieuw en probeer het nog eens." };
+      if (score >= 90) return { title: "Uitstekend!", subtitle: "Je beheerst de stof." };
+      if (score >= 75) return { title: "Goed gedaan!", subtitle: "De meeste vragen zijn correct." };
+      if (score >= 55) return { title: "Voldoende", subtitle: "Er is nog ruimte voor verbetering." };
+      if (score >= 40) return { title: "Bijna voldoende", subtitle: "Nog wat extra oefening nodig." };
+      return { title: "Meer oefening nodig", subtitle: "Bestudeer de stof opnieuw." };
     };
 
     const feedback = getFeedback(percentage);
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 py-8 md:py-12 px-4 relative overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-0 -left-20 w-96 h-96 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-0 -right-20 w-96 h-96 bg-gradient-to-br from-purple-200/20 to-pink-200/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        </div>
-
-        <div className="max-w-5xl mx-auto relative z-10">
-          {/* Results Header */}
-          <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl shadow-indigo-200/50 p-8 md:p-12 mb-8 border border-white/60">
-            <div className="text-center mb-10">
-              <div className="relative inline-block mb-6">
-                <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-full blur-lg opacity-50 animate-pulse" />
-                <div className="relative inline-flex items-center gap-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg">
-                  <CheckCircle className="w-5 h-5" />
-                  Toets Voltooid
+      <div className="min-h-screen bg-slate-50 py-6 px-4">
+        <div className="max-w-3xl mx-auto">
+          {/* Compact Header */}
+          <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                  <CheckCircle className="w-4 h-4 text-green-500" />
+                  <span>Toets voltooid</span>
                 </div>
+                <h2 className="text-2xl font-bold text-slate-900">{feedback.title}</h2>
+                <p className="text-slate-600 text-sm">{feedback.subtitle}</p>
               </div>
-              <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent mb-4">
-                {feedback.title}
-              </h2>
-              <p className="text-slate-700 text-lg max-w-2xl mx-auto leading-relaxed">
-                {feedback.subtitle} Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
-              </p>
+              <Button onClick={onFinish} variant="secondary" size="sm">
+                <Home className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
             </div>
 
             <ExamScoreCards
               mcScore={mcScore}
               totalMc={totalMc}
               openCount={openCount}
+              openScore={openCount > 0 ? openScore : undefined}
               totalQuestions={session.questions.length}
             />
-
-            <div className="text-center">
-              <div className="relative inline-block">
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-400 to-slate-500 rounded-xl blur-md opacity-30" />
-                <Button onClick={onFinish} variant="secondary" className="relative shadow-xl hover:shadow-2xl transition-all hover:scale-105 px-8 py-3 font-bold">
-                  <Home className="w-5 h-5 mr-2"/>
-                  Terug naar Dashboard
-                </Button>
-              </div>
-            </div>
           </div>
 
           {/* AI Summary Section */}
@@ -314,25 +343,24 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             <ExamSummaryCard summary={examSummary!} isLoading={loadingSummary} />
           )}
 
-          {/* Question Review Cards */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className="w-5 h-5 text-slate-600" />
-              <h3 className="text-xl font-bold text-slate-900">Vraag voor Vraag Review</h3>
+          {/* Question Review - Compact List */}
+          <div className="bg-white rounded-xl border border-slate-200 p-4">
+            <h3 className="font-semibold text-slate-900 mb-4">Vraag overzicht</h3>
+            <div className="space-y-2">
+              {session.questions.map((q, idx) => (
+                <QuestionReviewCard
+                  key={q.id}
+                  question={q}
+                  questionIndex={idx}
+                  answer={session.answers[q.id]}
+                  aiExplanation={aiExplanations[q.id]}
+                  isLoadingExplanation={loadingExplanation === q.id}
+                  onRequestExplanation={() => handleRequestAIExplanation(q)}
+                  openQuestionGrade={openQuestionGrades[q.id]}
+                  isGradingOpen={gradingQuestions.has(q.id)}
+                />
+              ))}
             </div>
-
-            {session.questions.map((q, idx) => (
-              <QuestionReviewCard
-                key={q.id}
-                question={q}
-                questionIndex={idx}
-                totalQuestions={session.questions.length}
-                answer={session.answers[q.id]}
-                aiExplanation={aiExplanations[q.id]}
-                isLoadingExplanation={loadingExplanation === q.id}
-                onRequestExplanation={() => handleRequestAIExplanation(q)}
-              />
-            ))}
           </div>
         </div>
       </div>
@@ -388,7 +416,6 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           <div className="lg:w-1/2 bg-[#fdfbf7] border-r border-[#eaddcf] overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl mx-auto p-8 lg:p-12">
               <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
-                <FileText className="w-4 h-4" />
                 <span>Bronmateriaal</span>
               </div>
               <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
