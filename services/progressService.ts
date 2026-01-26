@@ -78,18 +78,26 @@ export const calculateProgress = (
   };
 };
 
-// Get all progress for a student
-export const getStudentProgress = async (studentName: string): Promise<StudentProgress[]> => {
+// Get all progress for a student (by user_id for RLS compatibility)
+export const getStudentProgress = async (studentName: string, userId?: string): Promise<StudentProgress[]> => {
   requireDatabase();
 
-  const { data, error } = await supabase!
+  // Use user_id if available (required for RLS), fallback to student_name
+  let query = supabase!
     .from('student_progress')
-    .select('*')
-    .eq('student_name', studentName);
+    .select('*');
+
+  if (userId) {
+    query = query.eq('user_id', userId);
+  } else {
+    query = query.eq('student_name', studentName);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw error;
 
-  return data.map(d => ({
+  return (data || []).map(d => ({
     id: d.id,
     studentName: d.student_name,
     subject: d.subject,
@@ -105,13 +113,13 @@ export const getStudentProgress = async (studentName: string): Promise<StudentPr
 };
 
 // Get overall progress summary for a student (across all subjects)
-export const getOverallProgress = async (studentName: string): Promise<{
+export const getOverallProgress = async (studentName: string, userId?: string): Promise<{
   totalExams: number;
   averageScore: number;
   improvementRate: number;
   lastExamDate?: string;
 }> => {
-  const progressData = await getStudentProgress(studentName);
+  const progressData = await getStudentProgress(studentName, userId);
 
   if (progressData.length === 0) {
     return {
@@ -151,10 +159,16 @@ export const getOverallProgress = async (studentName: string): Promise<{
 export const updateProgressAfterExam = async (result: ExamResult): Promise<void> => {
   requireDatabase();
 
+  // user_id is required for RLS - skip progress update if not available
+  if (!result.user_id) {
+    console.warn('updateProgressAfterExam: user_id missing, skipping progress update');
+    return;
+  }
+
   const { data: existing } = await supabase!
     .from('student_progress')
     .select('*')
-    .eq('student_name', result.studentName)
+    .eq('user_id', result.user_id)
     .eq('subject', result.subject)
     .maybeSingle();
 
@@ -170,7 +184,7 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
     const { data: recentResults, error: recentError } = await supabase!
       .from('exam_results')
       .select('score, total_questions, date')
-      .eq('student_name', result.studentName)
+      .eq('user_id', result.user_id)
       .eq('subject', result.subject)
       .order('date', { ascending: true });
 
@@ -206,7 +220,8 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
     const { error } = await supabase!
       .from('student_progress')
       .insert({
-        id: `${result.studentName}-${result.subject}-${Date.now()}`,
+        id: `${result.user_id}-${result.subject}-${Date.now()}`,
+        user_id: result.user_id,
         student_name: result.studentName,
         subject: result.subject,
         total_exams_taken: newTotalExams,
@@ -222,8 +237,8 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
 };
 
 // Get weakest subjects for a student (lowest average scores)
-export const getWeakestSubjects = async (studentName: string, limit: number = 3): Promise<StudentProgress[]> => {
-  const progress = await getStudentProgress(studentName);
+export const getWeakestSubjects = async (studentName: string, limit: number = 3, userId?: string): Promise<StudentProgress[]> => {
+  const progress = await getStudentProgress(studentName, userId);
 
   return progress
     .filter(p => p.totalExamsTaken > 0)
@@ -232,8 +247,8 @@ export const getWeakestSubjects = async (studentName: string, limit: number = 3)
 };
 
 // Get strongest subjects for a student (highest average scores)
-export const getStrongestSubjects = async (studentName: string, limit: number = 3): Promise<StudentProgress[]> => {
-  const progress = await getStudentProgress(studentName);
+export const getStrongestSubjects = async (studentName: string, limit: number = 3, userId?: string): Promise<StudentProgress[]> => {
+  const progress = await getStudentProgress(studentName, userId);
 
   return progress
     .filter(p => p.totalExamsTaken > 0)
