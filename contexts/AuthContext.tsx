@@ -120,18 +120,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   // Sign in functie
+  // Let op: we zetten hier NIET isLoading, omdat dat de LoginPage zou unmounten
+  // en de error state zou verliezen. LoginPage heeft zijn eigen isSubmitting state.
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    setState(prev => ({ ...prev, isLoading: true }));
-
     const { user, error } = await auth.signIn(email, password);
 
     if (error || !user) {
-      setState(prev => ({ ...prev, isLoading: false }));
       return { error: error || 'Inloggen mislukt' };
     }
 
     // Profile wordt geladen via onAuthStateChange
-    setState(prev => ({ ...prev, isLoading: false }));
     return { error: null };
   };
 
