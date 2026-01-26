@@ -15,10 +15,10 @@ import { setCorsHeaders } from './utils/cors.js';
 // Lazy initialization
 let _ai: GoogleGenAI | null = null;
 
-// Model configuration - gebruik stabiele Gemini modellen
-const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-1.5-pro';
-const GEMINI_MODEL_FALLBACK = 'gemini-1.5-flash'; // Fallback naar stabiele Gemini 1.5 Flash
+// Model configuration
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-2.5-pro';
+const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash'; // Fallback naar Gemini 2.0 Flash
 
 // Exacte vakken die een sterker model nodig hebben voor HAVO/VWO
 const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
