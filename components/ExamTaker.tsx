@@ -251,6 +251,18 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     const mcScore = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && session.answers[q.id] === q.correctIndex).length;
     const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
     const openCount = session.questions.filter(q => q.type === 'OPEN').length;
+    const percentage = totalMc > 0 ? Math.round((mcScore / totalMc) * 100) : 0;
+
+    // Dynamische feedback op basis van score
+    const getFeedback = (pct: number) => {
+      if (pct >= 90) return { title: 'Uitstekend!', description: 'Je hebt deze toets fantastisch gemaakt. Blijf zo doorgaan!' };
+      if (pct >= 75) return { title: 'Goed gedaan!', description: 'Een mooie score! Je bent goed op weg.' };
+      if (pct >= 55) return { title: 'Voldoende', description: 'Je hebt de toets gehaald. Bekijk de vragen die je fout had om te verbeteren.' };
+      if (pct >= 40) return { title: 'Bijna voldoende', description: 'Je bent er bijna! Met wat extra oefening haal je het de volgende keer.' };
+      return { title: 'Blijf oefenen', description: 'Deze stof vraagt nog wat meer aandacht. Bekijk de uitleg bij de vragen en probeer het opnieuw.' };
+    };
+
+    const feedback = getFeedback(percentage);
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 py-8 md:py-12 px-4 relative overflow-hidden">
@@ -271,10 +283,10 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 </div>
               </div>
               <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-indigo-700 via-purple-700 to-pink-700 bg-clip-text text-transparent mb-4">
-                Geweldig gedaan!
+                {feedback.title}
               </h2>
               <p className="text-slate-700 text-lg max-w-2xl mx-auto leading-relaxed">
-                Je toets is afgerond. Bekijk hieronder je resultaten en vraag de AI om persoonlijke uitleg bij elke vraag.
+                {feedback.description}
               </p>
             </div>
 
