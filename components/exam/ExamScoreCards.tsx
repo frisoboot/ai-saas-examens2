@@ -5,7 +5,7 @@ interface ExamScoreCardsProps {
   mcScore: number;
   totalMc: number;
   openCount: number;
-  openScore?: { correct: number; partial: number; incorrect: number };
+  openScore?: { correct: number; partial: number; incorrect: number; ungraded: number };
   totalQuestions: number;
 }
 
@@ -21,7 +21,9 @@ export const ExamScoreCards: React.FC<ExamScoreCardsProps> = ({
   // Calculate overall score including open questions if graded
   const openCorrect = openScore ? openScore.correct + (openScore.partial * 0.5) : 0;
   const totalScore = mcScore + openCorrect;
-  const totalMax = totalMc + openCount;
+  // Only count successfully graded open questions in the denominator
+  const gradedOpenCount = openScore ? openScore.correct + openScore.partial + openScore.incorrect : openCount;
+  const totalMax = totalMc + gradedOpenCount;
   const overallPercentage = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
 
   const getScoreColor = (pct: number) => {
@@ -71,6 +73,9 @@ export const ExamScoreCards: React.FC<ExamScoreCardsProps> = ({
                       <span className="font-semibold text-amber-600">/{openScore.partial}</span>
                     )}
                     <span className="font-semibold text-red-600">/{openScore.incorrect}</span>
+                    {openScore.ungraded > 0 && (
+                      <span className="font-semibold text-slate-500">/{openScore.ungraded}</span>
+                    )}
                     <span className="ml-1">open</span>
                   </>
                 ) : (

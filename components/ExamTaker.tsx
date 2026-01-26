@@ -120,6 +120,11 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         setAiExplanations(prev => ({ ...prev, [question.id]: result.feedback }));
       } catch (error) {
         console.error('Error grading question:', question.id, error);
+        // Mark failed questions with null grade to indicate grading failure
+        setOpenQuestionGrades(prev => ({ ...prev, [question.id]: null }));
+        // Provide user-visible feedback about grading failure
+        const errorMsg = `Kon vraag niet nakijken: "${question.text.substring(0, 50)}...". De vraag wordt niet meegerekend in je eindcijfer.`;
+        setAiExplanations(prev => ({ ...prev, [question.id]: errorMsg }));
       } finally {
         setGradingQuestions(prev => {
           const newSet = new Set(prev);
@@ -293,11 +298,14 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       correct: Object.values(openQuestionGrades).filter(g => g === 'correct').length,
       partial: Object.values(openQuestionGrades).filter(g => g === 'partial').length,
       incorrect: Object.values(openQuestionGrades).filter(g => g === 'incorrect').length,
+      ungraded: Object.values(openQuestionGrades).filter(g => g === null).length,
     };
 
     // Calculate percentage and generate appropriate feedback
+    // Only count successfully graded open questions in the denominator
+    const gradedOpenCount = openScore.correct + openScore.partial + openScore.incorrect;
     const totalGraded = mcScore + openScore.correct + (openScore.partial * 0.5);
-    const totalMax = totalMc + openCount;
+    const totalMax = totalMc + gradedOpenCount;
     const percentage = totalMax > 0 ? Math.round((totalGraded / totalMax) * 100) : 0;
 
     const getFeedback = (score: number): { title: string; subtitle: string } => {
