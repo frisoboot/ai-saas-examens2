@@ -171,32 +171,29 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
           {/* Look-alike Examenvragen */}
           <div
             onClick={() => setView('lookalike-setup')}
-            className="group bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.15)] hover:shadow-[0_12px_32px_rgba(0,0,0,0.25)] border border-slate-700 hover:border-emerald-500/50 transition-all duration-300 cursor-pointer relative overflow-hidden"
+            className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-emerald-500/30 transition-all duration-300 cursor-pointer"
           >
-            {/* Background accent */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-emerald-500/20 to-teal-500/10 rounded-full blur-2xl" />
-
-            <div className="flex items-start gap-6 relative z-10">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-lg shadow-emerald-500/30 flex-shrink-0">
+            <div className="flex items-start gap-6">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0">
                 <GraduationCap className="w-7 h-7 text-white" />
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-2">
-                  <h3 className="text-xl font-bold text-white">Look-alike Examenvragen</h3>
-                  <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 text-xs font-bold rounded-full border border-emerald-500/30">
-                    NIEUW
+                  <h3 className="text-xl font-bold text-slate-900">Look-alike Examenvragen</h3>
+                  <span className="px-2 py-0.5 bg-emerald-50 text-emerald-600 text-xs font-semibold rounded-full">
+                    Nieuw
                   </span>
                 </div>
-                <p className="text-slate-300 text-sm mb-4 leading-relaxed">
+                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
                   Echte examensimulatie met authentieke vragen die niet te onderscheiden zijn van het centraal examen.
-                  {['Nederlands', 'Engels', 'Duits', 'Frans', 'Spaans'].includes(subject) && ' Inclusief leesteksten!'}
+                  {['Nederlands', 'Engels', 'Duits', 'Frans', 'Spaans'].includes(subject) && ' Inclusief leesteksten.'}
                 </p>
-                <div className="flex items-center gap-2 text-sm text-slate-400">
-                  <GraduationCap className="w-4 h-4 text-emerald-400" />
-                  <span className="text-emerald-400">Examensimulatie</span>
-                  <span className="text-slate-600">•</span>
-                  <span>Met timer optie</span>
-                  <span className="text-slate-600">•</span>
+                <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <GraduationCap className="w-4 h-4 text-emerald-500" />
+                  <span>Examensimulatie</span>
+                  <span className="text-slate-300">•</span>
+                  <span>Timer optie</span>
+                  <span className="text-slate-300">•</span>
                   <span>Tijdvak 1 & 2</span>
                 </div>
               </div>
