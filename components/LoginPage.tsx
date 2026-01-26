@@ -44,7 +44,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
   // Vertaal Supabase errors naar Nederlandse tekst
   const translateError = (error: string): string => {
     if (error.includes('Invalid login credentials')) {
-      return 'Inloggen mislukt: het ingevoerde e-mailadres of wachtwoord is onjuist. Controleer je gegevens en probeer het opnieuw.';
+      return 'Het ingevoerde e-mailadres of wachtwoord is onjuist. Controleer je gegevens en probeer het opnieuw.';
     }
     if (error.includes('Email not confirmed')) {
       return 'Je email is nog niet bevestigd. Check je inbox.';
