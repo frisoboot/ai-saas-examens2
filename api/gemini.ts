@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
+import { gateway } from '@ai-sdk/gateway';
 import { setCorsHeaders } from './utils/cors.js';
 
 /**
@@ -21,12 +22,19 @@ const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde']
 const PRO_LEVELS = ['HAVO', 'VWO'];
 
 // Bepaal welk model te gebruiken op basis van vak en niveau
-function getModelForSubject(subject?: string, level?: string): string {
-  if (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) {
+function getModelForSubject(subject?: string, level?: string) {
+  const modelId = (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level))
+    ? GEMINI_MODEL_PRO
+    : GEMINI_MODEL_FLASH;
+
+  if (modelId === GEMINI_MODEL_PRO) {
     console.log(`[Gemini API] Using Pro model for ${subject} (${level})`);
-    return GEMINI_MODEL_PRO;
   }
-  return GEMINI_MODEL_FLASH;
+
+  // Return AI Gateway model provider with API key
+  return gateway(modelId, {
+    apiKey: process.env.AI_GATEWAY_API_KEY,
+  });
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -758,8 +766,13 @@ async function generateFlashcards(
 }
 
 async function chat(message: string, systemInstruction: string): Promise<string> {
+  // Chat gebruikt altijd het flash model (snel en goedkoop voor conversaties)
+  const chatModel = gateway(GEMINI_MODEL_FLASH, {
+    apiKey: process.env.AI_GATEWAY_API_KEY,
+  });
+
   const { text } = await generateText({
-    model: GEMINI_MODEL_FLASH,
+    model: chatModel,
     system: systemInstruction,
     prompt: message,
   });

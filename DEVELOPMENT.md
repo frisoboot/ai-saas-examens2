@@ -41,8 +41,8 @@ VITE_ADMIN_EMAILS=admin@jouwdomein.nl
 # Server-side only (voor API endpoints)
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 
-# AI features (optioneel)
-GEMINI_API_KEY=your-gemini-key
+# AI Gateway (server-side only)
+AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
 ```
 
 ### Starten in Development

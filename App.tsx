@@ -138,7 +138,7 @@ const AppContent: React.FC = () => {
       const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
 
       if (aiQuestions.length === 0) {
-          alert(`Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- Je een geldige Gemini API key hebt (VITE_GEMINI_API_KEY)\n- Je internetverbinding werkt`);
+          alert(`Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- De AI service correct is geconfigureerd\n- Je internetverbinding werkt`);
           return;
       }
 
@@ -157,8 +157,8 @@ const AppContent: React.FC = () => {
 
       let errorMessage = 'Er ging iets mis bij het genereren van de AI examen vragen.\n\n';
 
-      if (error.message?.includes('API key')) {
-        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld in je .env bestand:\nVITE_GEMINI_API_KEY=jouw-api-key';
+      if (error.message?.includes('API key') || error.message?.includes('API_KEY')) {
+        errorMessage += 'Er is een probleem met de AI service configuratie. Neem contact op met de beheerder.';
       } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
         errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
       } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
