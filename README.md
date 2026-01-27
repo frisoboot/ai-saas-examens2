@@ -41,7 +41,6 @@ Vul je credentials in:
 ```env
 VITE_SUPABASE_URL=https://jouw-project.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...
-VITE_GEMINI_API_KEY=AIza...
 VITE_ALLOW_DEV_FALLBACK=true
 
 # ⚠️ VERPLICHT: Stel een STERK admin wachtwoord in!
@@ -49,6 +48,9 @@ VITE_ALLOW_DEV_FALLBACK=true
 # Zie SECURITY.md voor volledige instructies
 ADMIN_PASSWORD=jouw-super-sterke-wachtwoord-hier
 ADMIN_USERNAME=admin
+
+# AI Gateway (server-side only, GEEN VITE_ prefix!)
+AI_GATEWAY_API_KEY=your-vercel-ai-gateway-key
 
 # Optioneel voor lokaal development:
 VITE_SUPABASE_SERVICE_ROLE_KEY=eyJ...

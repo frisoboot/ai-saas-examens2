@@ -62,12 +62,12 @@ Volg de prompts:
 | `VITE_SUPABASE_URL` | `https://jouw-project.supabase.co` | Production, Preview, Development |
 | `VITE_SUPABASE_ANON_KEY` | `eyJ...` (je anon key) | Production, Preview, Development |
 | `SUPABASE_SERVICE_ROLE_KEY` | `eyJ...` (je service role key) | Production, Preview, Development |
-| `VITE_GEMINI_API_KEY` | `AIza...` (je Gemini key) | Production, Preview, Development |
+| `AI_GATEWAY_API_KEY` | Je Vercel AI Gateway key | Production, Preview, Development |
 
 **Let op**:
-- De `SUPABASE_SERVICE_ROLE_KEY` heeft GEEN `VITE_` prefix!
-- Dit is opzettelijk - hierdoor is de key NIET zichtbaar in de browser
-- Deze key wordt alleen gebruikt door de serverless functions
+- De `SUPABASE_SERVICE_ROLE_KEY` en `AI_GATEWAY_API_KEY` hebben GEEN `VITE_` prefix!
+- Dit is opzettelijk - hierdoor zijn deze keys NIET zichtbaar in de browser
+- Deze keys worden alleen gebruikt door de serverless functions
 
 ### Stap 4: Redeploy
 

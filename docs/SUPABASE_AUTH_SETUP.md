@@ -45,8 +45,8 @@ VITE_SUPABASE_URL=https://jouw-project.supabase.co
 VITE_SUPABASE_ANON_KEY=eyJ...je-anon-key...
 VITE_SUPABASE_SERVICE_ROLE_KEY=eyJ...je-service-role-key...
 
-# Google Gemini API Key
-VITE_GEMINI_API_KEY=je-gemini-key
+# Vercel AI Gateway (server-side only, GEEN VITE_ prefix!)
+AI_GATEWAY_API_KEY=je-ai-gateway-key
 
 # Development fallback
 VITE_ALLOW_DEV_FALLBACK=true
