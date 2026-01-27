@@ -405,6 +405,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   onRequestExplanation={() => handleRequestAIExplanation(q)}
                   openQuestionGrade={openQuestionGrades[q.id]}
                   isGradingOpen={gradingQuestions.has(q.id)}
+                  isSkipped={skippedQuestions.has(q.id)}
                 />
               ))}
             </div>
