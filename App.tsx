@@ -5,6 +5,8 @@ import { getQuestions } from './services/storageService';
 import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
+import { ForgotPasswordPage } from './components/ForgotPasswordPage';
+import { ResetPasswordPage } from './components/ResetPasswordPage';
 import { StudentDashboard } from './components/StudentDashboard';
 import { AdminDashboard } from './components/AdminDashboard';
 import { ExamTaker } from './components/ExamTaker';
@@ -298,9 +300,28 @@ const AppContent: React.FC = () => {
               onLogin={signIn}
               onCheckout={() => navigate('/checkout')}
               onLanding={() => navigate('/')}
+              onForgotPassword={() => navigate('/forgot-password')}
               isLoading={false}
             />
           )
+        } />
+
+        <Route path="/forgot-password" element={
+          isAuthenticated ? (
+            <Navigate to={isAdmin ? '/admin' : '/dashboard'} replace />
+          ) : (
+            <ForgotPasswordPage
+              onBack={() => navigate('/login')}
+              onLanding={() => navigate('/')}
+            />
+          )
+        } />
+
+        <Route path="/reset-password" element={
+          <ResetPasswordPage
+            onSuccess={() => navigate(isAdmin ? '/admin' : '/dashboard')}
+            onLogin={() => navigate('/login')}
+          />
         } />
 
         <Route path="/checkout" element={
