@@ -169,6 +169,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
 
     let correctCount = 0;
+    const questionsTakenCount = session.questions.filter(q => !skippedQuestions.has(q.id)).length;
     session.questions.forEach(q => {
       if (q.type === 'MULTIPLE_CHOICE' && finalAnswers[q.id] === q.correctIndex) {
         correctCount++;
@@ -194,7 +195,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       studentName: session.studentName,
       subject: session.subject,
       score: correctCount,
-      totalQuestions: session.questions.length,
+      totalQuestions: questionsTakenCount,
       date: new Date().toISOString(),
       answers: Object.entries(finalAnswers).map(([qid, val]) => ({ questionId: qid, value: val as string | number })),
       examYear: session.examYear,
@@ -223,7 +224,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             session.questions,
             finalAnswers,
             correctCount,
-            session.questions.length,
+            questionsTakenCount,
             session.studentName,
             session.subject
           );
@@ -311,9 +312,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // --- REVIEW MODE ---
   if (isFinished) {
     const mcScore = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && session.answers[q.id] === q.correctIndex).length;
-    const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
+    const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && !skippedQuestions.has(q.id)).length;
     const openQuestions = session.questions.filter(q => q.type === 'OPEN');
-    const openCount = openQuestions.length;
+    const openCount = openQuestions.filter(q => !skippedQuestions.has(q.id)).length;
 
     // Calculate open question scores
     const openScore = {
@@ -365,7 +366,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               totalMc={totalMc}
               openCount={openCount}
               openScore={openCount > 0 ? openScore : undefined}
-              totalQuestions={session.questions.length}
+              totalQuestions={totalMc + openCount}
             />
           </div>
 
