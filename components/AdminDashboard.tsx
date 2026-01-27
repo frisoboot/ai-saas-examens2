@@ -42,6 +42,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
   const [modelAnswer, setModelAnswer] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [originalImageUrl, setOriginalImageUrl] = useState<string>(''); // Track original image for deletion on replace
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -110,6 +111,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
     setModelAnswer('');
     setIsCompressing(false);
     setUploadedFile(null);
+    setOriginalImageUrl('');
   };
 
   const handleEdit = (q: Question) => {
@@ -126,8 +128,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       setSelectedSubject('Anders...');
       setCustomSubject(q.subject);
     }
-    
+
     setNewQuestionImage(q.imageUrl || '');
+    setOriginalImageUrl(q.imageUrl || ''); // Track original for deletion on replace
     setNewQuestionSource(q.source || '');
     setExamYear(q.examYear ? q.examYear.toString() : '');
 
@@ -179,11 +182,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         const questionId = editingId || Date.now().toString();
         finalImageUrl = await imageStorage.uploadImage(uploadedFile, questionId);
         console.log('Afbeelding geüpload naar Supabase Storage:', finalImageUrl);
+
+        // Delete old image if we're replacing it during edit
+        if (editingId && originalImageUrl && originalImageUrl !== finalImageUrl) {
+          try {
+            await imageStorage.deleteImage(originalImageUrl);
+            console.log('Oude afbeelding verwijderd:', originalImageUrl);
+          } catch (deleteError) {
+            console.warn('Kon oude afbeelding niet verwijderen:', deleteError);
+          }
+        }
       } else if (newQuestionImage && imageStorage.isBase64Image(newQuestionImage)) {
         // Als het een base64 image is (oude data of preview), converteer naar storage
         const questionId = editingId || Date.now().toString();
         finalImageUrl = await imageStorage.migrateBase64ToStorage(newQuestionImage, questionId);
         console.log('Base64 afbeelding gemigreerd naar Supabase Storage:', finalImageUrl);
+
+        // Delete old image if we're replacing it during edit
+        if (editingId && originalImageUrl && originalImageUrl !== finalImageUrl) {
+          try {
+            await imageStorage.deleteImage(originalImageUrl);
+            console.log('Oude afbeelding verwijderd:', originalImageUrl);
+          } catch (deleteError) {
+            console.warn('Kon oude afbeelding niet verwijderen:', deleteError);
+          }
+        }
+      } else if (editingId && originalImageUrl && !newQuestionImage) {
+        // Image was removed during edit (user clicked X to remove it)
+        try {
+          await imageStorage.deleteImage(originalImageUrl);
+          console.log('Afbeelding verwijderd door gebruiker:', originalImageUrl);
+        } catch (deleteError) {
+          console.warn('Kon afbeelding niet verwijderen:', deleteError);
+        }
       }
 
       const newQuestion: Question = {

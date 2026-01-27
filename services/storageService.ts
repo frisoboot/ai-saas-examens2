@@ -1,5 +1,6 @@
 import { Question, ExamResult, StudentLevel } from '../types';
 import { supabase, dbQuestions, dbResults } from './supabaseService';
+import { imageStorage } from './imageStorageService';
 
 // Database is VEREIST - geen fallbacks meer
 const requireDatabase = () => {
@@ -20,6 +21,22 @@ export const saveQuestion = async (question: Question): Promise<void> => {
 
 export const deleteQuestion = async (id: string): Promise<void> => {
   requireDatabase();
+
+  // First, get the question to retrieve its imageUrl
+  const question = await dbQuestions.getById(id);
+
+  // Delete the image from storage if it exists
+  if (question?.imageUrl) {
+    try {
+      await imageStorage.deleteImage(question.imageUrl);
+      console.log('Afbeelding verwijderd uit storage:', question.imageUrl);
+    } catch (imageError) {
+      // Log but don't fail - the image might already be deleted
+      console.warn('Kon afbeelding niet verwijderen (mogelijk al verwijderd):', imageError);
+    }
+  }
+
+  // Then delete the question from the database
   await dbQuestions.delete(id);
 };
 
