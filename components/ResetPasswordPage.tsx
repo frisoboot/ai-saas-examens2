@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { GraduationCap, Lock, ArrowRight, AlertCircle, Loader2, CheckCircle, Eye, EyeOff } from 'lucide-react';
 import { SEO } from './SEO';
 import { Button } from './Button';
-import { auth } from '../services/supabaseService';
+import { auth, supabase } from '../services/supabaseService';
 
 interface ResetPasswordPageProps {
   onSuccess: () => void;
@@ -22,13 +22,70 @@ export const ResetPasswordPage: React.FC<ResetPasswordPageProps> = ({
   const [isSuccess, setIsSuccess] = useState(false);
   const [isValidSession, setIsValidSession] = useState<boolean | null>(null);
 
-  // Check of er een geldige sessie is (gebruiker kwam via reset link)
+  // Verwerk de recovery tokens uit de URL en wacht op geldige sessie
   useEffect(() => {
-    const checkSession = async () => {
-      const { session } = await auth.getSession();
-      setIsValidSession(!!session);
+    let mounted = true;
+
+    const handleRecovery = async () => {
+      if (!supabase) {
+        if (mounted) setIsValidSession(false);
+        return;
+      }
+
+      // Check of er hash parameters zijn (tokens van Supabase)
+      // Supabase kan tokens sturen via hash (#) of query parameters (?)
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const queryParams = new URLSearchParams(window.location.search);
+
+      // Probeer eerst hash, dan query parameters
+      const accessToken = hashParams.get('access_token') || queryParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+      const type = hashParams.get('type') || queryParams.get('type');
+      const errorCode = hashParams.get('error_code') || queryParams.get('error_code');
+      const errorDescription = hashParams.get('error_description') || queryParams.get('error_description');
+
+      // Check voor errors van Supabase
+      if (errorCode || errorDescription) {
+        console.error('Supabase error:', errorCode, errorDescription);
+        if (mounted) setIsValidSession(false);
+        return;
+      }
+
+      // Als er recovery tokens in de URL zijn, verwerk ze
+      if (accessToken && (type === 'recovery' || type === 'magiclink')) {
+        try {
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+
+          if (error) {
+            console.error('Sessie instellen mislukt:', error);
+            if (mounted) setIsValidSession(false);
+            return;
+          }
+
+          if (data.session && mounted) {
+            // Verwijder de hash uit de URL voor een schonere URL
+            window.history.replaceState(null, '', window.location.pathname);
+            setIsValidSession(true);
+          }
+        } catch (err) {
+          console.error('Recovery fout:', err);
+          if (mounted) setIsValidSession(false);
+        }
+      } else {
+        // Geen tokens in URL, check bestaande sessie
+        const { session } = await auth.getSession();
+        if (mounted) setIsValidSession(!!session);
+      }
     };
-    checkSession();
+
+    handleRecovery();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const validatePassword = (pwd: string): string | null => {
