@@ -517,31 +517,21 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     const file = e.target.files?.[0];
     if (!file || !editingQuestion) return;
 
-    // Validate file type
-    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-    if (!allowedTypes.includes(file.type)) {
-      showNotification('error', 'Alleen PDF en afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan');
-      return;
-    }
-
-    // Validate file size (20MB)
-    if (file.size > 20 * 1024 * 1024) {
-      showNotification('error', 'Bestand is te groot. Maximum is 20MB.');
-      return;
-    }
-
     try {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        setEditingQuestion({
-          ...editingQuestion,
-          worksheetUrl: event.target?.result as string,
-          worksheetLabel: editingQuestion.worksheetLabel || file.name.replace(/\.[^/.]+$/, '')
-        });
-      };
-      reader.readAsDataURL(file);
+      // Delete the old worksheet if it exists and is a storage URL
+      if (editingQuestion.worksheetUrl && editingQuestion.worksheetUrl.includes('/storage/v1/object/public/')) {
+        await worksheetStorage.deleteWorksheet(editingQuestion.worksheetUrl);
+      }
+
+      const url = await worksheetStorage.uploadWorksheet(file);
+      setEditingQuestion({
+        ...editingQuestion,
+        worksheetUrl: url,
+        worksheetLabel: editingQuestion.worksheetLabel || file.name.replace(/\.[^/.]+$/, '')
+      });
+      showNotification('success', 'Bijlage geüpload');
     } catch (error) {
-      showNotification('error', 'Fout bij uploaden bijlage');
+      showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage');
     }
   };
 
