@@ -313,6 +313,12 @@ async function generateAIQuestions(
     - Vraag die een uitgebreid antwoord vereist (2-4 zinnen)
     - Geef een duidelijk modelantwoord
 
+    BELANGRIJK - GEEN VISUELE BRONNEN:
+    - Genereer GEEN vragen die verwijzen naar afbeeldingen, kaarten, grafieken, diagrammen, tabellen, figuren of andere visuele bronnen
+    - Vermijd zinnen zoals "Figuur 1 toont...", "Bekijk de kaart...", "In de grafiek zie je...", "De tabel laat zien..."
+    - Alle informatie moet VOLLEDIG in tekstvorm worden gegeven
+    - Als je een vraag wilt stellen over geografische of visuele concepten, beschrijf de situatie dan in woorden
+
     BELANGRIJK: Geef je antwoord als JSON array met dit EXACTE format:
     [
       {
@@ -472,6 +478,12 @@ async function generateLookalikeExamQuestions(
     ${cognitiveRequirements}
 
     OPDRACHT: Genereer PRECIES ${count} examenvragen (70% meerkeuze, 30% open).
+
+    BELANGRIJK - GEEN VISUELE BRONNEN:
+    - Genereer GEEN vragen die verwijzen naar afbeeldingen, kaarten, grafieken, diagrammen, tabellen, figuren of andere visuele bronnen
+    - Vermijd zinnen zoals "Figuur 1 toont...", "Bekijk de kaart...", "In de grafiek zie je...", "De tabel laat zien..."
+    - Alle informatie moet VOLLEDIG in tekstvorm worden gegeven
+    - Als je een vraag wilt stellen over geografische of visuele concepten, beschrijf de situatie dan in woorden
 
     JSON FORMAT:
     [
