@@ -414,7 +414,30 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   }
 
   // --- EXAM MODE (SPLIT SCREEN) ---
-  const hasContext = !!currentQuestion.contextText;
+
+  // Context group handling: find questions in the same group
+  const currentGroupId = currentQuestion.contextGroupId;
+  const questionsInGroup = currentGroupId
+    ? session.questions.filter(q => q.contextGroupId === currentGroupId)
+    : [];
+  const positionInGroup = currentGroupId
+    ? questionsInGroup.findIndex(q => q.id === currentQuestion.id) + 1
+    : 0;
+
+  // Get context text - either from current question or from the first question in the group
+  const getGroupContext = (): string | undefined => {
+    if (currentQuestion.contextText) return currentQuestion.contextText;
+    if (currentGroupId && questionsInGroup.length > 0) {
+      // Find the first question in the group that has contextText
+      const questionWithContext = questionsInGroup.find(q => q.contextText);
+      return questionWithContext?.contextText;
+    }
+    return undefined;
+  };
+
+  const contextText = getGroupContext();
+  const hasContext = !!contextText;
+  const groupTitle = currentQuestion.contextGroupTitle;
 
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden text-slate-900 font-sans">
@@ -461,11 +484,23 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         {hasContext ? (
           <div className="lg:w-1/2 bg-[#fdfbf7] border-r border-[#eaddcf] overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl mx-auto p-8 lg:p-12">
-              <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
-                <span>Bronmateriaal</span>
+              {/* Group/Section header */}
+              <div className="flex items-center justify-between text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
+                <div className="flex items-center gap-2">
+                  {groupTitle ? (
+                    <span className="font-semibold text-slate-700 not-italic">{groupTitle}</span>
+                  ) : (
+                    <span>Bronmateriaal</span>
+                  )}
+                </div>
+                {currentGroupId && questionsInGroup.length > 1 && (
+                  <span className="text-sm bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full not-italic">
+                    Vraag {positionInGroup} van {questionsInGroup.length}
+                  </span>
+                )}
               </div>
               <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                <ReactMarkdown>{currentQuestion.contextText || ''}</ReactMarkdown>
+                <ReactMarkdown>{contextText || ''}</ReactMarkdown>
               </div>
             </div>
           </div>

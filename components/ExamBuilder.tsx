@@ -18,6 +18,8 @@ interface QuestionDraft extends Partial<Question> {
   text: string;
   type: QuestionType;
   questionNumber?: number;
+  contextGroupId?: string;
+  contextGroupTitle?: string;
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
@@ -44,6 +46,8 @@ interface JsonQuestion {
   type: 'MULTIPLE_CHOICE' | 'OPEN';
   text: string;
   contextText?: string;
+  contextGroupId?: string;
+  contextGroupTitle?: string;
   options?: string[];
   correctIndex?: number;
   modelAnswer?: string;
@@ -53,39 +57,78 @@ interface JsonQuestion {
   requiresWorksheet?: boolean;
 }
 
+// New: Question group for shared context
+interface JsonQuestionGroup {
+  id: string;
+  title: string;
+  contextText: string;
+  questions: JsonQuestion[];
+}
+
 interface JsonImportFormat {
   subject?: string;
   year?: number;
   tijdvak?: number;
   level?: StudentLevel;
-  questions: JsonQuestion[];
+  questions?: JsonQuestion[];  // Flat list (backwards compatible)
+  questionGroups?: JsonQuestionGroup[];  // New: grouped questions
 }
 
 const DRAFT_STORAGE_KEY = 'examBuilder_draft';
 const AUTO_SAVE_DELAY = 1000;
 
-// Generate JSON template
+// Generate JSON template with questionGroups format
 const generateJsonTemplate = (): string => {
-  const template: JsonImportFormat = {
-    subject: "Geschiedenis",
+  const template = {
+    subject: "Scheikunde",
     year: 2024,
     tijdvak: 1,
-    level: "HAVO",
-    questions: [
+    level: "VWO",
+    questionGroups: [
       {
-        questionNumber: 1,
-        type: "MULTIPLE_CHOICE",
-        text: "Wat was de belangrijkste oorzaak van de Eerste Wereldoorlog?",
-        contextText: "Lees de onderstaande bron over het begin van WO1.",
-        options: ["De moord op Frans Ferdinand", "Economische rivaliteit", "Koloniale spanningen", "Nationalisme"],
-        correctIndex: 0
+        id: "stikstof",
+        title: "Stikstofoxiden",
+        contextText: "Bij verbranding in automotoren ontstaan stikstofoxiden (NOx). Deze stoffen zijn schadelijk voor het milieu en de gezondheid.",
+        questions: [
+          {
+            questionNumber: 1,
+            type: "OPEN",
+            text: "Leg uit hoe stikstofoxiden ontstaan bij verbranding.",
+            modelAnswer: "Stikstofoxiden ontstaan doordat bij hoge temperaturen stikstof (N2) uit de lucht reageert met zuurstof (O2)."
+          },
+          {
+            questionNumber: 2,
+            type: "MULTIPLE_CHOICE",
+            text: "Welke stof is het meest schadelijk?",
+            options: ["NO", "NO2", "N2O", "N2O5"],
+            correctIndex: 1
+          },
+          {
+            questionNumber: 3,
+            type: "OPEN",
+            text: "Bereken de molmassa van NO2.",
+            modelAnswer: "M(NO2) = 14 + 2 × 16 = 46 g/mol"
+          }
+        ]
       },
       {
-        questionNumber: 2,
-        type: "OPEN",
-        text: "Leg uit waarom de industriële revolutie begon in Engeland.",
-        contextText: "Gebruik minimaal drie argumenten in je antwoord.",
-        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde."
+        id: "zuren",
+        title: "Zuren en Basen",
+        contextText: "In een laboratorium wordt een titratie uitgevoerd met zoutzuur en natriumhydroxide.",
+        questions: [
+          {
+            questionNumber: 4,
+            type: "OPEN",
+            text: "Schrijf de reactievergelijking van deze neutralisatie.",
+            modelAnswer: "HCl + NaOH → NaCl + H2O"
+          },
+          {
+            questionNumber: 5,
+            type: "OPEN",
+            text: "Bereken de pH van 0,1 M HCl.",
+            modelAnswer: "pH = -log[H+] = -log(0,1) = 1"
+          }
+        ]
       }
     ]
   };
@@ -380,9 +423,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const text = await file.text();
       const data = JSON.parse(text) as JsonImportFormat;
 
-      // Validate structure
-      if (!data.questions || !Array.isArray(data.questions)) {
-        throw new Error('JSON moet een "questions" array bevatten');
+      // Validate structure - must have either questions or questionGroups
+      if ((!data.questions || !Array.isArray(data.questions)) &&
+          (!data.questionGroups || !Array.isArray(data.questionGroups))) {
+        throw new Error('JSON moet een "questions" of "questionGroups" array bevatten');
       }
 
       // Update exam metadata if provided
@@ -399,13 +443,39 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         setExamMeta(prev => ({ ...prev, level: data.level! }));
       }
 
+      // Collect all questions (either from flat list or from groups)
+      let allJsonQuestions: JsonQuestion[] = [];
+
+      // Handle questionGroups format (new)
+      if (data.questionGroups && Array.isArray(data.questionGroups)) {
+        data.questionGroups.forEach(group => {
+          if (group.questions && Array.isArray(group.questions)) {
+            group.questions.forEach(q => {
+              allJsonQuestions.push({
+                ...q,
+                contextText: q.contextText || group.contextText, // Use group context if not specified
+                contextGroupId: group.id,
+                contextGroupTitle: group.title
+              });
+            });
+          }
+        });
+      }
+
+      // Handle flat questions format (backwards compatible)
+      if (data.questions && Array.isArray(data.questions)) {
+        allJsonQuestions = [...allJsonQuestions, ...data.questions];
+      }
+
       // Convert JSON questions to QuestionDraft format
-      const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
+      const importedQuestions: QuestionDraft[] = allJsonQuestions.map((q, index) => ({
         tempId: `import-${Date.now()}-${index}`,
         text: q.text || '',
         type: q.type || 'MULTIPLE_CHOICE',
         questionNumber: q.questionNumber || (questions.length + index + 1),
         contextText: q.contextText || '',
+        contextGroupId: q.contextGroupId || '',
+        contextGroupTitle: q.contextGroupTitle || '',
         imageUrl: q.imageUrl || '',
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
         correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
@@ -570,6 +640,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           examType: 'official_exam',
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
+          contextGroupId: draft.contextGroupId,
+          contextGroupTitle: draft.contextGroupTitle,
           imageUrl: draft.imageUrl,
           worksheetUrl: draft.worksheetUrl,
           worksheetLabel: draft.worksheetLabel,

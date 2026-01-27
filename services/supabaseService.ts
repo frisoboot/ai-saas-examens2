@@ -45,6 +45,8 @@ interface DbQuestion {
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
   text: string;
   context_text?: string;
+  context_group_id?: string;
+  context_group_title?: string;
   image_url?: string;
   source?: string;
   options?: string[];
@@ -68,6 +70,8 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     level: dbQuestion.level,
     text: dbQuestion.text,
     contextText: dbQuestion.context_text,
+    contextGroupId: dbQuestion.context_group_id,
+    contextGroupTitle: dbQuestion.context_group_title,
     imageUrl: dbQuestion.image_url,
     source: dbQuestion.source,
     options: dbQuestion.options,
@@ -90,6 +94,8 @@ const questionToDb = (question: Question): DbQuestion => {
     level: question.level,
     text: question.text,
     context_text: question.contextText,
+    context_group_id: question.contextGroupId,
+    context_group_title: question.contextGroupTitle,
     image_url: question.imageUrl,
     source: question.source,
     options: question.options,

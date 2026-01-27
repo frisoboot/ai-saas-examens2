@@ -22,6 +22,10 @@ export interface Question {
   // For context/reading comprehension
   contextText?: string;
 
+  // Context grouping - for questions that share the same intro text
+  contextGroupId?: string;     // ID to group questions (e.g., "stikstof-2024-t1")
+  contextGroupTitle?: string;  // Section title (e.g., "Stikstofoxiden")
+
   // Media & Source
   imageUrl?: string;
   source?: string;
@@ -115,6 +119,8 @@ export interface BulkImportQuestion {
   text: string;
   examYear?: number;
   contextText?: string;
+  contextGroupId?: string;
+  contextGroupTitle?: string;
   source?: string;
   score?: number; // Points awarded for this question
   options?: string[];
