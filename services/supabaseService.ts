@@ -525,6 +525,51 @@ export const auth = {
     }
 
     return supabase.auth.onAuthStateChange(callback);
+  },
+
+  /**
+   * Stuur wachtwoord reset email
+   * Supabase stuurt een email met een link naar de reset pagina
+   */
+  async resetPasswordForEmail(email: string): Promise<{ error: string | null }> {
+    if (!supabase) {
+      return { error: 'Supabase niet geconfigureerd' };
+    }
+
+    // Bepaal de redirect URL gebaseerd op de huidige omgeving
+    const redirectTo = `${window.location.origin}/reset-password`;
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo
+    });
+
+    if (error) {
+      console.error('Wachtwoord reset fout:', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
+  },
+
+  /**
+   * Update wachtwoord na reset
+   * Kan alleen worden aangeroepen als de gebruiker via de reset link is ingelogd
+   */
+  async updatePassword(newPassword: string): Promise<{ error: string | null }> {
+    if (!supabase) {
+      return { error: 'Supabase niet geconfigureerd' };
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) {
+      console.error('Wachtwoord update fout:', error);
+      return { error: error.message };
+    }
+
+    return { error: null };
   }
 };
 
