@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
+import { createGatewayProvider } from '@ai-sdk/gateway';
 import { setCorsHeaders } from './utils/cors.js';
 
 /**
@@ -20,13 +21,24 @@ const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'google/gemini-2.5-pro'
 const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
 const PRO_LEVELS = ['HAVO', 'VWO'];
 
+/**
+ * Create a gateway-wrapped model instance
+ * This wraps the model ID with the Vercel AI Gateway and API key
+ */
+function createGatewayModel(modelId: string) {
+  const gatewayProvider = createGatewayProvider({
+    apiKey: process.env.AI_GATEWAY_API_KEY,
+  });
+  return gatewayProvider(modelId);
+}
+
 // Bepaal welk model te gebruiken op basis van vak en niveau
-function getModelForSubject(subject?: string, level?: string): string {
+function getModelForSubject(subject?: string, level?: string) {
   if (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) {
     console.log(`[Gemini API] Using Pro model for ${subject} (${level})`);
-    return GEMINI_MODEL_PRO;
+    return createGatewayModel(GEMINI_MODEL_PRO);
   }
-  return GEMINI_MODEL_FLASH;
+  return createGatewayModel(GEMINI_MODEL_FLASH);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -759,7 +771,7 @@ async function generateFlashcards(
 
 async function chat(message: string, systemInstruction: string): Promise<string> {
   const { text } = await generateText({
-    model: GEMINI_MODEL_FLASH,
+    model: createGatewayModel(GEMINI_MODEL_FLASH),
     system: systemInstruction,
     prompt: message,
   });
