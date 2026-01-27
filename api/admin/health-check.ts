@@ -163,31 +163,30 @@ async function checkSupabaseStorage(supabaseAdmin: any): Promise<ServiceHealth> 
   }
 }
 
-async function checkGeminiAPI(): Promise<ServiceHealth> {
+async function checkAIGateway(): Promise<ServiceHealth> {
   const start = Date.now();
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.AI_GATEWAY_API_KEY;
 
   if (!apiKey) {
     return {
-      name: 'Google Gemini API',
+      name: 'Vercel AI Gateway',
       status: 'unhealthy',
-      message: 'GEMINI_API_KEY not configured',
+      message: 'AI_GATEWAY_API_KEY not configured',
     };
   }
 
   try {
-    // Test de API met een minimal request
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
-      { method: 'GET' }
-    );
+    // Test de AI Gateway met een models request
+    const response = await fetch('https://ai-gateway.vercel.sh/v1/models', {
+      method: 'GET',
+    });
 
     const responseTime = Date.now() - start;
 
     if (!response.ok) {
       const errorText = await response.text();
       return {
-        name: 'Google Gemini API',
+        name: 'Vercel AI Gateway',
         status: 'unhealthy',
         responseTime,
         message: `API returned ${response.status}: ${errorText.substring(0, 100)}`,
@@ -198,24 +197,24 @@ async function checkGeminiAPI(): Promise<ServiceHealth> {
 
     if (responseTime > 3000) {
       return {
-        name: 'Google Gemini API',
+        name: 'Vercel AI Gateway',
         status: 'degraded',
         responseTime,
         message: 'API responding slowly',
-        details: { modelsAvailable: data?.models?.length || 0 },
+        details: { modelsAvailable: data?.data?.length || 0 },
       };
     }
 
     return {
-      name: 'Google Gemini API',
+      name: 'Vercel AI Gateway',
       status: 'healthy',
       responseTime,
-      message: 'API key valid and models available',
-      details: { modelsAvailable: data?.models?.length || 0 },
+      message: 'AI Gateway operational',
+      details: { modelsAvailable: data?.data?.length || 0 },
     };
   } catch (error: any) {
     return {
-      name: 'Google Gemini API',
+      name: 'Vercel AI Gateway',
       status: 'unhealthy',
       responseTime: Date.now() - start,
       message: `API error: ${error.message}`,
@@ -331,7 +330,7 @@ function checkEnvironmentVariables(): ServiceHealth {
   ];
 
   const optionalVars = [
-    'GEMINI_API_KEY',
+    'AI_GATEWAY_API_KEY',
     'XAI_API_KEY',
     'MOLLIE_API_KEY',
   ];
@@ -416,14 +415,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       dbHealth,
       authHealth,
       storageHealth,
-      geminiHealth,
+      aiGatewayHealth,
       xaiHealth,
       mollieHealth,
     ] = await Promise.all([
       checkSupabaseDatabase(supabaseAdmin),
       checkSupabaseAuth(supabaseAdmin),
       checkSupabaseStorage(supabaseAdmin),
-      checkGeminiAPI(),
+      checkAIGateway(),
       checkXAIAPI(),
       checkMollieAPI(),
     ]);
@@ -436,7 +435,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       dbHealth,
       authHealth,
       storageHealth,
-      geminiHealth,
+      aiGatewayHealth,
       xaiHealth,
       mollieHealth,
     ];

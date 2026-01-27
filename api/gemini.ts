@@ -1,24 +1,20 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { GoogleGenAI } from "@google/genai";
+import { generateText } from 'ai';
 import { setCorsHeaders } from './utils/cors.js';
 
 /**
- * Gemini API Endpoint - Server-side AI calls
+ * Gemini API Endpoint - Server-side AI calls via Vercel AI Gateway
  *
- * SECURITY: De Gemini API key blijft op de server en wordt NIET
+ * SECURITY: De AI Gateway API key blijft op de server en wordt NIET
  * geëxposeerd naar de browser. Alle AI calls gaan via deze endpoint.
  *
  * Environment variabele (server-side only, GEEN VITE_ prefix):
- * - GEMINI_API_KEY: De Gemini API key
+ * - AI_GATEWAY_API_KEY: De Vercel AI Gateway API key
  */
 
-// Lazy initialization
-let _ai: GoogleGenAI | null = null;
-
-// Model configuration
-const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'gemini-3-flash-preview';
-const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'gemini-3-pro-preview';
-const GEMINI_MODEL_FALLBACK = 'gemini-2.0-flash'; // Fallback naar Gemini 2.0 Flash
+// Model configuration - AI Gateway format
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'google/gemini-2.0-flash';
+const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'google/gemini-2.5-pro';
 
 // Exacte vakken die een sterker model nodig hebben voor HAVO/VWO
 const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
@@ -31,60 +27,6 @@ function getModelForSubject(subject?: string, level?: string): string {
     return GEMINI_MODEL_PRO;
   }
   return GEMINI_MODEL_FLASH;
-}
-
-const getAI = (): GoogleGenAI => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    console.error('[Gemini API] GEMINI_API_KEY environment variable not set');
-    throw new Error('GEMINI_API_KEY environment variable not set');
-  }
-  // Log that we have an API key (don't log the key itself for security)
-  console.log('[Gemini API] API key configured, length:', apiKey.length, 'model:', GEMINI_MODEL_FLASH);
-  if (!_ai) {
-    _ai = new GoogleGenAI({ apiKey });
-  }
-  return _ai;
-};
-
-// Helper function to generate content with fallback model
-async function generateWithFallback(
-  ai: GoogleGenAI,
-  contents: string,
-  config?: { systemInstruction?: string },
-  preferredModel?: string
-): Promise<string> {
-  let lastError: any = null;
-  const primaryModel = preferredModel || GEMINI_MODEL_FLASH;
-
-  // Try primary model
-  try {
-    console.log(`[Gemini API] Trying primary model: ${primaryModel}`);
-    const response = await ai.models.generateContent({
-      model: primaryModel,
-      contents,
-      config,
-    });
-    return response.text || '';
-  } catch (error: any) {
-    console.warn(`[Gemini API] Primary model ${primaryModel} failed:`, error.message);
-    lastError = error;
-  }
-
-  // Try fallback model
-  try {
-    console.log(`[Gemini API] Trying fallback model: ${GEMINI_MODEL_FALLBACK}`);
-    const response = await ai.models.generateContent({
-      model: GEMINI_MODEL_FALLBACK,
-      contents,
-      config,
-    });
-    return response.text || '';
-  } catch (error: any) {
-    console.error(`[Gemini API] Fallback model ${GEMINI_MODEL_FALLBACK} also failed:`, error.message);
-    // Throw the last error with more context
-    throw new Error(`AI modellen niet beschikbaar. Primary: ${lastError?.message || 'unknown'}. Fallback: ${error.message}`);
-  }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -106,48 +48,52 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Action is required' });
     }
 
-    const ai = getAI();
+    // Verify API key is configured
+    if (!process.env.AI_GATEWAY_API_KEY) {
+      console.error('[Gemini API] AI_GATEWAY_API_KEY environment variable not set');
+      throw new Error('AI_GATEWAY_API_KEY environment variable not set');
+    }
 
     switch (action) {
       case 'getExplanation': {
         const { question, studentAnswer } = payload;
-        const result = await generateExplanation(ai, question, studentAnswer);
+        const result = await generateExplanation(question, studentAnswer);
         return res.status(200).json({ result });
       }
 
       case 'generateQuestions': {
         const { subject, level, count, topic } = payload;
-        const result = await generateAIQuestions(ai, subject, level, count, topic);
+        const result = await generateAIQuestions(subject, level, count, topic);
         return res.status(200).json({ result });
       }
 
       case 'generateLookalikeQuestions': {
         const { subject, level, count, topic, examStyle } = payload;
-        const result = await generateLookalikeExamQuestions(ai, subject, level, count, topic, examStyle);
+        const result = await generateLookalikeExamQuestions(subject, level, count, topic, examStyle);
         return res.status(200).json({ result });
       }
 
       case 'generateExamSummary': {
         const { questions, answers, score, totalQuestions, studentName, subject } = payload;
-        const result = await generateExamSummary(ai, questions, answers, score, totalQuestions, studentName, subject);
+        const result = await generateExamSummary(questions, answers, score, totalQuestions, studentName, subject);
         return res.status(200).json({ result });
       }
 
       case 'generateFlashcards': {
         const { subject, level, count, topic } = payload;
-        const result = await generateFlashcards(ai, subject, level, count, topic);
+        const result = await generateFlashcards(subject, level, count, topic);
         return res.status(200).json({ result });
       }
 
       case 'chat': {
         const { message, systemInstruction } = payload;
-        const result = await chat(ai, message, systemInstruction);
+        const result = await chat(message, systemInstruction);
         return res.status(200).json({ result });
       }
 
       case 'gradeOpenQuestion': {
         const { question, studentAnswer } = payload;
-        const result = await gradeOpenQuestion(ai, question, studentAnswer);
+        const result = await gradeOpenQuestion(question, studentAnswer);
         return res.status(200).json({ result });
       }
 
@@ -164,7 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Provide more specific error messages
     let errorMessage = 'Er ging iets mis met de AI service';
-    if (error.message?.includes('API_KEY')) {
+    if (error.message?.includes('API_KEY') || error.message?.includes('API key')) {
       errorMessage = 'API key configuratie probleem';
     } else if (error.message?.includes('quota') || error.message?.includes('rate')) {
       errorMessage = 'API limiet bereikt, probeer het later opnieuw';
@@ -181,10 +127,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 }
 
 // ============================================================================
-// AI FUNCTIONS (server-side only)
+// AI FUNCTIONS (server-side only) - Using Vercel AI Gateway
 // ============================================================================
 
-async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer: number | string): Promise<string> {
+async function generateExplanation(question: any, studentAnswer: number | string): Promise<string> {
   let prompt = '';
 
   if (question.type === 'MULTIPLE_CHOICE') {
@@ -244,15 +190,16 @@ async function generateExplanation(ai: GoogleGenAI, question: any, studentAnswer
 
   // Gebruik Pro model voor exacte vakken op HAVO/VWO
   const model = getModelForSubject(question.subject, question.level);
-  const response = await ai.models.generateContent({
+
+  const { text } = await generateText({
     model,
-    contents: prompt,
+    prompt,
   });
-  return response.text || "Geen uitleg beschikbaar.";
+
+  return text || "Geen uitleg beschikbaar.";
 }
 
 async function generateAIQuestions(
-  ai: GoogleGenAI,
   subject: string,
   level: string,
   count: number = 10,
@@ -381,13 +328,13 @@ async function generateAIQuestions(
 
   // Gebruik Pro model voor exacte vakken op HAVO/VWO
   const model = getModelForSubject(subject, level);
-  const response = await ai.models.generateContent({
+
+  const { text: responseText } = await generateText({
     model,
-    contents: prompt,
+    prompt,
   });
 
-  const responseText = response.text || '';
-  if (!responseText.trim()) {
+  if (!responseText?.trim()) {
     throw new Error("AI gaf een lege response terug.");
   }
 
@@ -459,7 +406,6 @@ async function generateAIQuestions(
 }
 
 async function generateLookalikeExamQuestions(
-  ai: GoogleGenAI,
   subject: string,
   level: string,
   count: number = 10,
@@ -542,13 +488,13 @@ async function generateLookalikeExamQuestions(
 
   // Gebruik Pro model voor exacte vakken op HAVO/VWO
   const modelLookalike = getModelForSubject(subject, level);
-  const response = await ai.models.generateContent({
+
+  const { text: responseText } = await generateText({
     model: modelLookalike,
-    contents: prompt,
+    prompt,
   });
 
-  const responseText = response.text || '';
-  if (!responseText.trim()) {
+  if (!responseText?.trim()) {
     throw new Error("AI gaf een lege response terug.");
   }
 
@@ -619,7 +565,6 @@ async function generateLookalikeExamQuestions(
 }
 
 async function generateExamSummary(
-  ai: GoogleGenAI,
   questions: any[],
   answers: Record<string, number | string>,
   score: number,
@@ -672,13 +617,13 @@ async function generateExamSummary(
   // Haal level uit eerste vraag voor model selectie
   const level = questions[0]?.level;
   const modelSummary = getModelForSubject(subject, level);
-  const response = await ai.models.generateContent({
+
+  const { text: responseText } = await generateText({
     model: modelSummary,
-    contents: prompt,
+    prompt,
   });
 
-  const responseText = response.text || '';
-  if (!responseText.trim()) {
+  if (!responseText?.trim()) {
     throw new Error("AI gaf een lege response terug.");
   }
 
@@ -709,7 +654,6 @@ async function generateExamSummary(
 }
 
 async function generateFlashcards(
-  ai: GoogleGenAI,
   subject: string,
   level: string,
   count: number = 10,
@@ -756,13 +700,13 @@ async function generateFlashcards(
 
   // Gebruik Pro model voor exacte vakken op HAVO/VWO
   const modelFlashcards = getModelForSubject(subject, level);
-  const response = await ai.models.generateContent({
+
+  const { text: responseText } = await generateText({
     model: modelFlashcards,
-    contents: prompt,
+    prompt,
   });
 
-  const responseText = response.text || '';
-  if (!responseText.trim()) {
+  if (!responseText?.trim()) {
     throw new Error("AI gaf een lege response terug.");
   }
 
@@ -813,9 +757,14 @@ async function generateFlashcards(
   return flashcards;
 }
 
-async function chat(ai: GoogleGenAI, message: string, systemInstruction: string): Promise<string> {
-  const result = await generateWithFallback(ai, message, { systemInstruction });
-  return result || "Geen antwoord.";
+async function chat(message: string, systemInstruction: string): Promise<string> {
+  const { text } = await generateText({
+    model: GEMINI_MODEL_FLASH,
+    system: systemInstruction,
+    prompt: message,
+  });
+
+  return text || "Geen antwoord.";
 }
 
 /**
@@ -827,7 +776,6 @@ function escapePromptString(str: string): string {
 }
 
 async function gradeOpenQuestion(
-  ai: GoogleGenAI,
   question: any,
   studentAnswer: string
 ): Promise<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }> {
@@ -862,13 +810,13 @@ async function gradeOpenQuestion(
   `;
 
   const model = getModelForSubject(question.subject, question.level);
-  const response = await ai.models.generateContent({
+
+  const { text: responseText } = await generateText({
     model,
-    contents: prompt,
+    prompt,
   });
 
-  const responseText = response.text || '';
-  if (!responseText.trim()) {
+  if (!responseText?.trim()) {
     return { grade: 'incorrect', feedback: 'Kon antwoord niet beoordelen.' };
   }
 
