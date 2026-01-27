@@ -54,60 +54,6 @@ const useScrollReveal = () => {
   }, []);
 };
 
-// Custom hook for animated counter
-const useAnimatedCounter = (end: number, duration: number = 2000, startOnView: boolean = true) => {
-  const [count, setCount] = useState(0);
-  const [hasStarted, setHasStarted] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (!startOnView) {
-      setHasStarted(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !hasStarted) {
-          setHasStarted(true);
-        }
-      },
-      { threshold: 0.5 }
-    );
-
-    if (ref.current) {
-      observer.observe(ref.current);
-    }
-
-    return () => observer.disconnect();
-  }, [hasStarted, startOnView]);
-
-  useEffect(() => {
-    if (!hasStarted) return;
-
-    let startTime: number;
-    let animationFrame: number;
-
-    const animate = (currentTime: number) => {
-      if (!startTime) startTime = currentTime;
-      const progress = Math.min((currentTime - startTime) / duration, 1);
-
-      // Easing function for smooth animation
-      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
-      setCount(Math.floor(easeOutQuart * end));
-
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
-      }
-    };
-
-    animationFrame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(animationFrame);
-  }, [end, duration, hasStarted]);
-
-  return { count, ref };
-};
-
 // Custom hook for countdown to exam date
 const useCountdown = (targetDate: Date) => {
   const [daysLeft, setDaysLeft] = useState(0);
@@ -127,31 +73,6 @@ const useCountdown = (targetDate: Date) => {
 
   return daysLeft;
 };
-
-// Custom hook for simulated online users (Bandwagon Effect)
-const useOnlineUsers = () => {
-  const [onlineUsers, setOnlineUsers] = useState(0);
-
-  useEffect(() => {
-    // Generate random number between 80-150
-    const generateCount = () => Math.floor(Math.random() * (150 - 80 + 1)) + 80;
-    setOnlineUsers(generateCount());
-
-    // Update every 30 seconds with small variation
-    const interval = setInterval(() => {
-      setOnlineUsers((prev) => {
-        const change = Math.floor(Math.random() * 11) - 5; // -5 to +5
-        const newValue = prev + change;
-        return Math.max(80, Math.min(150, newValue));
-      });
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  return onlineUsers;
-};
-
 
 // Simple styled button
 const StyledButton: React.FC<{
@@ -200,18 +121,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Animated counters
-  const studentsCounter = useAnimatedCounter(2500);
-  const schoolsCounter = useAnimatedCounter(50);
-  const subjectsCounter = useAnimatedCounter(16);
-  const ratingCounter = useAnimatedCounter(48);
-
   // Countdown to exam date (12 mei 2025)
   const examDate = useMemo(() => new Date('2025-05-12'), []);
   const daysUntilExam = useCountdown(examDate);
-
-  // Simulated online users
-  const onlineUsers = useOnlineUsers();
 
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
@@ -381,38 +293,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
         </div>
       </section>
 
-      {/* Social Proof / Stats */}
-      <section className="py-20 px-6 lg:px-8 bg-slate-900">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-8 md:gap-12">
-            {[
-              { value: studentsCounter.count, suffix: '+', label: 'Leerlingen', ref: studentsCounter.ref },
-              { value: schoolsCounter.count, suffix: '+', label: 'Scholen', ref: schoolsCounter.ref },
-              { value: subjectsCounter.count, suffix: '', label: 'Vakken', ref: subjectsCounter.ref },
-              { value: (ratingCounter.count / 10).toFixed(1), suffix: '', label: 'Beoordeling', ref: ratingCounter.ref, icon: Star }
-            ].map((stat, index) => (
-              <div key={stat.label} className="text-center">
-                <div className="text-4xl md:text-5xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                  <span ref={stat.ref} className="counter-value">
-                    {typeof stat.value === 'number' ? stat.value.toLocaleString('nl-NL') : stat.value}
-                  </span>
-                  {stat.suffix}
-                  {stat.icon && <stat.icon className="w-7 h-7 text-amber-400 fill-amber-400" />}
-                </div>
-                <div className="text-slate-400 font-medium">{stat.label}</div>
-              </div>
-            ))}
-            {/* Live online indicator - Bandwagon Effect */}
-            <div className="text-center">
-              <div className="text-4xl md:text-5xl font-bold text-white mb-2 flex items-center justify-center gap-2">
-                <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                <span>{onlineUsers}</span>
-              </div>
-              <div className="text-slate-400 font-medium">Nu online</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* Trust Badges */}
       <section className="py-12 px-6 lg:px-8 bg-white border-b border-slate-100">

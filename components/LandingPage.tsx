@@ -166,27 +166,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
         </div>
       </section>
 
-      {/* Social Proof */}
-      <section className="py-16 px-6 lg:px-8 bg-white border-y border-gray-100">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              { value: '2.500+', label: 'Leerlingen' },
-              { value: '50+', label: 'Scholen' },
-              { value: '16', label: 'Vakken' },
-              { value: '4.8', label: 'Beoordeling', icon: Star }
-            ].map((stat) => (
-              <div key={stat.label}>
-                <div className="text-3xl font-bold text-gray-900 mb-1 flex items-center justify-center gap-1">
-                  {stat.value}
-                  {stat.icon && <stat.icon className="w-5 h-5 text-amber-400 fill-amber-400" />}
-                </div>
-                <div className="text-sm text-gray-500">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Features */}
       <section id="features" className="py-24 px-6 lg:px-8">
