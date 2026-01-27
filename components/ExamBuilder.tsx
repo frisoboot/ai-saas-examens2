@@ -1060,14 +1060,14 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div className="border-t pt-4 mt-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   <FileDown className="w-4 h-4 inline mr-1" />
-                  Uitwerkbijlage (PDF, optioneel)
+                  Uitwerkbijlage (optioneel)
                 </label>
                 <p className="text-xs text-gray-500 mb-2">
-                  Voeg een PDF toe die studenten kunnen downloaden (bijv. Binas-tabel, uitwerkpapier)
+                  Voeg een PDF of screenshot toe (bijv. Binas-tabel, uitwerkpapier)
                 </p>
                 <input
                   type="file"
-                  accept=".pdf,application/pdf"
+                  accept=".pdf,application/pdf,image/*"
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
@@ -1086,63 +1086,75 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   className="w-full p-2 border border-gray-300 rounded-lg"
                 />
 
-                {currentQuestion.worksheetUrl && (
-                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <FileDown className="w-5 h-5 text-amber-600" />
-                        <span className="text-sm font-medium text-amber-900">
-                          {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
-                        </span>
+                {currentQuestion.worksheetUrl && (() => {
+                  const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(currentQuestion.worksheetUrl || '');
+                  return (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileDown className="w-5 h-5 text-amber-600" />
+                          <span className="text-sm font-medium text-amber-900">
+                            {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (currentQuestion.worksheetUrl) {
+                              await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
+                            }
+                            setCurrentQuestion({
+                              ...currentQuestion,
+                              worksheetUrl: '',
+                              worksheetLabel: '',
+                              requiresWorksheet: false
+                            });
+                            showNotification('info', 'Bijlage verwijderd');
+                          }}
+                          className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={async () => {
-                          if (currentQuestion.worksheetUrl) {
-                            await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
-                          }
-                          setCurrentQuestion({
-                            ...currentQuestion,
-                            worksheetUrl: '',
-                            worksheetLabel: '',
-                            requiresWorksheet: false
-                          });
-                          showNotification('info', 'Bijlage verwijderd');
-                        }}
-                        className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
 
-                    <div className="mt-3 space-y-2">
-                      <input
-                        type="text"
-                        value={currentQuestion.worksheetLabel || ''}
-                        onChange={(e) => setCurrentQuestion({
-                          ...currentQuestion,
-                          worksheetLabel: e.target.value
-                        })}
-                        placeholder="Label (bijv. 'Binas-tabel 45')"
-                        className="w-full p-2 border border-amber-200 rounded-lg text-sm"
-                      />
+                      {/* Preview afbeelding als het een afbeelding is */}
+                      {isImage && (
+                        <img
+                          src={currentQuestion.worksheetUrl}
+                          alt="Preview"
+                          className="mt-2 max-h-40 rounded border border-amber-200"
+                        />
+                      )}
 
-                      <label className="flex items-center gap-2 cursor-pointer">
+                      <div className="mt-3 space-y-2">
                         <input
-                          type="checkbox"
-                          checked={currentQuestion.requiresWorksheet || false}
+                          type="text"
+                          value={currentQuestion.worksheetLabel || ''}
                           onChange={(e) => setCurrentQuestion({
                             ...currentQuestion,
-                            requiresWorksheet: e.target.checked
+                            worksheetLabel: e.target.value
                           })}
-                          className="w-4 h-4 rounded border-amber-300"
+                          placeholder="Label (bijv. 'Binas-tabel 45')"
+                          className="w-full p-2 border border-amber-200 rounded-lg text-sm"
                         />
-                        <span className="text-sm text-amber-800">
-                          Vraag vereist deze bijlage (student kan overslaan)
-                        </span>
-                      </label>
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={currentQuestion.requiresWorksheet || false}
+                            onChange={(e) => setCurrentQuestion({
+                              ...currentQuestion,
+                              requiresWorksheet: e.target.checked
+                            })}
+                            className="w-4 h-4 rounded border-amber-300"
+                          />
+                          <span className="text-sm text-amber-800">
+                            Vraag vereist deze bijlage (student kan overslaan)
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
 
               {currentQuestion.type === 'MULTIPLE_CHOICE' && (
@@ -1422,27 +1434,39 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       <img src={q.imageUrl} alt="Question" className="max-w-md mb-3 rounded" />
                     )}
 
-                    {q.worksheetUrl && (
-                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <FileDown className="w-5 h-5 text-amber-600" />
-                          <div>
-                            <span className="font-medium text-amber-900">{q.worksheetLabel || 'Uitwerkbijlage'}</span>
-                            {q.requiresWorksheet && (
-                              <span className="ml-2 text-xs text-amber-700">(vereist)</span>
-                            )}
+                    {q.worksheetUrl && (() => {
+                      const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(q.worksheetUrl || '');
+                      return (
+                        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileDown className="w-5 h-5 text-amber-600" />
+                              <div>
+                                <span className="font-medium text-amber-900">{q.worksheetLabel || 'Uitwerkbijlage'}</span>
+                                {q.requiresWorksheet && (
+                                  <span className="ml-2 text-xs text-amber-700">(vereist)</span>
+                                )}
+                              </div>
+                            </div>
+                            <a
+                              href={q.worksheetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-amber-700 hover:text-amber-900 underline"
+                            >
+                              {isImage ? 'Bekijk afbeelding' : 'Bekijk PDF'}
+                            </a>
                           </div>
+                          {isImage && (
+                            <img
+                              src={q.worksheetUrl}
+                              alt={q.worksheetLabel || 'Uitwerkbijlage'}
+                              className="mt-2 max-h-32 rounded border border-amber-200"
+                            />
+                          )}
                         </div>
-                        <a
-                          href={q.worksheetUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm text-amber-700 hover:text-amber-900 underline"
-                        >
-                          Bekijk PDF
-                        </a>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {q.type === 'MULTIPLE_CHOICE' && q.options && (
                       <div className="space-y-1">

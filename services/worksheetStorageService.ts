@@ -3,9 +3,15 @@ import { supabase } from './supabaseService';
 const STORAGE_BUCKET = 'exam-worksheets';
 
 // SECURITY: Allowed file types and max size for worksheets
-const ALLOWED_MIME_TYPES = ['application/pdf'];
-const ALLOWED_EXTENSIONS = ['pdf'];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB for PDFs
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif'
+];
+const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 /**
  * Service voor het uploaden en beheren van uitwerkbijlagen (PDFs) in Supabase Storage
@@ -29,21 +35,22 @@ export const worksheetStorage = {
 
     // SECURITY: Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      throw new Error('Ongeldig bestandstype. Alleen PDF bestanden zijn toegestaan.');
+      throw new Error('Ongeldig bestandstype. Alleen PDF en afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan.');
     }
 
     // SECURITY: Validate file extension
     const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
     if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
-      throw new Error('Ongeldige bestandsextensie. Alleen .pdf is toegestaan.');
+      throw new Error('Ongeldige bestandsextensie. Alleen .pdf, .jpg, .jpeg, .png, .webp en .gif zijn toegestaan.');
     }
 
     // Genereer unieke bestandsnaam
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 9);
+    const safeExt = fileExt || 'pdf';
     const fileName = questionId
-      ? `worksheet-${questionId}-${timestamp}.pdf`
-      : `worksheet-${timestamp}-${randomString}.pdf`;
+      ? `worksheet-${questionId}-${timestamp}.${safeExt}`
+      : `worksheet-${timestamp}-${randomString}.${safeExt}`;
 
     // Upload naar Supabase Storage
     const { data, error } = await supabase.storage

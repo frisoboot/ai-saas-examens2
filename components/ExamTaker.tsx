@@ -489,51 +489,66 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             )}
 
             {/* Worksheet/Attachment Banner */}
-            {currentQuestion.worksheetUrl && (
-              <div className={`mb-6 rounded-xl border-2 p-4 ${
-                currentQuestion.requiresWorksheet
-                  ? 'border-amber-300 bg-amber-50'
-                  : 'border-blue-200 bg-blue-50'
-              }`}>
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="flex items-center gap-3">
-                    <Download className={`w-5 h-5 ${currentQuestion.requiresWorksheet ? 'text-amber-600' : 'text-blue-600'}`} />
-                    <div>
-                      <p className={`font-semibold ${currentQuestion.requiresWorksheet ? 'text-amber-900' : 'text-blue-900'}`}>
-                        {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
-                      </p>
-                      {currentQuestion.requiresWorksheet && (
-                        <p className="text-sm text-amber-700">
-                          Deze vraag vereist de bijlage om te beantwoorden
+            {currentQuestion.worksheetUrl && (() => {
+              const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(currentQuestion.worksheetUrl || '');
+              return (
+                <div className={`mb-6 rounded-xl border-2 p-4 ${
+                  currentQuestion.requiresWorksheet
+                    ? 'border-amber-300 bg-amber-50'
+                    : 'border-blue-200 bg-blue-50'
+                }`}>
+                  <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <Download className={`w-5 h-5 ${currentQuestion.requiresWorksheet ? 'text-amber-600' : 'text-blue-600'}`} />
+                      <div>
+                        <p className={`font-semibold ${currentQuestion.requiresWorksheet ? 'text-amber-900' : 'text-blue-900'}`}>
+                          {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
                         </p>
+                        {currentQuestion.requiresWorksheet && (
+                          <p className="text-sm text-amber-700">
+                            Deze vraag vereist de bijlage om te beantwoorden
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <a
+                        href={currentQuestion.worksheetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Download className="w-4 h-4" />
+                        {isImage ? 'Openen' : 'Download PDF'}
+                      </a>
+
+                      {currentQuestion.requiresWorksheet && (
+                        <button
+                          onClick={handleSkipQuestion}
+                          className="px-4 py-2 border border-amber-300 bg-white rounded-lg hover:bg-amber-100 transition text-amber-700 flex items-center gap-2 text-sm font-medium"
+                        >
+                          <SkipForward className="w-4 h-4" />
+                          Overslaan
+                        </button>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
-                    <a
-                      href={currentQuestion.worksheetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download PDF
-                    </a>
-
-                    {currentQuestion.requiresWorksheet && (
-                      <button
-                        onClick={handleSkipQuestion}
-                        className="px-4 py-2 border border-amber-300 bg-white rounded-lg hover:bg-amber-100 transition text-amber-700 flex items-center gap-2 text-sm font-medium"
-                      >
-                        <SkipForward className="w-4 h-4" />
-                        Overslaan
-                      </button>
-                    )}
-                  </div>
+                  {/* Show image preview if it's an image */}
+                  {isImage && (
+                    <div className="mt-3 rounded-lg overflow-hidden border border-amber-200 bg-white">
+                      <img
+                        src={currentQuestion.worksheetUrl}
+                        alt={currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                        className="w-full max-h-[50vh] object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-tight">
               {currentQuestion.text}
