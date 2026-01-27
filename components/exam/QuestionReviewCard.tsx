@@ -196,26 +196,31 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
               </div>
             </div>
           ) : (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onRequestExplanation();
-              }}
-              disabled={isLoadingExplanation}
-              className="mt-4 flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50"
-            >
-              {isLoadingExplanation ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
-                  AI analyseert...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="w-4 h-4" />
-                  Vraag AI uitleg
-                </>
-              )}
-            </button>
+            // COST OPTIMIZATION: Only show "Vraag AI uitleg" button for MC questions
+            // Open questions already receive feedback from automatic grading (gradeOpenQuestion)
+            // This prevents duplicate API calls for the same explanation
+            isMC && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRequestExplanation();
+                }}
+                disabled={isLoadingExplanation}
+                className="mt-4 flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-700 font-medium disabled:opacity-50"
+              >
+                {isLoadingExplanation ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                    AI analyseert...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4" />
+                    Vraag AI uitleg
+                  </>
+                )}
+              </button>
+            )
           )}
         </div>
       )}

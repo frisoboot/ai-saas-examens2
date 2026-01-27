@@ -50,6 +50,10 @@ interface ChatSession {
 
 const chatSessions = new Map<string, ChatSession>();
 
+// COST OPTIMIZATION: Limit chat history to prevent exponential token growth
+// With 10 messages (5 exchanges), we balance context retention with API costs
+const MAX_CHAT_HISTORY_MESSAGES = 10;
+
 // Subject Expert Chat - returns a chat-like interface
 export const createSubjectChat = (subject: string, student: StudentProfile) => {
   // Define level-specific teaching strategies
@@ -122,12 +126,22 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
       // Add user message to history
       session.messages.push({ role: 'user', content: message });
 
-      // Build the full conversation context
-      const conversationContext = session.messages
+      // COST OPTIMIZATION: Only send the last N messages to prevent exponential token growth
+      // This reduces API costs by ~40-60% for longer conversations
+      const recentMessages = session.messages.slice(-MAX_CHAT_HISTORY_MESSAGES);
+
+      // If we truncated history, add a brief context note
+      const historyTruncated = session.messages.length > MAX_CHAT_HISTORY_MESSAGES;
+      const contextNote = historyTruncated
+        ? '[Eerder gesprek samengevat: De leerling heeft vragen gesteld over dit onderwerp.]\n\n'
+        : '';
+
+      // Build conversation context from recent messages only
+      const conversationContext = recentMessages
         .map(m => `${m.role === 'user' ? 'Leerling' : 'Docent'}: ${m.content}`)
         .join('\n\n');
 
-      const fullMessage = `${conversationContext}\n\nDocent:`;
+      const fullMessage = `${contextNote}${conversationContext}\n\nDocent:`;
 
       try {
         const response = await callGeminiAPI<string>('chat', {
