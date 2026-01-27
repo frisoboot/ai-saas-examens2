@@ -502,6 +502,38 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
+  const handleEditWorksheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingQuestion) return;
+
+    // Validate file type
+    const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+      showNotification('error', 'Alleen PDF en afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan');
+      return;
+    }
+
+    // Validate file size (20MB)
+    if (file.size > 20 * 1024 * 1024) {
+      showNotification('error', 'Bestand is te groot. Maximum is 20MB.');
+      return;
+    }
+
+    try {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setEditingQuestion({
+          ...editingQuestion,
+          worksheetUrl: event.target?.result as string,
+          worksheetLabel: editingQuestion.worksheetLabel || file.name.replace(/\.[^/.]+$/, '')
+        });
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      showNotification('error', 'Fout bij uploaden bijlage');
+    }
+  };
+
   const saveAllQuestions = async () => {
     if (questions.length === 0) {
       showNotification('warning', 'Voeg minimaal één vraag toe');
@@ -1363,6 +1395,69 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 </div>
                               )}
                             </div>
+                          </div>
+
+                          {/* Worksheet/Attachment Section */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Uitwerkbijlage (PDF/Afbeelding)</label>
+                            {editingQuestion.worksheetUrl ? (
+                              <div className="border-2 border-amber-200 rounded-lg p-3 bg-amber-50">
+                                {/^data:image\//.test(editingQuestion.worksheetUrl) || /\.(jpg|jpeg|png|webp|gif)$/i.test(editingQuestion.worksheetUrl) ? (
+                                  <div className="relative">
+                                    <img src={editingQuestion.worksheetUrl} alt="Bijlage preview" className="max-h-32 rounded" />
+                                    <button
+                                      onClick={() => setEditingQuestion({ ...editingQuestion, worksheetUrl: '', worksheetLabel: '' })}
+                                      className="absolute top-1 right-1 bg-red-100 text-red-600 p-1 rounded-full hover:bg-red-200"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-5 h-5 text-amber-600" />
+                                      <span className="text-sm text-amber-900">{editingQuestion.worksheetLabel || 'Bijlage'}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setEditingQuestion({ ...editingQuestion, worksheetUrl: '', worksheetLabel: '' })}
+                                      className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="mt-2">
+                                  <input
+                                    type="text"
+                                    value={editingQuestion.worksheetLabel || ''}
+                                    onChange={(e) => setEditingQuestion({ ...editingQuestion, worksheetLabel: e.target.value })}
+                                    placeholder="Label (bijv. Binas-tabel 45)"
+                                    className="w-full p-1.5 text-sm border border-amber-200 rounded"
+                                  />
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    id="edit-requires-worksheet"
+                                    checked={editingQuestion.requiresWorksheet || false}
+                                    onChange={(e) => setEditingQuestion({ ...editingQuestion, requiresWorksheet: e.target.checked })}
+                                    className="w-4 h-4 text-amber-600 rounded"
+                                  />
+                                  <label htmlFor="edit-requires-worksheet" className="text-xs text-gray-700">
+                                    Student kan vraag overslaan zonder bijlage
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed border-amber-200 rounded-lg p-3 text-center bg-white hover:border-amber-400 transition">
+                                <FileText className="w-6 h-6 text-amber-300 mx-auto mb-1" />
+                                <p className="text-xs text-amber-900 font-medium mb-1">PDF of afbeelding toevoegen</p>
+                                <label className="cursor-pointer px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold hover:bg-amber-200">
+                                  Kies Bestand
+                                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,application/pdf,image/*" className="hidden" onChange={handleEditWorksheetUpload} />
+                                </label>
+                              </div>
+                            )}
                           </div>
 
                           <div className="flex justify-end gap-2 pt-2">
