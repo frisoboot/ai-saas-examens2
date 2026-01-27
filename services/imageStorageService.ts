@@ -7,6 +7,58 @@ const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'
 const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
+// SECURITY: File magic numbers (signatures) for content validation
+// These are the first few bytes of valid files - used to verify actual file type
+// NOT just the extension or browser-detected MIME type (which can be spoofed)
+const FILE_SIGNATURES: Record<string, Uint8Array[]> = {
+  'image/jpeg': [
+    new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]), // JPEG with JFIF
+    new Uint8Array([0xFF, 0xD8, 0xFF, 0xE1]), // JPEG with EXIF
+    new Uint8Array([0xFF, 0xD8, 0xFF, 0xE2]), // JPEG with APP2
+    new Uint8Array([0xFF, 0xD8, 0xFF, 0xDB])  // JPEG baseline
+  ],
+  'image/png': [new Uint8Array([0x89, 0x50, 0x4E, 0x47])], // PNG
+  'image/gif': [
+    new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x37, 0x61]), // GIF87a
+    new Uint8Array([0x47, 0x49, 0x46, 0x38, 0x39, 0x61])  // GIF89a
+  ],
+  'image/webp': [new Uint8Array([0x52, 0x49, 0x46, 0x46])] // RIFF (for WEBP)
+};
+
+/**
+ * Validate file content against magic numbers to prevent spoofed files
+ * @param file - The file to validate
+ * @returns true if the file content matches the expected magic number for its type
+ */
+async function validateFileMagicNumber(file: File): Promise<boolean> {
+  const mimeType = file.type;
+  const signatures = FILE_SIGNATURES[mimeType];
+
+  if (!signatures) {
+    // If we don't have a signature for this MIME type, we can't validate
+    // This shouldn't happen with our ALLOWED_MIME_TYPES, but be safe
+    return false;
+  }
+
+  // Read first 12 bytes of file to check magic numbers
+  const headerSize = Math.max(...signatures.map(sig => sig.length));
+  const chunk = await file.slice(0, headerSize).arrayBuffer();
+  const headerArray = new Uint8Array(chunk);
+
+  // Check if file starts with any of the valid signatures
+  return signatures.some(signature => {
+    if (headerArray.length < signature.length) {
+      return false;
+    }
+    for (let i = 0; i < signature.length; i++) {
+      if (headerArray[i] !== signature[i]) {
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
 /**
  * Service voor het uploaden en beheren van afbeeldingen in Supabase Storage
  */
@@ -36,6 +88,14 @@ export const imageStorage = {
     const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
     if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
       throw new Error('Ongeldige bestandsextensie. Alleen jpg, jpeg, png, webp en gif zijn toegestaan.');
+    }
+
+    // SECURITY: Validate file content (magic numbers) to prevent spoofed files
+    // This checks the actual file bytes, not just the extension or browser-detected MIME type
+    // which can be bypassed by renaming files (e.g., renaming malware.exe to image.jpg)
+    const isMagicNumberValid = await validateFileMagicNumber(file);
+    if (!isMagicNumberValid) {
+      throw new Error('Bestandsinhoud komt niet overeen met het aangegeven bestandstype. Het bestand kan beschadigd zijn of vervalst.');
     }
 
     // Genereer unieke bestandsnaam
