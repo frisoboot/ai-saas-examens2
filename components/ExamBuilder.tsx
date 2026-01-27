@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { saveQuestion, getQuestions } from '../services/storageService';
 import { Button } from './Button';
-import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown } from 'lucide-react';
+import { worksheetStorage } from '../services/worksheetStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
 interface ExamMetadata {
@@ -17,6 +18,9 @@ interface QuestionDraft extends Partial<Question> {
   text: string;
   type: QuestionType;
   questionNumber?: number;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  requiresWorksheet?: boolean;
 }
 
 interface ValidationErrors {
@@ -44,6 +48,9 @@ interface JsonQuestion {
   correctIndex?: number;
   modelAnswer?: string;
   imageUrl?: string;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  requiresWorksheet?: boolean;
 }
 
 interface JsonImportFormat {
@@ -314,7 +321,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       contextText: '',
       imageUrl: '',
       modelAnswer: '',
-      questionNumber: undefined
+      questionNumber: undefined,
+      worksheetUrl: '',
+      worksheetLabel: '',
+      requiresWorksheet: false
     });
     setValidationErrors({});
   };
@@ -327,8 +337,19 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setPendingDuplicate(null);
   };
 
-  const removeQuestion = (tempId: string) => {
+  const removeQuestion = async (tempId: string) => {
     const question = questions.find(q => q.tempId === tempId);
+    
+    // Delete attached worksheet from Supabase Storage if it exists
+    if (question?.worksheetUrl) {
+      try {
+        await worksheetStorage.deleteWorksheet(question.worksheetUrl);
+      } catch (error) {
+        console.error('Error deleting worksheet:', error);
+        showNotification('warning', 'Bijlage kon niet worden verwijderd, maar vraag is wel verwijderd');
+      }
+    }
+    
     setQuestions(questions.filter(q => q.tempId !== tempId));
     showNotification('info', `Vraag ${question?.questionNumber || ''} verwijderd`);
   };
@@ -399,7 +420,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         imageUrl: q.imageUrl || '',
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
         correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
-        modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined
+        modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
+        worksheetUrl: q.worksheetUrl || '',
+        worksheetLabel: q.worksheetLabel || '',
+        requiresWorksheet: q.requiresWorksheet || false
       }));
 
       // Add to existing questions
@@ -489,6 +513,28 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
+  const handleEditWorksheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingQuestion) return;
+
+    try {
+      // Delete the old worksheet if it exists and is a storage URL
+      if (editingQuestion.worksheetUrl && editingQuestion.worksheetUrl.includes('/storage/v1/object/public/')) {
+        await worksheetStorage.deleteWorksheet(editingQuestion.worksheetUrl);
+      }
+
+      const url = await worksheetStorage.uploadWorksheet(file);
+      setEditingQuestion({
+        ...editingQuestion,
+        worksheetUrl: url,
+        worksheetLabel: editingQuestion.worksheetLabel || file.name.replace(/\.[^/.]+$/, '')
+      });
+      showNotification('success', 'Bijlage geüpload');
+    } catch (error) {
+      showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage');
+    }
+  };
+
   const saveAllQuestions = async () => {
     if (questions.length === 0) {
       showNotification('warning', 'Voeg minimaal één vraag toe');
@@ -526,6 +572,9 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,
+          worksheetUrl: draft.worksheetUrl,
+          worksheetLabel: draft.worksheetLabel,
+          requiresWorksheet: draft.requiresWorksheet,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -588,12 +637,39 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
-  const clearDraft = () => {
+  const clearDraft = async () => {
     if (confirm('Weet je zeker dat je alle concept-vragen wilt verwijderen?')) {
+      // Delete all worksheets from Supabase Storage
+      const deleteErrors: string[] = [];
+      for (const question of questions) {
+        if (question.worksheetUrl) {
+          try {
+            await worksheetStorage.deleteWorksheet(question.worksheetUrl);
+          } catch (error) {
+            console.error('Error deleting worksheet:', error);
+            deleteErrors.push(`Vraag ${question.questionNumber}`);
+          }
+        }
+      }
+      
+      // Also delete worksheet from current question if it exists
+      if (currentQuestion.worksheetUrl) {
+        try {
+          await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
+        } catch (error) {
+          console.error('Error deleting current question worksheet:', error);
+        }
+      }
+      
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       setQuestions([]);
       resetCurrentQuestion();
-      showNotification('info', 'Concept verwijderd');
+      
+      if (deleteErrors.length > 0) {
+        showNotification('warning', `Concept verwijderd (${deleteErrors.length} bijlage(n) konden niet verwijderd worden)`);
+      } else {
+        showNotification('info', 'Concept verwijderd');
+      }
     }
   };
 
@@ -1040,6 +1116,107 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 )}
               </div>
 
+              {/* Uitwerkbijlage sectie */}
+              <div className="border-t pt-4 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <FileDown className="w-4 h-4 inline mr-1" />
+                  Uitwerkbijlage (optioneel)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Voeg een PDF of screenshot toe (bijv. Binas-tabel, uitwerkpapier)
+                </p>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf,image/*"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const url = await worksheetStorage.uploadWorksheet(file);
+                      setCurrentQuestion({
+                        ...currentQuestion,
+                        worksheetUrl: url,
+                        worksheetLabel: currentQuestion.worksheetLabel || 'Uitwerkbijlage'
+                      });
+                      showNotification('success', 'Bijlage geüpload');
+                    } catch (error) {
+                      showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage');
+                    }
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+
+                {currentQuestion.worksheetUrl && (() => {
+                  const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(currentQuestion.worksheetUrl || '');
+                  return (
+                    <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileDown className="w-5 h-5 text-amber-600" />
+                          <span className="text-sm font-medium text-amber-900">
+                            {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                          </span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (currentQuestion.worksheetUrl) {
+                              await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
+                            }
+                            setCurrentQuestion({
+                              ...currentQuestion,
+                              worksheetUrl: '',
+                              worksheetLabel: '',
+                              requiresWorksheet: false
+                            });
+                            showNotification('info', 'Bijlage verwijderd');
+                          }}
+                          className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Preview afbeelding als het een afbeelding is */}
+                      {isImage && (
+                        <img
+                          src={currentQuestion.worksheetUrl}
+                          alt="Preview"
+                          className="mt-2 max-h-40 rounded border border-amber-200"
+                        />
+                      )}
+
+                      <div className="mt-3 space-y-2">
+                        <input
+                          type="text"
+                          value={currentQuestion.worksheetLabel || ''}
+                          onChange={(e) => setCurrentQuestion({
+                            ...currentQuestion,
+                            worksheetLabel: e.target.value
+                          })}
+                          placeholder="Label (bijv. 'Binas-tabel 45')"
+                          className="w-full p-2 border border-amber-200 rounded-lg text-sm"
+                        />
+
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={currentQuestion.requiresWorksheet || false}
+                            onChange={(e) => setCurrentQuestion({
+                              ...currentQuestion,
+                              requiresWorksheet: e.target.checked
+                            })}
+                            className="w-4 h-4 rounded border-amber-300"
+                          />
+                          <span className="text-sm text-amber-800">
+                            Vraag vereist deze bijlage (student kan overslaan)
+                          </span>
+                        </label>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
               {currentQuestion.type === 'MULTIPLE_CHOICE' && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -1248,6 +1425,69 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             </div>
                           </div>
 
+                          {/* Worksheet/Attachment Section */}
+                          <div>
+                            <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Uitwerkbijlage (PDF/Afbeelding)</label>
+                            {editingQuestion.worksheetUrl ? (
+                              <div className="border-2 border-amber-200 rounded-lg p-3 bg-amber-50">
+                                {/^data:image\//.test(editingQuestion.worksheetUrl) || /\.(jpg|jpeg|png|webp|gif)$/i.test(editingQuestion.worksheetUrl) ? (
+                                  <div className="relative">
+                                    <img src={editingQuestion.worksheetUrl} alt="Bijlage preview" className="max-h-32 rounded" />
+                                    <button
+                                      onClick={() => setEditingQuestion({ ...editingQuestion, worksheetUrl: '', worksheetLabel: '' })}
+                                      className="absolute top-1 right-1 bg-red-100 text-red-600 p-1 rounded-full hover:bg-red-200"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                      <FileText className="w-5 h-5 text-amber-600" />
+                                      <span className="text-sm text-amber-900">{editingQuestion.worksheetLabel || 'Bijlage'}</span>
+                                    </div>
+                                    <button
+                                      onClick={() => setEditingQuestion({ ...editingQuestion, worksheetUrl: '', worksheetLabel: '' })}
+                                      className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                                <div className="mt-2">
+                                  <input
+                                    type="text"
+                                    value={editingQuestion.worksheetLabel || ''}
+                                    onChange={(e) => setEditingQuestion({ ...editingQuestion, worksheetLabel: e.target.value })}
+                                    placeholder="Label (bijv. Binas-tabel 45)"
+                                    className="w-full p-1.5 text-sm border border-amber-200 rounded"
+                                  />
+                                </div>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <input
+                                    type="checkbox"
+                                    id="edit-requires-worksheet"
+                                    checked={editingQuestion.requiresWorksheet || false}
+                                    onChange={(e) => setEditingQuestion({ ...editingQuestion, requiresWorksheet: e.target.checked })}
+                                    className="w-4 h-4 text-amber-600 rounded"
+                                  />
+                                  <label htmlFor="edit-requires-worksheet" className="text-xs text-gray-700">
+                                    Student kan vraag overslaan zonder bijlage
+                                  </label>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="border-2 border-dashed border-amber-200 rounded-lg p-3 text-center bg-white hover:border-amber-400 transition">
+                                <FileText className="w-6 h-6 text-amber-300 mx-auto mb-1" />
+                                <p className="text-xs text-amber-900 font-medium mb-1">PDF of afbeelding toevoegen</p>
+                                <label className="cursor-pointer px-2 py-1 bg-amber-100 text-amber-700 rounded text-xs font-bold hover:bg-amber-200">
+                                  Kies Bestand
+                                  <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.gif,application/pdf,image/*" className="hidden" onChange={handleEditWorksheetUpload} />
+                                </label>
+                              </div>
+                            )}
+                          </div>
+
                           <div className="flex justify-end gap-2 pt-2">
                             <Button variant="secondary" onClick={cancelEditQuestion}>
                               Annuleren
@@ -1281,6 +1521,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             Brontekst
                           </span>
                         )}
+                        {q.worksheetUrl && (
+                          <span className="ml-2 text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                            {q.worksheetLabel || 'Bijlage'}
+                          </span>
+                        )}
                       </h3>
                       <div className="flex items-center gap-1">
                         <button
@@ -1311,6 +1556,40 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                     {q.imageUrl && (
                       <img src={q.imageUrl} alt="Question" className="max-w-md mb-3 rounded" />
                     )}
+
+                    {q.worksheetUrl && (() => {
+                      const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(q.worksheetUrl || '');
+                      return (
+                        <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <FileDown className="w-5 h-5 text-amber-600" />
+                              <div>
+                                <span className="font-medium text-amber-900">{q.worksheetLabel || 'Uitwerkbijlage'}</span>
+                                {q.requiresWorksheet && (
+                                  <span className="ml-2 text-xs text-amber-700">(vereist)</span>
+                                )}
+                              </div>
+                            </div>
+                            <a
+                              href={q.worksheetUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm text-amber-700 hover:text-amber-900 underline"
+                            >
+                              {isImage ? 'Bekijk afbeelding' : 'Bekijk PDF'}
+                            </a>
+                          </div>
+                          {isImage && (
+                            <img
+                              src={q.worksheetUrl}
+                              alt={q.worksheetLabel || 'Uitwerkbijlage'}
+                              className="mt-2 max-h-32 rounded border border-amber-200"
+                            />
+                          )}
+                        </div>
+                      );
+                    })()}
 
                     {q.type === 'MULTIPLE_CHOICE' && q.options && (
                       <div className="space-y-1">

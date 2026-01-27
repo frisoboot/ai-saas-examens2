@@ -52,6 +52,9 @@ interface DbQuestion {
   model_answer?: string;
   exam_year?: number;
   exam_type?: 'practice' | 'official_exam';
+  worksheet_url?: string;
+  worksheet_label?: string;
+  requires_worksheet?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -71,7 +74,10 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     correctIndex: dbQuestion.correct_index,
     modelAnswer: dbQuestion.model_answer,
     examYear: dbQuestion.exam_year,
-    examType: dbQuestion.exam_type
+    examType: dbQuestion.exam_type,
+    worksheetUrl: dbQuestion.worksheet_url,
+    worksheetLabel: dbQuestion.worksheet_label,
+    requiresWorksheet: dbQuestion.requires_worksheet
   };
 };
 
@@ -90,7 +96,10 @@ const questionToDb = (question: Question): DbQuestion => {
     correct_index: question.correctIndex,
     model_answer: question.modelAnswer,
     exam_year: question.examYear,
-    exam_type: question.examType
+    exam_type: question.examType,
+    worksheet_url: question.worksheetUrl,
+    worksheet_label: question.worksheetLabel,
+    requires_worksheet: question.requiresWorksheet
   };
 };
 

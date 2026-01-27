@@ -14,6 +14,7 @@ interface QuestionReviewCardProps {
   onRequestExplanation: () => void;
   openQuestionGrade?: OpenQuestionGrade;
   isGradingOpen?: boolean;
+  isSkipped?: boolean;
 }
 
 export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
@@ -24,7 +25,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   isLoadingExplanation,
   onRequestExplanation,
   openQuestionGrade,
-  isGradingOpen
+  isGradingOpen,
+  isSkipped = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -44,6 +46,10 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
 
   // Status indicator
   const getStatusIcon = () => {
+    if (isSkipped) {
+      return <MinusCircle className="w-5 h-5 text-amber-500" />;
+    }
+    
     if (isMC) {
       return isCorrectMC
         ? <CheckCircle className="w-5 h-5 text-green-500" />
@@ -65,6 +71,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   };
 
   const getStatusText = () => {
+    if (isSkipped) return 'Overgeslagen';
+    
     if (isMC) return isCorrectMC ? 'Correct' : 'Fout';
 
     switch (openStatus) {
@@ -77,6 +85,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   };
 
   const getStatusColor = () => {
+    if (isSkipped) return 'text-amber-600';
+    
     if (isMC) return isCorrectMC ? 'text-green-600' : 'text-red-600';
 
     switch (openStatus) {
@@ -89,6 +99,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   };
 
   const getBorderColor = () => {
+    if (isSkipped) return 'border-l-amber-500';
+    
     if (isMC) return isCorrectMC ? 'border-l-green-500' : 'border-l-red-500';
 
     switch (openStatus) {
@@ -148,7 +160,13 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
           {/* Full question text */}
           <p className="text-slate-900 font-medium mt-3 mb-4">{question.text}</p>
 
-          {isMC ? (
+          {isSkipped ? (
+            // Skipped question display
+            <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-lg">
+              <MinusCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <p className="text-amber-700 font-medium">Deze vraag is overgeslagen</p>
+            </div>
+          ) : isMC ? (
             // Multiple choice answer display
             <div className="space-y-2 text-sm">
               {!isCorrectMC && (

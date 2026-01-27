@@ -1,16 +1,23 @@
 import { supabase } from './supabaseService';
 
-const STORAGE_BUCKET = 'exam-image';
+const STORAGE_BUCKET = 'exam-worksheets';
 
-// SECURITY: Allowed file types and max size
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-const ALLOWED_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// SECURITY: Allowed file types and max size for worksheets
+const ALLOWED_MIME_TYPES = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif'
+];
+const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 // SECURITY: File magic numbers (signatures) for content validation
 // These are the first few bytes of valid files - used to verify actual file type
 // NOT just the extension or browser-detected MIME type (which can be spoofed)
 const FILE_SIGNATURES: Record<string, Uint8Array[]> = {
+  'application/pdf': [new Uint8Array([0x25, 0x50, 0x44, 0x46])], // %PDF
   'image/jpeg': [
     new Uint8Array([0xFF, 0xD8, 0xFF, 0xE0]), // JPEG with JFIF
     new Uint8Array([0xFF, 0xD8, 0xFF, 0xE1]), // JPEG with EXIF
@@ -60,34 +67,34 @@ async function validateFileMagicNumber(file: File): Promise<boolean> {
 }
 
 /**
- * Service voor het uploaden en beheren van afbeeldingen in Supabase Storage
+ * Service voor het uploaden en beheren van uitwerkbijlagen (PDFs) in Supabase Storage
  */
-export const imageStorage = {
+export const worksheetStorage = {
   /**
-   * Upload een afbeelding naar Supabase Storage
-   * @param file - Het afbeeldingsbestand
+   * Upload een uitwerkbijlage (PDF) naar Supabase Storage
+   * @param file - Het PDF bestand
    * @param questionId - Optioneel: ID van de vraag om unieke naam te maken
-   * @returns De publieke URL van de geüploade afbeelding
+   * @returns De publieke URL van de geüploade bijlage
    */
-  async uploadImage(file: File, questionId?: string): Promise<string> {
+  async uploadWorksheet(file: File, questionId?: string): Promise<string> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd. Check je .env.local bestand.');
     }
 
     // SECURITY: Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error('Bestand is te groot. Maximum grootte is 5MB.');
+      throw new Error('Bestand is te groot. Maximum grootte is 20MB.');
     }
 
     // SECURITY: Validate MIME type
     if (!ALLOWED_MIME_TYPES.includes(file.type)) {
-      throw new Error('Ongeldig bestandstype. Alleen JPG, PNG, WebP en GIF zijn toegestaan.');
+      throw new Error('Ongeldig bestandstype. Alleen PDF en afbeeldingen (JPG, PNG, WebP, GIF) zijn toegestaan.');
     }
 
     // SECURITY: Validate file extension
     const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
     if (!ALLOWED_EXTENSIONS.includes(fileExt)) {
-      throw new Error('Ongeldige bestandsextensie. Alleen jpg, jpeg, png, webp en gif zijn toegestaan.');
+      throw new Error('Ongeldige bestandsextensie. Alleen .pdf, .jpg, .jpeg, .png, .webp en .gif zijn toegestaan.');
     }
 
     // SECURITY: Validate file content (magic numbers) to prevent spoofed files
@@ -101,10 +108,10 @@ export const imageStorage = {
     // Genereer unieke bestandsnaam
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 9);
-    const safeExt = fileExt || 'jpg';
+    const safeExt = fileExt || 'pdf';
     const fileName = questionId
-      ? `${questionId}-${timestamp}.${safeExt}`
-      : `question-${timestamp}-${randomString}.${safeExt}`;
+      ? `worksheet-${questionId}-${timestamp}.${safeExt}`
+      : `worksheet-${timestamp}-${randomString}.${safeExt}`;
 
     // Upload naar Supabase Storage
     const { data, error } = await supabase.storage
@@ -117,7 +124,7 @@ export const imageStorage = {
 
     if (error) {
       console.error('Upload error:', error);
-      throw new Error(`Fout bij uploaden afbeelding: ${error.message}`);
+      throw new Error(`Fout bij uploaden bijlage: ${error.message}`);
     }
 
     // Haal de publieke URL op
@@ -129,22 +136,21 @@ export const imageStorage = {
   },
 
   /**
-   * Verwijder een afbeelding uit Supabase Storage
-   * @param imageUrl - De URL van de afbeelding
+   * Verwijder een uitwerkbijlage uit Supabase Storage
+   * @param worksheetUrl - De URL van de bijlage
    */
-  async deleteImage(imageUrl: string): Promise<void> {
+  async deleteWorksheet(worksheetUrl: string): Promise<void> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');
     }
 
     // Alleen verwijderen als het een Supabase Storage URL is
-    if (!imageUrl.includes('/storage/v1/object/public/')) {
-      // Dit is geen Supabase Storage URL (bijv. een base64 string of externe URL)
+    if (!worksheetUrl.includes('/storage/v1/object/public/')) {
       return;
     }
 
     // Extract het pad uit de URL
-    const urlParts = imageUrl.split('/storage/v1/object/public/');
+    const urlParts = worksheetUrl.split('/storage/v1/object/public/');
     if (urlParts.length < 2) return;
 
     const pathParts = urlParts[1].split('/');
@@ -165,16 +171,13 @@ export const imageStorage = {
   },
 
   /**
-   * Check of de storage bucket bestaat en maak deze aan indien nodig
-   * Deze functie moet worden aangeroepen tijdens de initiële setup
+   * Check of de storage bucket bestaat
    */
   async ensureBucketExists(): Promise<void> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');
     }
 
-    // Probeer een test bestand te uploaden om te kijken of bucket bestaat
-    // Als dit faalt met een 404, dan bestaat de bucket niet
     const { data: buckets, error } = await supabase.storage.listBuckets();
 
     if (error) {
@@ -193,50 +196,18 @@ export const imageStorage = {
         `3. Ga naar "Storage" in het menu\n` +
         `4. Klik op "New bucket"\n` +
         `5. Naam: ${STORAGE_BUCKET}\n` +
-        `6. Publiek: Ja (zodat afbeeldingen zichtbaar zijn)\n` +
+        `6. Publiek: Ja (zodat bijlagen downloadbaar zijn)\n` +
         `7. Klik op "Create bucket"`
       );
     }
   },
 
   /**
-   * Check of een URL een base64 gecodeerde afbeelding is
+   * Haal bestandsnaam uit URL voor weergave
    */
-  isBase64Image(url: string): boolean {
-    return url.startsWith('data:image/');
-  },
-
-  /**
-   * Converteer een base64 image naar een File object
-   */
-  base64ToFile(base64String: string, fileName: string = 'image.jpg'): File {
-    // Extract de data
-    const arr = base64String.split(',');
-    const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
-    const bstr = atob(arr[1]);
-    let n = bstr.length;
-    const u8arr = new Uint8Array(n);
-
-    while (n--) {
-      u8arr[n] = bstr.charCodeAt(n);
-    }
-
-    return new File([u8arr], fileName, { type: mime });
-  },
-
-  /**
-   * Migreer een base64 afbeelding naar Supabase Storage
-   * Handig voor het migreren van bestaande vragen
-   */
-  async migrateBase64ToStorage(base64Image: string, questionId: string): Promise<string> {
-    if (!this.isBase64Image(base64Image)) {
-      return base64Image; // Geen base64, return as-is
-    }
-
-    // Converteer base64 naar File
-    const file = this.base64ToFile(base64Image, `migrated-${questionId}.jpg`);
-
-    // Upload naar storage
-    return await this.uploadImage(file, questionId);
+  getFileNameFromUrl(url: string): string {
+    if (!url) return 'bijlage.pdf';
+    const parts = url.split('/');
+    return parts[parts.length - 1] || 'bijlage.pdf';
   }
 };

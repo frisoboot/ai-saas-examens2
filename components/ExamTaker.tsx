@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
@@ -39,6 +39,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Open question grading state
   const [openQuestionGrades, setOpenQuestionGrades] = useState<Record<string, OpenQuestionGrade>>({});
   const [gradingQuestions, setGradingQuestions] = useState<Set<string>>(new Set());
+
+  // Skipped questions (for questions requiring worksheets)
+  const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
 
   // Timer state for Look-alike exams
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
@@ -90,6 +93,25 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       ...prev,
       answers: { ...prev.answers, [currentQuestion.id]: val }
     }));
+  };
+
+  const handleSkipQuestion = () => {
+    // Add to skipped questions set
+    setSkippedQuestions(prev => new Set(prev).add(currentQuestion.id));
+
+    // Remove any existing answer for this question
+    setSession(prev => {
+      const newAnswers = { ...prev.answers };
+      delete newAnswers[currentQuestion.id];
+      return { ...prev, answers: newAnswers };
+    });
+
+    // Navigate to next question or finish
+    if (isLastQuestion) {
+      finishExam();
+    } else {
+      setActiveQuestionIdx(prev => prev + 1);
+    }
   };
 
   const handleNext = () => {
@@ -147,6 +169,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
 
     let correctCount = 0;
+    const questionsTakenCount = session.questions.filter(q => !skippedQuestions.has(q.id)).length;
     session.questions.forEach(q => {
       if (q.type === 'MULTIPLE_CHOICE' && finalAnswers[q.id] === q.correctIndex) {
         correctCount++;
@@ -172,7 +195,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       studentName: session.studentName,
       subject: session.subject,
       score: correctCount,
-      totalQuestions: session.questions.length,
+      totalQuestions: questionsTakenCount,
       date: new Date().toISOString(),
       answers: Object.entries(finalAnswers).map(([qid, val]) => ({ questionId: qid, value: val as string | number })),
       examYear: session.examYear,
@@ -201,7 +224,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             session.questions,
             finalAnswers,
             correctCount,
-            session.questions.length,
+            questionsTakenCount,
             session.studentName,
             session.subject
           );
@@ -289,9 +312,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // --- REVIEW MODE ---
   if (isFinished) {
     const mcScore = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && session.answers[q.id] === q.correctIndex).length;
-    const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE').length;
+    const totalMc = session.questions.filter(q => q.type === 'MULTIPLE_CHOICE' && !skippedQuestions.has(q.id)).length;
     const openQuestions = session.questions.filter(q => q.type === 'OPEN');
-    const openCount = openQuestions.length;
+    const openCount = openQuestions.filter(q => !skippedQuestions.has(q.id)).length;
 
     // Calculate open question scores
     const openScore = {
@@ -343,13 +366,28 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               totalMc={totalMc}
               openCount={openCount}
               openScore={openCount > 0 ? openScore : undefined}
-              totalQuestions={session.questions.length}
+              totalQuestions={totalMc + openCount}
             />
           </div>
 
           {/* AI Summary Section */}
           {(loadingSummary || examSummary) && (
             <ExamSummaryCard summary={examSummary!} isLoading={loadingSummary} />
+          )}
+
+          {/* Skipped Questions Warning */}
+          {skippedQuestions.size > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-center gap-3">
+              <SkipForward className="w-5 h-5 text-amber-600" />
+              <div>
+                <p className="font-semibold text-amber-900">
+                  {skippedQuestions.size} vraag{skippedQuestions.size > 1 ? 'en' : ''} overgeslagen
+                </p>
+                <p className="text-sm text-amber-700">
+                  Deze vragen vereisten een uitwerkbijlage en zijn niet meegerekend in je score.
+                </p>
+              </div>
+            </div>
           )}
 
           {/* Question Review - Compact List */}
@@ -367,6 +405,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   onRequestExplanation={() => handleRequestAIExplanation(q)}
                   openQuestionGrade={openQuestionGrades[q.id]}
                   isGradingOpen={gradingQuestions.has(q.id)}
+                  isSkipped={skippedQuestions.has(q.id)}
                 />
               ))}
             </div>
@@ -450,6 +489,68 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 />
               </div>
             )}
+
+            {/* Worksheet/Attachment Banner */}
+            {currentQuestion.worksheetUrl && (() => {
+              const isImage = /\.(jpg|jpeg|png|webp|gif)$/i.test(currentQuestion.worksheetUrl || '');
+              return (
+                <div className={`mb-6 rounded-xl border-2 p-4 ${
+                  currentQuestion.requiresWorksheet
+                    ? 'border-amber-300 bg-amber-50'
+                    : 'border-blue-200 bg-blue-50'
+                }`}>
+                  <div className="flex items-center justify-between flex-wrap gap-3 mb-3">
+                    <div className="flex items-center gap-3">
+                      <Download className={`w-5 h-5 ${currentQuestion.requiresWorksheet ? 'text-amber-600' : 'text-blue-600'}`} />
+                      <div>
+                        <p className={`font-semibold ${currentQuestion.requiresWorksheet ? 'text-amber-900' : 'text-blue-900'}`}>
+                          {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                        </p>
+                        {currentQuestion.requiresWorksheet && (
+                          <p className="text-sm text-amber-700">
+                            Deze vraag vereist de bijlage om te beantwoorden
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <a
+                        href={currentQuestion.worksheetUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Download className="w-4 h-4" />
+                        {isImage ? 'Openen' : 'Download PDF'}
+                      </a>
+
+                      {currentQuestion.requiresWorksheet && (
+                        <button
+                          onClick={handleSkipQuestion}
+                          className="px-4 py-2 border border-amber-300 bg-white rounded-lg hover:bg-amber-100 transition text-amber-700 flex items-center gap-2 text-sm font-medium"
+                        >
+                          <SkipForward className="w-4 h-4" />
+                          Overslaan
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Show image preview if it's an image */}
+                  {isImage && (
+                    <div className="mt-3 rounded-lg overflow-hidden border border-amber-200 bg-white">
+                      <img
+                        src={currentQuestion.worksheetUrl}
+                        alt={currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                        className="w-full max-h-[50vh] object-contain"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-tight">
               {currentQuestion.text}
