@@ -337,8 +337,19 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     setPendingDuplicate(null);
   };
 
-  const removeQuestion = (tempId: string) => {
+  const removeQuestion = async (tempId: string) => {
     const question = questions.find(q => q.tempId === tempId);
+    
+    // Delete attached worksheet from Supabase Storage if it exists
+    if (question?.worksheetUrl) {
+      try {
+        await worksheetStorage.deleteWorksheet(question.worksheetUrl);
+      } catch (error) {
+        console.error('Error deleting worksheet:', error);
+        showNotification('warning', 'Bijlage kon niet worden verwijderd, maar vraag is wel verwijderd');
+      }
+    }
+    
     setQuestions(questions.filter(q => q.tempId !== tempId));
     showNotification('info', `Vraag ${question?.questionNumber || ''} verwijderd`);
   };
@@ -636,12 +647,39 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
-  const clearDraft = () => {
+  const clearDraft = async () => {
     if (confirm('Weet je zeker dat je alle concept-vragen wilt verwijderen?')) {
+      // Delete all worksheets from Supabase Storage
+      const deleteErrors: string[] = [];
+      for (const question of questions) {
+        if (question.worksheetUrl) {
+          try {
+            await worksheetStorage.deleteWorksheet(question.worksheetUrl);
+          } catch (error) {
+            console.error('Error deleting worksheet:', error);
+            deleteErrors.push(`Vraag ${question.questionNumber}`);
+          }
+        }
+      }
+      
+      // Also delete worksheet from current question if it exists
+      if (currentQuestion.worksheetUrl) {
+        try {
+          await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
+        } catch (error) {
+          console.error('Error deleting current question worksheet:', error);
+        }
+      }
+      
       localStorage.removeItem(DRAFT_STORAGE_KEY);
       setQuestions([]);
       resetCurrentQuestion();
-      showNotification('info', 'Concept verwijderd');
+      
+      if (deleteErrors.length > 0) {
+        showNotification('warning', `Concept verwijderd (${deleteErrors.length} bijlage(n) konden niet verwijderd worden)`);
+      } else {
+        showNotification('info', 'Concept verwijderd');
+      }
     }
   };
 
