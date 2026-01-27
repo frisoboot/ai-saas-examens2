@@ -26,6 +26,11 @@ export interface Question {
   imageUrl?: string;
   source?: string;
 
+  // Worksheet/attachment for questions that need external materials (e.g., Binas tables)
+  worksheetUrl?: string;        // URL to PDF in Supabase Storage
+  worksheetLabel?: string;      // Label like "Binas-tabel 45" or "Uitwerkpapier"
+  requiresWorksheet?: boolean;  // If true, student can skip this question
+
   // Scoring
   score?: number; // Points awarded for this question (default: 1)
 
@@ -116,6 +121,9 @@ export interface BulkImportQuestion {
   correctAnswer?: string; // Will be converted to correctIndex
   modelAnswer?: string;
   imageUrl?: string; // Base64 string
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  requiresWorksheet?: boolean;
 }
 
 export interface ImportResult {

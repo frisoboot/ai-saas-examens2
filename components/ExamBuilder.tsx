@@ -2,7 +2,8 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { saveQuestion, getQuestions } from '../services/storageService';
 import { Button } from './Button';
-import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown } from 'lucide-react';
+import { worksheetStorage } from '../services/worksheetStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
 interface ExamMetadata {
@@ -17,6 +18,9 @@ interface QuestionDraft extends Partial<Question> {
   text: string;
   type: QuestionType;
   questionNumber?: number;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  requiresWorksheet?: boolean;
 }
 
 interface ValidationErrors {
@@ -44,6 +48,9 @@ interface JsonQuestion {
   correctIndex?: number;
   modelAnswer?: string;
   imageUrl?: string;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  requiresWorksheet?: boolean;
 }
 
 interface JsonImportFormat {
@@ -314,7 +321,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       contextText: '',
       imageUrl: '',
       modelAnswer: '',
-      questionNumber: undefined
+      questionNumber: undefined,
+      worksheetUrl: '',
+      worksheetLabel: '',
+      requiresWorksheet: false
     });
     setValidationErrors({});
   };
@@ -399,7 +409,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         imageUrl: q.imageUrl || '',
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
         correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
-        modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined
+        modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
+        worksheetUrl: q.worksheetUrl || '',
+        worksheetLabel: q.worksheetLabel || '',
+        requiresWorksheet: q.requiresWorksheet || false
       }));
 
       // Add to existing questions
@@ -526,6 +539,9 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,
+          worksheetUrl: draft.worksheetUrl,
+          worksheetLabel: draft.worksheetLabel,
+          requiresWorksheet: draft.requiresWorksheet,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -1040,6 +1056,95 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 )}
               </div>
 
+              {/* Uitwerkbijlage sectie */}
+              <div className="border-t pt-4 mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <FileDown className="w-4 h-4 inline mr-1" />
+                  Uitwerkbijlage (PDF, optioneel)
+                </label>
+                <p className="text-xs text-gray-500 mb-2">
+                  Voeg een PDF toe die studenten kunnen downloaden (bijv. Binas-tabel, uitwerkpapier)
+                </p>
+                <input
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const url = await worksheetStorage.uploadWorksheet(file);
+                      setCurrentQuestion({
+                        ...currentQuestion,
+                        worksheetUrl: url,
+                        worksheetLabel: currentQuestion.worksheetLabel || 'Uitwerkbijlage'
+                      });
+                      showNotification('success', 'Bijlage geüpload');
+                    } catch (error) {
+                      showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage');
+                    }
+                  }}
+                  className="w-full p-2 border border-gray-300 rounded-lg"
+                />
+
+                {currentQuestion.worksheetUrl && (
+                  <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <FileDown className="w-5 h-5 text-amber-600" />
+                        <span className="text-sm font-medium text-amber-900">
+                          {currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          if (currentQuestion.worksheetUrl) {
+                            await worksheetStorage.deleteWorksheet(currentQuestion.worksheetUrl);
+                          }
+                          setCurrentQuestion({
+                            ...currentQuestion,
+                            worksheetUrl: '',
+                            worksheetLabel: '',
+                            requiresWorksheet: false
+                          });
+                          showNotification('info', 'Bijlage verwijderd');
+                        }}
+                        className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+
+                    <div className="mt-3 space-y-2">
+                      <input
+                        type="text"
+                        value={currentQuestion.worksheetLabel || ''}
+                        onChange={(e) => setCurrentQuestion({
+                          ...currentQuestion,
+                          worksheetLabel: e.target.value
+                        })}
+                        placeholder="Label (bijv. 'Binas-tabel 45')"
+                        className="w-full p-2 border border-amber-200 rounded-lg text-sm"
+                      />
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={currentQuestion.requiresWorksheet || false}
+                          onChange={(e) => setCurrentQuestion({
+                            ...currentQuestion,
+                            requiresWorksheet: e.target.checked
+                          })}
+                          className="w-4 h-4 rounded border-amber-300"
+                        />
+                        <span className="text-sm text-amber-800">
+                          Vraag vereist deze bijlage (student kan overslaan)
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {currentQuestion.type === 'MULTIPLE_CHOICE' && (
                 <div>
                   <div className="flex justify-between items-center mb-2">
@@ -1281,6 +1386,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             Brontekst
                           </span>
                         )}
+                        {q.worksheetUrl && (
+                          <span className="ml-2 text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                            {q.worksheetLabel || 'Bijlage'}
+                          </span>
+                        )}
                       </h3>
                       <div className="flex items-center gap-1">
                         <button
@@ -1310,6 +1420,28 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
                     {q.imageUrl && (
                       <img src={q.imageUrl} alt="Question" className="max-w-md mb-3 rounded" />
+                    )}
+
+                    {q.worksheetUrl && (
+                      <div className="mb-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileDown className="w-5 h-5 text-amber-600" />
+                          <div>
+                            <span className="font-medium text-amber-900">{q.worksheetLabel || 'Uitwerkbijlage'}</span>
+                            {q.requiresWorksheet && (
+                              <span className="ml-2 text-xs text-amber-700">(vereist)</span>
+                            )}
+                          </div>
+                        </div>
+                        <a
+                          href={q.worksheetUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-amber-700 hover:text-amber-900 underline"
+                        >
+                          Bekijk PDF
+                        </a>
+                      </div>
                     )}
 
                     {q.type === 'MULTIPLE_CHOICE' && q.options && (
