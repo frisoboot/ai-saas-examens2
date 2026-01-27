@@ -31,10 +31,9 @@ function getModelForSubject(subject?: string, level?: string) {
     console.log(`[Gemini API] Using Pro model for ${subject} (${level})`);
   }
 
-  // Return AI Gateway model provider with API key
-  return gateway(modelId, {
-    apiKey: process.env.AI_GATEWAY_API_KEY,
-  });
+  // Return AI Gateway model provider
+  // API key is automatically read from AI_GATEWAY_API_KEY environment variable
+  return gateway(modelId);
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -767,9 +766,8 @@ async function generateFlashcards(
 
 async function chat(message: string, systemInstruction: string): Promise<string> {
   // Chat gebruikt altijd het flash model (snel en goedkoop voor conversaties)
-  const chatModel = gateway(GEMINI_MODEL_FLASH, {
-    apiKey: process.env.AI_GATEWAY_API_KEY,
-  });
+  // API key is automatically read from AI_GATEWAY_API_KEY environment variable
+  const chatModel = gateway(GEMINI_MODEL_FLASH);
 
   const { text } = await generateText({
     model: chatModel,
