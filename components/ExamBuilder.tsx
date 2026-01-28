@@ -49,6 +49,7 @@ interface JsonQuestion {
   correctIndex?: number;
   modelAnswer?: string;
   imageUrl?: string;
+  hasImage?: boolean;  // Mark that this question needs an image (for later upload)
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
@@ -79,14 +80,24 @@ const generateJsonTemplate = (): string => {
         text: "Wat was de belangrijkste oorzaak van de Eerste Wereldoorlog?",
         contextText: "Lees de onderstaande bron over het begin van WO1.",
         options: ["De moord op Frans Ferdinand", "Economische rivaliteit", "Koloniale spanningen", "Nationalisme"],
-        correctIndex: 0
+        correctIndex: 0,
+        hasImage: false
       },
       {
         questionNumber: 2,
         type: "OPEN",
-        text: "Leg uit waarom de industriële revolutie begon in Engeland.",
+        text: "Bekijk de afbeelding en leg uit waarom de industriële revolutie begon in Engeland.",
         contextText: "Gebruik minimaal drie argumenten in je antwoord.",
-        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde."
+        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde.",
+        hasImage: true
+      },
+      {
+        questionNumber: 3,
+        type: "MULTIPLE_CHOICE",
+        text: "Welke grafiek toont de bevolkingsgroei van Nederland in de 19e eeuw?",
+        options: ["Grafiek A", "Grafiek B", "Grafiek C", "Grafiek D"],
+        correctIndex: 1,
+        hasImage: true
       }
     ]
   };
@@ -420,6 +431,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         questionNumber: q.questionNumber || (questions.length + index + 1),
         contextText: q.contextText || '',
         imageUrl: q.imageUrl || '',
+        hasImage: q.hasImage || false,
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
         correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
         modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
