@@ -40,6 +40,10 @@ export interface Question {
 
   // For Open Questions
   modelAnswer?: string;
+
+  // Section grouping (for official exams with multiple sections)
+  section?: string;        // Section title (e.g., "Kwaliteitscontrole voor straight whiskey")
+  sectionIntro?: string;   // Intro text for the section (only needed on first question of section)
 }
 
 export interface Answer {
@@ -124,6 +128,8 @@ export interface BulkImportQuestion {
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
+  section?: string;
+  sectionIntro?: string;
 }
 
 export interface ImportResult {

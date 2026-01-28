@@ -416,7 +416,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   }
 
   // --- EXAM MODE (SPLIT SCREEN) ---
-  const hasContext = !!currentQuestion.contextText;
+  // Determine if this is a new section (different from previous question)
+  const previousQuestion = activeQuestionIdx > 0 ? session.questions[activeQuestionIdx - 1] : null;
+  const isNewSection = currentQuestion.section &&
+    (!previousQuestion || previousQuestion.section !== currentQuestion.section);
+
+  // Show section intro only on first question of section (where sectionIntro is defined)
+  const showSectionIntro = isNewSection && currentQuestion.sectionIntro;
+
+  // Has context includes section intro OR question-specific context
+  const hasContext = !!currentQuestion.contextText || showSectionIntro;
 
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden text-slate-900 font-sans">
@@ -463,12 +472,33 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         {hasContext ? (
           <div className="lg:w-1/2 bg-[#fdfbf7] border-r border-[#eaddcf] overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl mx-auto p-8 lg:p-12">
-              <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
-                <span>Bronmateriaal</span>
-              </div>
-              <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                <ReactMarkdown>{currentQuestion.contextText || ''}</ReactMarkdown>
-              </div>
+              {/* Section Header */}
+              {isNewSection && (
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
+                    {currentQuestion.section}
+                  </h2>
+                </div>
+              )}
+
+              {/* Section Introduction (only on first question of section) */}
+              {showSectionIntro && (
+                <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
+                  <ReactMarkdown>{currentQuestion.sectionIntro}</ReactMarkdown>
+                </div>
+              )}
+
+              {/* Question-specific Context */}
+              {currentQuestion.contextText && (
+                <>
+                  <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
+                    <span>Bronmateriaal</span>
+                  </div>
+                  <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
+                    <ReactMarkdown>{currentQuestion.contextText}</ReactMarkdown>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : (
