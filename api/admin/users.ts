@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { checkRateLimit, getClientIP, rateLimits } from '../utils/rateLimiter.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -36,6 +37,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
+  }
+
+  // Rate limiting - prevent brute force attacks on admin endpoints
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(`admin:${clientIP}`, rateLimits.general);
+
+  if (!rateLimitResult.allowed) {
+    res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
+    return res.status(429).json({
+      error: 'Te veel verzoeken. Probeer het later opnieuw.',
+      retryAfter: rateLimitResult.retryAfter
+    });
   }
 
   try {

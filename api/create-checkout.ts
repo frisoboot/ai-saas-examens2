@@ -14,6 +14,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
 import crypto from 'crypto';
 
 /**
@@ -49,6 +50,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Rate limiting - prevent registration abuse
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(`registration:${clientIP}`, rateLimits.registration);
+
+  if (!rateLimitResult.allowed) {
+    res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 3600));
+    return res.status(429).json({
+      error: 'Te veel registratiepogingen. Probeer het later opnieuw.',
+      retryAfter: rateLimitResult.retryAfter
+    });
   }
 
   try {
