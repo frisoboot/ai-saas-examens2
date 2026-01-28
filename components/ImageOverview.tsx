@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, StudentLevel } from '../types';
 import { getQuestions, saveQuestion } from '../services/storageService';
 import { Button } from './Button';
@@ -31,25 +31,24 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationId, setNotificationId] = useState(0);
+  const notificationId = useRef(0);
 
   // Filters
   const [filterSubject, setFilterSubject] = useState<string>('');
   const [filterLevel, setFilterLevel] = useState<StudentLevel | ''>('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'done'>('all');
 
-  // Upload state
-  const [uploadingQuestionId, setUploadingQuestionId] = useState<string | null>(null);
+  // Upload state - using Set to track multiple concurrent uploads
+  const [uploadingQuestionIds, setUploadingQuestionIds] = useState<Set<string>>(new Set());
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   const showNotification = useCallback((type: Notification['type'], message: string) => {
-    const id = notificationId + 1;
-    setNotificationId(id);
+    const id = ++notificationId.current;
     setNotifications(prev => [...prev, { type, message, id }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 4000);
-  }, [notificationId]);
+  }, []);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
@@ -85,7 +84,7 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
   const completedImages = questions.filter(q => q.imageUrl).length;
 
   const handleImageUpload = async (questionId: string, file: File) => {
-    setUploadingQuestionId(questionId);
+    setUploadingQuestionIds(prev => new Set(prev).add(questionId));
     try {
       // Upload to storage
       const imageUrl = await imageStorage.uploadImage(file, questionId);
@@ -110,7 +109,11 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
       console.error('Error uploading image:', error);
       showNotification('error', 'Fout bij uploaden afbeelding');
     } finally {
-      setUploadingQuestionId(null);
+      setUploadingQuestionIds(prev => {
+        const next = new Set(prev);
+        next.delete(questionId);
+        return next;
+      });
     }
   };
 
@@ -434,11 +437,11 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
                           </div>
                         ) : (
                           <label className={`w-full h-full border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer transition ${
-                            uploadingQuestionId === question.id
+                            uploadingQuestionIds.has(question.id)
                               ? 'border-indigo-300 bg-indigo-50'
                               : 'border-amber-300 bg-amber-50 hover:border-amber-400'
                           }`}>
-                            {uploadingQuestionId === question.id ? (
+                            {uploadingQuestionIds.has(question.id) ? (
                               <RefreshCw className="w-6 h-6 text-indigo-500 animate-spin" />
                             ) : (
                               <>
@@ -451,7 +454,7 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
                               accept="image/*"
                               className="hidden"
                               onChange={handleFileSelect(question.id)}
-                              disabled={uploadingQuestionId === question.id}
+                              disabled={uploadingQuestionIds.has(question.id)}
                             />
                           </label>
                         )}
