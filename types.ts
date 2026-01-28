@@ -44,6 +44,7 @@ export interface Question {
 
   // Media & Source
   imageUrl?: string;
+  imageCaption?: string;        // Caption/context for the image (e.g., "figuur 1", "Zie de structuurformule")
   source?: string;
 
   // Worksheet/attachment for questions that need external materials (e.g., Binas tables)
@@ -141,6 +142,7 @@ export interface BulkImportQuestion {
   correctAnswer?: string; // Will be converted to correctIndex
   modelAnswer?: string;
   imageUrl?: string; // Base64 string
+  imageCaption?: string;        // Caption/context for the image
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
@@ -165,6 +167,8 @@ export interface BulkImportBundleQuestion {
   type: QuestionType;
   text: string;
   score?: number;
+  imageUrl?: string;
+  imageCaption?: string;        // Caption/context for the image
   options?: string[];
   correctAnswer?: string;
   correctIndex?: number;

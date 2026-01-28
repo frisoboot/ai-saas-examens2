@@ -19,9 +19,13 @@ CREATE TABLE IF NOT EXISTS question_bundles (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Add bundle_id and question_number to questions table
+-- Add bundle_id, question_number, and image_caption to questions table
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS bundle_id TEXT REFERENCES question_bundles(id) ON DELETE SET NULL;
 ALTER TABLE questions ADD COLUMN IF NOT EXISTS question_number INTEGER;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS image_caption TEXT;
+
+-- Add score column if it doesn't exist (points per question)
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS score INTEGER DEFAULT 1;
 
 -- Indexes for efficient queries
 CREATE INDEX IF NOT EXISTS idx_bundles_subject ON question_bundles(subject);

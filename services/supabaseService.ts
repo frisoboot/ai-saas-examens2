@@ -47,6 +47,7 @@ interface DbQuestion {
   text: string;
   context_text?: string;
   image_url?: string;
+  image_caption?: string;
   source?: string;
   options?: string[];
   correct_index?: number;
@@ -58,6 +59,7 @@ interface DbQuestion {
   requires_worksheet?: boolean;
   bundle_id?: string;
   question_number?: number;
+  score?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -87,6 +89,7 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     text: dbQuestion.text,
     contextText: dbQuestion.context_text,
     imageUrl: dbQuestion.image_url,
+    imageCaption: dbQuestion.image_caption,
     source: dbQuestion.source,
     options: dbQuestion.options,
     correctIndex: dbQuestion.correct_index,
@@ -97,7 +100,8 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     worksheetLabel: dbQuestion.worksheet_label,
     requiresWorksheet: dbQuestion.requires_worksheet,
     bundleId: dbQuestion.bundle_id,
-    questionNumber: dbQuestion.question_number
+    questionNumber: dbQuestion.question_number,
+    score: dbQuestion.score
   };
 };
 
@@ -111,6 +115,7 @@ const questionToDb = (question: Question): DbQuestion => {
     text: question.text,
     context_text: question.contextText,
     image_url: question.imageUrl,
+    image_caption: question.imageCaption,
     source: question.source,
     options: question.options,
     correct_index: question.correctIndex,
@@ -121,7 +126,8 @@ const questionToDb = (question: Question): DbQuestion => {
     worksheet_label: question.worksheetLabel,
     requires_worksheet: question.requiresWorksheet,
     bundle_id: question.bundleId,
-    question_number: question.questionNumber
+    question_number: question.questionNumber,
+    score: question.score
   };
 };
 

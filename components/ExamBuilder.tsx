@@ -49,10 +49,11 @@ interface JsonQuestion {
   correctIndex?: number;
   modelAnswer?: string;
   imageUrl?: string;
+  imageCaption?: string;        // Caption/context for the image (e.g., "figuur 1")
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
-  score?: number;
+  score?: number;               // Points for this question (default: 1)
 }
 
 // Bundle with questions for JSON import
@@ -98,18 +99,23 @@ const generateJsonTemplate = (): string => {
     bundles: [
       {
         title: "Kwaliteitscontrole voor straight whiskey",
-        contextText: "'Straight whiskey' is whiskey die minimaal twee jaar is gerijpt op eikenhouten vaten. De vaten worden eerst van binnen gebrand, waarbij door thermolyse onder andere karamel wordt gevormd. Straight whiskey heeft daarom een karakteristieke bruine kleur.\n\nWhiskey die minder lang is gerijpt, is lichter van kleur. Om deze whiskey dezelfde luxe uitstraling te geven als straight whiskey, wordt vaak de kleurstof E-150 toegevoegd aan het eindproduct.\n\nE-150 is een mengsel van verschillende stoffen dat wordt verkregen door thermolyse van sacharose (C₁₂H₂₂O₁₁) bij 200 °C.",
+        contextText: "'Straight whiskey' is whiskey die minimaal twee jaar is gerijpt op eikenhouten vaten. De vaten worden eerst van binnen gebrand, waarbij door thermolyse onder andere karamel wordt gevormd. Straight whiskey heeft daarom een karakteristieke bruine kleur.\n\nWhiskey die minder lang is gerijpt, is lichter van kleur. Om deze whiskey dezelfde luxe uitstraling te geven als straight whiskey, wordt vaak de kleurstof E-150 toegevoegd aan het eindproduct.\n\nE-150 is een mengsel van verschillende stoffen dat wordt verkregen door thermolyse van sacharose (C₁₂H₂₂O₁₁) bij 200 °C.\n\nDe schematische structuurformules van FF en HMF zijn in figuur 1 weergegeven.",
+        imageUrl: "https://example.com/figuur1-ff-hmf.png",
         questions: [
           {
             questionNumber: 1,
             type: "OPEN",
             text: "Maak op de uitwerkbijlage deze vergelijking compleet. Gebruik structuurformules zoals op de bijlage.",
+            score: 3,
             modelAnswer: "De vergelijking toont de omzetting van sacharose naar isosachrosan met afsplitsing van water."
           },
           {
             questionNumber: 2,
             type: "OPEN",
             text: "Geef de vergelijking van de vorming van FF uit xylaan. Gebruik hierbij molecuulformules.",
+            score: 4,
+            imageUrl: "https://example.com/vraag2-structuur.png",
+            imageCaption: "figuur 2: Structuurformule xylaan",
             modelAnswer: "H-(C₅H₈O₄)ₙ-OH → n C₅H₄O₂ + n H₂O"
           }
         ]
@@ -120,6 +126,7 @@ const generateJsonTemplate = (): string => {
         questionNumber: 3,
         type: "MULTIPLE_CHOICE",
         text: "Losse vraag zonder bundel - Wat is de molecuulformule van water?",
+        score: 1,
         options: ["H₂O", "CO₂", "NaCl", "CH₄"],
         correctIndex: 0
       }
@@ -467,6 +474,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             questionNumber: q.questionNumber || (qIndex + 1),
             contextText: '', // Context is at bundle level
             imageUrl: q.imageUrl || '',
+            imageCaption: q.imageCaption || '',
             options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
             correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
             modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
@@ -502,9 +510,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           questionNumber: q.questionNumber || (questions.length + index + 1),
           contextText: q.contextText || '',
           imageUrl: q.imageUrl || '',
+          imageCaption: q.imageCaption || '',
           options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
           correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
           modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
+          score: q.score,
           worksheetUrl: q.worksheetUrl || '',
           worksheetLabel: q.worksheetLabel || '',
           requiresWorksheet: q.requiresWorksheet || false
@@ -692,6 +702,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
             // Copy bundle context to question so it displays in ExamTaker
             contextText: bundleDraft.contextText,
             imageUrl: draft.imageUrl,
+            imageCaption: draft.imageCaption,
+            score: draft.score || 1,
             worksheetUrl: draft.worksheetUrl || bundleDraft.worksheetUrl, // Use bundle worksheet if question doesn't have one
             worksheetLabel: draft.worksheetLabel || bundleDraft.worksheetLabel,
             requiresWorksheet: draft.requiresWorksheet,
@@ -733,6 +745,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,
+          imageCaption: draft.imageCaption,
+          score: draft.score || 1,
           worksheetUrl: draft.worksheetUrl,
           worksheetLabel: draft.worksheetLabel,
           requiresWorksheet: draft.requiresWorksheet,
@@ -1568,8 +1582,22 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                                 <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                                   {q.type === 'MULTIPLE_CHOICE' ? 'Meerkeuze' : 'Open'}
                                 </span>
+                                {q.score && q.score > 1 && (
+                                  <span className="ml-2 text-xs font-normal text-purple-600 bg-purple-100 px-2 py-0.5 rounded">
+                                    {q.score} punten
+                                  </span>
+                                )}
                               </span>
                             </div>
+                            {/* Question image with caption */}
+                            {q.imageUrl && (
+                              <div className="mb-3">
+                                <img src={q.imageUrl} alt={q.imageCaption || 'Vraag afbeelding'} className="max-h-48 rounded border" />
+                                {q.imageCaption && (
+                                  <p className="text-xs text-gray-500 italic mt-1">{q.imageCaption}</p>
+                                )}
+                              </div>
+                            )}
                             <p className="text-gray-800 mb-2">{q.text}</p>
                             {q.type === 'MULTIPLE_CHOICE' && q.options && (
                               <div className="space-y-1">
