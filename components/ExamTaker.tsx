@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,6 +43,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Skipped questions (for questions requiring worksheets)
   const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
 
+  // Image zoom state
+  const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
   // Timer state for Look-alike exams
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
     if (initialSession.timeLimit && initialSession.timeLimit > 0) {
@@ -63,6 +66,17 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
     }
   }, [activeQuestionIdx, currentQuestion]);
+
+  // Close zoomed image on ESC key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && zoomedImageUrl) {
+        setZoomedImageUrl(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [zoomedImageUrl]);
 
   // Timer countdown effect
   useEffect(() => {
@@ -509,14 +523,23 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         <div className={`flex-1 bg-white overflow-y-auto flex flex-col ${hasContext ? 'lg:w-1/2' : 'lg:w-2/4 lg:max-w-3xl lg:border-r lg:border-slate-100'}`}>
           <div className="flex-1 p-6 lg:p-10 max-w-3xl mx-auto w-full flex flex-col">
             {currentQuestion.imageUrl && (
-              <div className="mb-6 rounded-xl border border-slate-100 overflow-hidden bg-slate-50 flex justify-center">
+              <div
+                className="mb-6 rounded-xl border border-slate-100 overflow-hidden bg-slate-50 flex justify-center cursor-pointer group relative"
+                onClick={() => setZoomedImageUrl(currentQuestion.imageUrl!)}
+                title="Klik om te vergroten"
+              >
                 <img
                   src={currentQuestion.imageUrl}
                   alt="Vraag afbeelding"
-                  className="max-h-[40vh] w-auto object-contain"
+                  className="max-h-[40vh] w-auto object-contain transition-transform group-hover:scale-[1.02]"
                   loading="lazy"
                   decoding="async"
                 />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                  <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2 shadow-lg">
+                    <ZoomIn className="w-5 h-5 text-slate-600" />
+                  </div>
+                </div>
               </div>
             )}
 
@@ -569,13 +592,22 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
                   {/* Show image preview if it's an image */}
                   {isImage && (
-                    <div className="mt-3 rounded-lg overflow-hidden border border-amber-200 bg-white">
+                    <div
+                      className="mt-3 rounded-lg overflow-hidden border border-amber-200 bg-white cursor-pointer group relative"
+                      onClick={() => setZoomedImageUrl(currentQuestion.worksheetUrl!)}
+                      title="Klik om te vergroten"
+                    >
                       <img
                         src={currentQuestion.worksheetUrl}
                         alt={currentQuestion.worksheetLabel || 'Uitwerkbijlage'}
-                        className="w-full max-h-[50vh] object-contain"
+                        className="w-full max-h-[50vh] object-contain transition-transform group-hover:scale-[1.01]"
                         loading="lazy"
                       />
+                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors flex items-center justify-center">
+                        <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 rounded-full p-2 shadow-lg">
+                          <ZoomIn className="w-5 h-5 text-slate-600" />
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -644,6 +676,31 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
         {!hasContext && <div className="hidden lg:block lg:w-1/4 bg-[#f8fafc]" />}
       </div>
+
+      {/* Image Zoom Modal */}
+      {zoomedImageUrl && (
+        <div
+          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 cursor-zoom-out"
+          onClick={() => setZoomedImageUrl(null)}
+        >
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full p-2 transition-colors"
+            onClick={() => setZoomedImageUrl(null)}
+            aria-label="Sluiten"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <img
+            src={zoomedImageUrl}
+            alt="Vergrote afbeelding"
+            className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
+            Klik ergens of druk ESC om te sluiten
+          </p>
+        </div>
+      )}
     </div>
   );
 };
