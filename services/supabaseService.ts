@@ -1,5 +1,5 @@
 import { createClient, User, Session } from '@supabase/supabase-js';
-import { Question, ExamResult, StudentProfile } from '../types';
+import { Question, ExamResult, StudentProfile, QuestionBundle } from '../types';
 
 /**
  * Supabase Client - Browser-side database access
@@ -30,7 +30,8 @@ export const supabase = supabaseUrl && supabaseAnonKey
 const TABLES = {
   QUESTIONS: 'questions',
   RESULTS: 'exam_results',
-  STUDENTS: 'student_profiles'
+  STUDENTS: 'student_profiles',
+  BUNDLES: 'question_bundles'
 };
 
 // ============================================================================
@@ -55,6 +56,23 @@ interface DbQuestion {
   worksheet_url?: string;
   worksheet_label?: string;
   requires_worksheet?: boolean;
+  bundle_id?: string;
+  question_number?: number;
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface DbQuestionBundle {
+  id: string;
+  title: string;
+  context_text: string;
+  subject: string;
+  level: 'VMBO-TL' | 'HAVO' | 'VWO';
+  exam_year?: number;
+  exam_type?: 'practice' | 'official_exam';
+  image_url?: string;
+  worksheet_url?: string;
+  worksheet_label?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -77,7 +95,9 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     examType: dbQuestion.exam_type,
     worksheetUrl: dbQuestion.worksheet_url,
     worksheetLabel: dbQuestion.worksheet_label,
-    requiresWorksheet: dbQuestion.requires_worksheet
+    requiresWorksheet: dbQuestion.requires_worksheet,
+    bundleId: dbQuestion.bundle_id,
+    questionNumber: dbQuestion.question_number
   };
 };
 
@@ -99,7 +119,43 @@ const questionToDb = (question: Question): DbQuestion => {
     exam_type: question.examType,
     worksheet_url: question.worksheetUrl,
     worksheet_label: question.worksheetLabel,
-    requires_worksheet: question.requiresWorksheet
+    requires_worksheet: question.requiresWorksheet,
+    bundle_id: question.bundleId,
+    question_number: question.questionNumber
+  };
+};
+
+// Converteer database bundle naar TypeScript QuestionBundle
+const dbToBundle = (dbBundle: DbQuestionBundle): QuestionBundle => {
+  return {
+    id: dbBundle.id,
+    title: dbBundle.title,
+    contextText: dbBundle.context_text,
+    subject: dbBundle.subject,
+    level: dbBundle.level,
+    examYear: dbBundle.exam_year,
+    examType: dbBundle.exam_type,
+    imageUrl: dbBundle.image_url,
+    worksheetUrl: dbBundle.worksheet_url,
+    worksheetLabel: dbBundle.worksheet_label,
+    createdAt: dbBundle.created_at,
+    updatedAt: dbBundle.updated_at
+  };
+};
+
+// Converteer TypeScript QuestionBundle naar database format
+const bundleToDb = (bundle: QuestionBundle): DbQuestionBundle => {
+  return {
+    id: bundle.id,
+    title: bundle.title,
+    context_text: bundle.contextText,
+    subject: bundle.subject,
+    level: bundle.level,
+    exam_year: bundle.examYear,
+    exam_type: bundle.examType,
+    image_url: bundle.imageUrl,
+    worksheet_url: bundle.worksheetUrl,
+    worksheet_label: bundle.worksheetLabel
   };
 };
 
@@ -207,6 +263,185 @@ export const dbQuestions = {
 
     // Converteer database records naar TypeScript objects
     return (data || []).map(dbToQuestion);
+  },
+
+  // Haal vragen op per bundle
+  async getByBundleId(bundleId: string): Promise<Question[]> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.QUESTIONS)
+      .select('*')
+      .eq('bundle_id', bundleId)
+      .order('question_number', { ascending: true });
+
+    if (error) {
+      console.error('Fout bij ophalen vragen per bundle:', error);
+      throw error;
+    }
+
+    return (data || []).map(dbToQuestion);
+  }
+};
+
+// ============================================================================
+// QUESTION BUNDLES - Groepen van vragen onder één onderwerp/context
+// ============================================================================
+
+export const dbBundles = {
+  // Haal alle bundles op
+  async getAll(): Promise<QuestionBundle[]> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.BUNDLES)
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Fout bij ophalen bundles:', error);
+      throw error;
+    }
+
+    return (data || []).map(dbToBundle);
+  },
+
+  // Haal één bundle op met vragen
+  async getById(id: string): Promise<{ bundle: QuestionBundle; questions: Question[] } | null> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data: bundleData, error: bundleError } = await supabase
+      .from(TABLES.BUNDLES)
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (bundleError) {
+      if (bundleError.code === 'PGRST116') return null; // Not found
+      console.error('Fout bij ophalen bundle:', bundleError);
+      throw bundleError;
+    }
+
+    // Haal ook de vragen op die bij deze bundle horen
+    const questions = await dbQuestions.getByBundleId(id);
+
+    return {
+      bundle: dbToBundle(bundleData),
+      questions
+    };
+  },
+
+  // Haal bundles op per vak
+  async getBySubject(subject: string): Promise<QuestionBundle[]> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.BUNDLES)
+      .select('*')
+      .eq('subject', subject)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Fout bij ophalen bundles per vak:', error);
+      throw error;
+    }
+
+    return (data || []).map(dbToBundle);
+  },
+
+  // Sla een bundle op (create of update)
+  async save(bundle: QuestionBundle): Promise<QuestionBundle> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const dbBundle = bundleToDb(bundle);
+
+    const { data, error } = await supabase
+      .from(TABLES.BUNDLES)
+      .upsert(dbBundle, { onConflict: 'id' })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Fout bij opslaan bundle:', error);
+      throw new Error(`Database fout: ${error.message}`);
+    }
+
+    return dbToBundle(data);
+  },
+
+  // Sla bundle met vragen op (transactie-achtig)
+  async saveWithQuestions(bundle: QuestionBundle, questions: Question[]): Promise<{ bundle: QuestionBundle; questions: Question[] }> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    // Sla eerst de bundle op
+    const savedBundle = await this.save(bundle);
+
+    // Sla dan alle vragen op met de bundle_id
+    const savedQuestions: Question[] = [];
+    for (const question of questions) {
+      const questionWithBundle = {
+        ...question,
+        bundleId: savedBundle.id,
+        subject: savedBundle.subject,
+        level: savedBundle.level,
+        examYear: savedBundle.examYear,
+        examType: savedBundle.examType
+      };
+      const saved = await dbQuestions.save(questionWithBundle);
+      savedQuestions.push(saved);
+    }
+
+    return { bundle: savedBundle, questions: savedQuestions };
+  },
+
+  // Verwijder een bundle (vragen worden losgekoppeld door ON DELETE SET NULL)
+  async delete(id: string): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { error } = await supabase
+      .from(TABLES.BUNDLES)
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Fout bij verwijderen bundle:', error);
+      throw error;
+    }
+  },
+
+  // Verwijder bundle inclusief alle vragen
+  async deleteWithQuestions(id: string): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    // Verwijder eerst alle vragen die bij deze bundle horen
+    const { error: questionsError } = await supabase
+      .from(TABLES.QUESTIONS)
+      .delete()
+      .eq('bundle_id', id);
+
+    if (questionsError) {
+      console.error('Fout bij verwijderen bundle vragen:', questionsError);
+      throw questionsError;
+    }
+
+    // Verwijder dan de bundle zelf
+    await this.delete(id);
   }
 };
 

@@ -8,6 +8,22 @@ export type ImportType = 'csv' | 'json' | 'ai_pdf';
 
 export type ExamMode = 'BY_SUBJECT' | 'BY_YEAR';
 
+// Question Bundle - groups multiple questions under one context/topic
+export interface QuestionBundle {
+  id: string;
+  title: string;              // e.g., "Kwaliteitscontrole voor straight whiskey"
+  contextText: string;        // The introductory text/source material
+  subject: string;
+  level: StudentLevel;
+  examYear?: number;
+  examType?: ExamType;
+  imageUrl?: string;          // Optional image for the bundle
+  worksheetUrl?: string;      // Optional worksheet for the entire bundle
+  worksheetLabel?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -15,11 +31,15 @@ export interface Question {
   level: StudentLevel;
   text: string;
 
+  // Bundle reference - for grouping questions under one topic/context
+  bundleId?: string;          // Reference to QuestionBundle.id
+  questionNumber?: number;    // Question number within the bundle (1, 2, 3...)
+
   // Year-based exam fields
   examYear?: number; // e.g., 2024, 2023, null for practice questions
   examType?: ExamType; // 'practice' or 'official_exam'
 
-  // For context/reading comprehension
+  // For context/reading comprehension (legacy - use bundle for new questions)
   contextText?: string;
 
   // Media & Source
@@ -124,6 +144,32 @@ export interface BulkImportQuestion {
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
+  // Bundle support
+  bundleId?: string;
+  questionNumber?: number;
+}
+
+// Bundle import interface for JSON imports
+export interface BulkImportBundle {
+  id?: string;                // Optional - will be generated if not provided
+  title: string;
+  contextText: string;
+  imageUrl?: string;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  questions: BulkImportBundleQuestion[];
+}
+
+export interface BulkImportBundleQuestion {
+  questionNumber: number;
+  type: QuestionType;
+  text: string;
+  score?: number;
+  options?: string[];
+  correctAnswer?: string;
+  correctIndex?: number;
+  modelAnswer?: string;
+  imageUrl?: string;
 }
 
 export interface ImportResult {

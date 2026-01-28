@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Question, QuestionType, StudentLevel } from '../types';
+import { Question, QuestionType, StudentLevel, QuestionBundle } from '../types';
 import { saveQuestion, getQuestions } from '../services/storageService';
+import { dbBundles } from '../services/supabaseService';
 import { Button } from './Button';
-import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown } from 'lucide-react';
+import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown, Layers } from 'lucide-react';
 import { worksheetStorage } from '../services/worksheetStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -51,6 +52,17 @@ interface JsonQuestion {
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
+  score?: number;
+}
+
+// Bundle with questions for JSON import
+interface JsonBundle {
+  title: string;
+  contextText: string;
+  imageUrl?: string;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  questions: JsonQuestion[];
 }
 
 interface JsonImportFormat {
@@ -58,34 +70,58 @@ interface JsonImportFormat {
   year?: number;
   tijdvak?: number;
   level?: StudentLevel;
-  questions: JsonQuestion[];
+  questions?: JsonQuestion[];      // Standalone questions (legacy format)
+  bundles?: JsonBundle[];          // Bundled questions (new format)
+}
+
+// Bundle draft for the builder
+interface BundleDraft {
+  tempId: string;
+  title: string;
+  contextText: string;
+  imageUrl?: string;
+  worksheetUrl?: string;
+  worksheetLabel?: string;
+  questions: QuestionDraft[];
 }
 
 const DRAFT_STORAGE_KEY = 'examBuilder_draft';
 const AUTO_SAVE_DELAY = 1000;
 
-// Generate JSON template
+// Generate JSON template with bundle support
 const generateJsonTemplate = (): string => {
   const template: JsonImportFormat = {
-    subject: "Geschiedenis",
+    subject: "Scheikunde",
     year: 2024,
     tijdvak: 1,
     level: "HAVO",
+    bundles: [
+      {
+        title: "Kwaliteitscontrole voor straight whiskey",
+        contextText: "'Straight whiskey' is whiskey die minimaal twee jaar is gerijpt op eikenhouten vaten. De vaten worden eerst van binnen gebrand, waarbij door thermolyse onder andere karamel wordt gevormd. Straight whiskey heeft daarom een karakteristieke bruine kleur.\n\nWhiskey die minder lang is gerijpt, is lichter van kleur. Om deze whiskey dezelfde luxe uitstraling te geven als straight whiskey, wordt vaak de kleurstof E-150 toegevoegd aan het eindproduct.\n\nE-150 is een mengsel van verschillende stoffen dat wordt verkregen door thermolyse van sacharose (C₁₂H₂₂O₁₁) bij 200 °C.",
+        questions: [
+          {
+            questionNumber: 1,
+            type: "OPEN",
+            text: "Maak op de uitwerkbijlage deze vergelijking compleet. Gebruik structuurformules zoals op de bijlage.",
+            modelAnswer: "De vergelijking toont de omzetting van sacharose naar isosachrosan met afsplitsing van water."
+          },
+          {
+            questionNumber: 2,
+            type: "OPEN",
+            text: "Geef de vergelijking van de vorming van FF uit xylaan. Gebruik hierbij molecuulformules.",
+            modelAnswer: "H-(C₅H₈O₄)ₙ-OH → n C₅H₄O₂ + n H₂O"
+          }
+        ]
+      }
+    ],
     questions: [
       {
-        questionNumber: 1,
+        questionNumber: 3,
         type: "MULTIPLE_CHOICE",
-        text: "Wat was de belangrijkste oorzaak van de Eerste Wereldoorlog?",
-        contextText: "Lees de onderstaande bron over het begin van WO1.",
-        options: ["De moord op Frans Ferdinand", "Economische rivaliteit", "Koloniale spanningen", "Nationalisme"],
+        text: "Losse vraag zonder bundel - Wat is de molecuulformule van water?",
+        options: ["H₂O", "CO₂", "NaCl", "CH₄"],
         correctIndex: 0
-      },
-      {
-        questionNumber: 2,
-        type: "OPEN",
-        text: "Leg uit waarom de industriële revolutie begon in Engeland.",
-        contextText: "Gebruik minimaal drie argumenten in je antwoord.",
-        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde."
       }
     ]
   };
@@ -130,6 +166,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   const [showJsonImport, setShowJsonImport] = useState(false);
   const [jsonImportError, setJsonImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Bundle state
+  const [bundles, setBundles] = useState<BundleDraft[]>([]);
+  const [currentBundle, setCurrentBundle] = useState<BundleDraft | null>(null);
+  const [bundleMode, setBundleMode] = useState(false); // Toggle between single questions and bundle mode
 
   // Edit mode state for preview
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
@@ -380,7 +421,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     }
   };
 
-  // JSON Import Functions
+  // JSON Import Functions - supports both standalone questions and bundles
   const handleJsonFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -391,14 +432,17 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       const text = await file.text();
       const data = JSON.parse(text) as JsonImportFormat;
 
-      // Validate structure
-      if (!data.questions || !Array.isArray(data.questions)) {
-        throw new Error('JSON moet een "questions" array bevatten');
+      // Validate structure - must have either questions or bundles
+      const hasQuestions = data.questions && Array.isArray(data.questions) && data.questions.length > 0;
+      const hasBundles = data.bundles && Array.isArray(data.bundles) && data.bundles.length > 0;
+
+      if (!hasQuestions && !hasBundles) {
+        throw new Error('JSON moet een "questions" array en/of "bundles" array bevatten');
       }
 
       // Update exam metadata if provided
       if (data.subject && isValidSubject(data.subject)) {
-        setExamMeta(prev => ({ ...prev, subject: data.subject }));
+        setExamMeta(prev => ({ ...prev, subject: data.subject! }));
       }
       if (data.year && !isNaN(data.year)) {
         setExamMeta(prev => ({ ...prev, year: data.year! }));
@@ -410,25 +454,75 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         setExamMeta(prev => ({ ...prev, level: data.level! }));
       }
 
-      // Convert JSON questions to QuestionDraft format
-      const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
-        tempId: `import-${Date.now()}-${index}`,
-        text: q.text || '',
-        type: q.type || 'MULTIPLE_CHOICE',
-        questionNumber: q.questionNumber || (questions.length + index + 1),
-        contextText: q.contextText || '',
-        imageUrl: q.imageUrl || '',
-        options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
-        correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
-        modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
-        worksheetUrl: q.worksheetUrl || '',
-        worksheetLabel: q.worksheetLabel || '',
-        requiresWorksheet: q.requiresWorksheet || false
-      }));
+      let importedQuestionsCount = 0;
+      let importedBundlesCount = 0;
 
-      // Add to existing questions
-      setQuestions(prev => [...prev, ...importedQuestions]);
-      showNotification('success', `${importedQuestions.length} vragen geïmporteerd uit JSON`);
+      // Import bundles first
+      if (hasBundles) {
+        const importedBundles: BundleDraft[] = data.bundles!.map((bundle, bundleIndex) => {
+          const bundleQuestions: QuestionDraft[] = bundle.questions.map((q, qIndex) => ({
+            tempId: `import-bundle-${Date.now()}-${bundleIndex}-q${qIndex}`,
+            text: q.text || '',
+            type: q.type || 'OPEN',
+            questionNumber: q.questionNumber || (qIndex + 1),
+            contextText: '', // Context is at bundle level
+            imageUrl: q.imageUrl || '',
+            options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
+            correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
+            modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
+            score: q.score,
+            worksheetUrl: '',
+            worksheetLabel: '',
+            requiresWorksheet: false
+          }));
+
+          importedQuestionsCount += bundleQuestions.length;
+
+          return {
+            tempId: `import-bundle-${Date.now()}-${bundleIndex}`,
+            title: bundle.title || `Bundel ${bundleIndex + 1}`,
+            contextText: bundle.contextText || '',
+            imageUrl: bundle.imageUrl || '',
+            worksheetUrl: bundle.worksheetUrl || '',
+            worksheetLabel: bundle.worksheetLabel || '',
+            questions: bundleQuestions
+          };
+        });
+
+        setBundles(prev => [...prev, ...importedBundles]);
+        importedBundlesCount = importedBundles.length;
+      }
+
+      // Import standalone questions
+      if (hasQuestions) {
+        const importedQuestions: QuestionDraft[] = data.questions!.map((q, index) => ({
+          tempId: `import-${Date.now()}-${index}`,
+          text: q.text || '',
+          type: q.type || 'MULTIPLE_CHOICE',
+          questionNumber: q.questionNumber || (questions.length + index + 1),
+          contextText: q.contextText || '',
+          imageUrl: q.imageUrl || '',
+          options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
+          correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
+          modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
+          worksheetUrl: q.worksheetUrl || '',
+          worksheetLabel: q.worksheetLabel || '',
+          requiresWorksheet: q.requiresWorksheet || false
+        }));
+
+        setQuestions(prev => [...prev, ...importedQuestions]);
+        importedQuestionsCount += importedQuestions.length;
+      }
+
+      // Build success message
+      const parts: string[] = [];
+      if (importedBundlesCount > 0) {
+        parts.push(`${importedBundlesCount} bundel(s)`);
+      }
+      if (importedQuestionsCount > 0) {
+        parts.push(`${importedQuestionsCount} vragen`);
+      }
+      showNotification('success', `${parts.join(' met ')} geïmporteerd uit JSON`);
       setShowJsonImport(false);
 
       // Reset file input
@@ -536,8 +630,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   };
 
   const saveAllQuestions = async () => {
-    if (questions.length === 0) {
-      showNotification('warning', 'Voeg minimaal één vraag toe');
+    const hasQuestions = questions.length > 0;
+    const hasBundles = bundles.length > 0;
+
+    if (!hasQuestions && !hasBundles) {
+      showNotification('warning', 'Voeg minimaal één vraag of bundel toe');
       return;
     }
 
@@ -551,7 +648,71 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
     try {
       const savedQuestions: Question[] = [];
+      let totalItems = questions.length + bundles.reduce((acc, b) => acc + b.questions.length, 0);
+      let savedItems = 0;
 
+      // Save bundles first
+      for (const bundleDraft of bundles) {
+        const bundleId = `${examMeta.subject}-${examMeta.year}-T${examMeta.tijdvak}-B${bundleDraft.title.substring(0, 20)}`.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+
+        const bundle: QuestionBundle = {
+          id: bundleId,
+          title: bundleDraft.title,
+          contextText: bundleDraft.contextText,
+          subject: examMeta.subject,
+          level: examMeta.level,
+          examYear: examMeta.year,
+          examType: 'official_exam',
+          imageUrl: bundleDraft.imageUrl,
+          worksheetUrl: bundleDraft.worksheetUrl,
+          worksheetLabel: bundleDraft.worksheetLabel
+        };
+
+        // Create questions for this bundle
+        // Copy bundle context to each question so ExamTaker can display it
+        const bundleQuestions: Question[] = bundleDraft.questions.map((draft, i) => {
+          const questionNumber = draft.questionNumber || (i + 1);
+          const questionId = `${bundleId}-Q${questionNumber}`;
+
+          const validOptions = draft.type === 'MULTIPLE_CHOICE'
+            ? draft.options?.filter(opt => opt.trim() !== '')
+            : undefined;
+
+          return {
+            id: questionId,
+            type: draft.type,
+            subject: examMeta.subject,
+            level: examMeta.level,
+            text: draft.text,
+            examYear: examMeta.year,
+            examType: 'official_exam' as const,
+            source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
+            bundleId: bundleId,
+            questionNumber: questionNumber,
+            // Copy bundle context to question so it displays in ExamTaker
+            contextText: bundleDraft.contextText,
+            imageUrl: draft.imageUrl,
+            worksheetUrl: draft.worksheetUrl || bundleDraft.worksheetUrl, // Use bundle worksheet if question doesn't have one
+            worksheetLabel: draft.worksheetLabel || bundleDraft.worksheetLabel,
+            requiresWorksheet: draft.requiresWorksheet,
+            ...(draft.type === 'MULTIPLE_CHOICE' ? {
+              options: validOptions,
+              correctIndex: draft.correctIndex
+            } : {}),
+            ...(draft.type === 'OPEN' ? {
+              modelAnswer: draft.modelAnswer
+            } : {})
+          };
+        });
+
+        // Save bundle with questions
+        await dbBundles.saveWithQuestions(bundle, bundleQuestions);
+        savedQuestions.push(...bundleQuestions);
+        savedItems += bundleQuestions.length;
+        setSavedCount(savedItems);
+      }
+
+      // Save standalone questions
       for (let i = 0; i < questions.length; i++) {
         const draft = questions[i];
         const questionNumber = draft.questionNumber || (i + 1);
@@ -586,14 +747,18 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
         await saveQuestion(question);
         savedQuestions.push(question);
-        setSavedCount(i + 1);
+        savedItems++;
+        setSavedCount(savedItems);
       }
 
-      showNotification('success', `${questions.length} vragen succesvol opgeslagen!`);
+      // Build success message
+      const parts: string[] = [];
+      if (bundles.length > 0) parts.push(`${bundles.length} bundel(s)`);
+      if (questions.length > 0) parts.push(`${questions.length} losse vragen`);
+      showNotification('success', `${parts.join(' en ')} succesvol opgeslagen!`);
       localStorage.removeItem(DRAFT_STORAGE_KEY);
 
       // Update existing questions list with newly saved questions
-      // This is more efficient than fetching all questions from the database
       setExistingQuestions(prev => {
         const updated = [...prev];
         savedQuestions.forEach(saved => {
@@ -608,6 +773,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       });
 
       setQuestions([]);
+      setBundles([]);
       resetCurrentQuestion();
       setShowPreview(false);
     } catch (error) {
@@ -1318,12 +1484,12 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 {saving ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin" />
-                    Opslaan... ({savedCount}/{questions.length})
+                    Opslaan... ({savedCount}/{questions.length + bundles.reduce((acc, b) => acc + b.questions.length, 0)})
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4" />
-                    Alles Opslaan ({questions.length} vragen)
+                    Alles Opslaan ({bundles.length > 0 ? `${bundles.length} bundels, ` : ''}{questions.length + bundles.reduce((acc, b) => acc + b.questions.length, 0)} vragen)
                   </>
                 )}
               </Button>
@@ -1341,17 +1507,106 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-indigo-600 transition-all duration-300"
-                  style={{ width: `${(savedCount / questions.length) * 100}%` }}
+                  style={{ width: `${(savedCount / (questions.length + bundles.reduce((acc, b) => acc + b.questions.length, 0))) * 100}%` }}
                 />
               </div>
               <p className="text-sm text-gray-600 mt-1 text-center">
-                {savedCount} van {questions.length} vragen opgeslagen
+                {savedCount} van {questions.length + bundles.reduce((acc, b) => acc + b.questions.length, 0)} vragen opgeslagen
               </p>
             </div>
           )}
 
-          <div className="space-y-4">
-            {questions
+          {/* Bundles Section */}
+          {bundles.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-indigo-600" />
+                Vraagbundels ({bundles.length})
+              </h3>
+              <div className="space-y-6">
+                {bundles.map((bundle, bundleIdx) => (
+                  <div key={bundle.tempId} className="border-2 border-indigo-200 rounded-xl overflow-hidden bg-gradient-to-b from-indigo-50 to-white">
+                    {/* Bundle Header */}
+                    <div className="bg-indigo-100 px-4 py-3 border-b border-indigo-200">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-indigo-900">{bundle.title}</h4>
+                          <p className="text-sm text-indigo-600">{bundle.questions.length} vragen in deze bundel</p>
+                        </div>
+                        <button
+                          onClick={() => {
+                            // Remove bundle and its questions
+                            setBundles(prev => prev.filter(b => b.tempId !== bundle.tempId));
+                            showNotification('info', `Bundel "${bundle.title}" verwijderd`);
+                          }}
+                          className="p-1.5 text-red-500 hover:bg-red-100 rounded"
+                          title="Bundel verwijderen"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Bundle Context */}
+                    <div className="px-4 py-3 bg-amber-50 border-b border-amber-200">
+                      <p className="text-xs font-bold text-amber-800 uppercase mb-1">Bronmateriaal / Context</p>
+                      <p className="text-sm text-amber-900 whitespace-pre-wrap">{bundle.contextText}</p>
+                      {bundle.imageUrl && (
+                        <img src={bundle.imageUrl} alt="Bundel afbeelding" className="mt-2 max-h-40 rounded" />
+                      )}
+                    </div>
+
+                    {/* Bundle Questions */}
+                    <div className="p-4 space-y-3">
+                      {bundle.questions
+                        .sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0))
+                        .map((q, qIdx) => (
+                          <div key={q.tempId} className="border border-gray-200 rounded-lg p-3 bg-white">
+                            <div className="flex justify-between items-start mb-2">
+                              <span className="font-semibold text-gray-900">
+                                Vraag {q.questionNumber || (qIdx + 1)}
+                                <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                                  {q.type === 'MULTIPLE_CHOICE' ? 'Meerkeuze' : 'Open'}
+                                </span>
+                              </span>
+                            </div>
+                            <p className="text-gray-800 mb-2">{q.text}</p>
+                            {q.type === 'MULTIPLE_CHOICE' && q.options && (
+                              <div className="space-y-1">
+                                {q.options.filter(opt => opt.trim() !== '').map((opt, optIdx) => (
+                                  <div
+                                    key={optIdx}
+                                    className={`p-2 rounded text-sm ${optIdx === q.correctIndex ? 'bg-green-50 border border-green-300' : 'bg-gray-50'}`}
+                                  >
+                                    {String.fromCharCode(65 + optIdx)}. {opt}
+                                    {optIdx === q.correctIndex && <span className="ml-2 text-green-600 font-semibold">✓</span>}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            {q.type === 'OPEN' && q.modelAnswer && (
+                              <div className="bg-blue-50 p-2 rounded border border-blue-200 text-sm">
+                                <p className="font-semibold text-blue-900 mb-1">Modelantwoord:</p>
+                                <p className="text-blue-800">{q.modelAnswer}</p>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Standalone Questions Section */}
+          {questions.length > 0 && (
+            <div>
+              {bundles.length > 0 && (
+                <h3 className="text-lg font-bold text-gray-700 mb-4">Losse Vragen ({questions.length})</h3>
+              )}
+              <div className="space-y-4">
+                {questions
               .sort((a, b) => (a.questionNumber || 0) - (b.questionNumber || 0))
               .map((q, idx) => {
                 const isEditing = editingQuestionId === q.tempId;
@@ -1614,7 +1869,9 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </div>
                 );
               })}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
