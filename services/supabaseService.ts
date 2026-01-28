@@ -46,10 +46,12 @@ interface DbQuestion {
   text: string;
   context_text?: string;
   image_url?: string;
+  has_image?: boolean;
   source?: string;
   options?: string[];
   correct_index?: number;
   model_answer?: string;
+  score?: number;
   exam_year?: number;
   exam_type?: 'practice' | 'official_exam';
   worksheet_url?: string;
@@ -71,10 +73,12 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     text: dbQuestion.text,
     contextText: dbQuestion.context_text,
     imageUrl: dbQuestion.image_url,
+    hasImage: dbQuestion.has_image,
     source: dbQuestion.source,
     options: dbQuestion.options,
     correctIndex: dbQuestion.correct_index,
     modelAnswer: dbQuestion.model_answer,
+    score: dbQuestion.score,
     examYear: dbQuestion.exam_year,
     examType: dbQuestion.exam_type,
     worksheetUrl: dbQuestion.worksheet_url,
@@ -95,10 +99,12 @@ const questionToDb = (question: Question): DbQuestion => {
     text: question.text,
     context_text: question.contextText,
     image_url: question.imageUrl,
+    has_image: question.hasImage,
     source: question.source,
     options: question.options,
     correct_index: question.correctIndex,
     model_answer: question.modelAnswer,
+    score: question.score,
     exam_year: question.examYear,
     exam_type: question.examType,
     worksheet_url: question.worksheetUrl,

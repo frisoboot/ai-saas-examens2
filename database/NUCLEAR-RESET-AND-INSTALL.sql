@@ -46,12 +46,17 @@ CREATE TABLE questions (
   text TEXT NOT NULL,
   context_text TEXT,
   image_url TEXT,
+  has_image BOOLEAN DEFAULT false,  -- Marks that this question needs an image (for quick entry workflow)
   source TEXT,
   options JSONB,
   correct_index INTEGER,
   model_answer TEXT,
+  score INTEGER,          -- Points for this question
   exam_year INTEGER,
   exam_type TEXT CHECK (exam_type IN ('practice', 'official_exam')),
+  worksheet_url TEXT,           -- URL to PDF/image in Storage
+  worksheet_label TEXT,         -- Label like "Binas-tabel 45"
+  requires_worksheet BOOLEAN DEFAULT false,  -- If true, student can skip
   section TEXT,           -- Section title for grouped questions
   section_intro TEXT,     -- Intro text for section (only on first question)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -93,6 +98,7 @@ CREATE INDEX idx_questions_subject ON questions(subject);
 CREATE INDEX idx_questions_level ON questions(level);
 CREATE INDEX idx_questions_type ON questions(type);
 CREATE INDEX idx_questions_section ON questions(section);
+CREATE INDEX idx_questions_has_image ON questions(has_image) WHERE has_image = true;
 CREATE INDEX idx_exam_results_student ON exam_results(student_name);
 CREATE INDEX idx_exam_results_subject ON exam_results(subject);
 CREATE INDEX idx_exam_results_date ON exam_results(date);

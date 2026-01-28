@@ -6,6 +6,7 @@ import { AdminHealthCheck } from './AdminHealthCheck';
 import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
+import { ImageOverview } from './ImageOverview';
 import { Button } from './Button';
 import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
@@ -16,7 +17,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check';
+type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('library');
@@ -335,6 +336,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
             <Activity className="w-4 h-4" />
             Systeem Status
           </button>
+          <button
+            onClick={() => { setActiveTab('images'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'images' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            Afbeeldingen
+          </button>
         </div>
       )}
 
@@ -419,6 +429,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                 >
                   <Activity className="w-4 h-4" />
                   Systeem Status
+                </button>
+                <button
+                  onClick={() => setActiveTab('images')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'images'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <ImageIcon className="w-4 h-4" />
+                  Afbeeldingen
                 </button>
              </div>
          </div>
@@ -511,6 +532,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'health-check' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <AdminHealthCheck />
+           </div>
+        ) : activeTab === 'images' ? (
+           <div className="flex-1 overflow-y-auto">
+             <ImageOverview onBack={() => setActiveTab('library')} />
            </div>
         ) : (
           <>
