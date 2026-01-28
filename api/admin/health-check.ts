@@ -285,8 +285,8 @@ async function checkMollieAPI(): Promise<ServiceHealth> {
   const start = Date.now();
 
   try {
-    // Test de Mollie API met een permissions check
-    const response = await fetch('https://api.mollie.com/v2/permissions', {
+    // Test de Mollie API met een methods check (werkt met API keys, unlike /v2/permissions)
+    const response = await fetch('https://api.mollie.com/v2/methods', {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${apiKey}`,
@@ -305,11 +305,15 @@ async function checkMollieAPI(): Promise<ServiceHealth> {
       };
     }
 
+    const data = await response.json();
+    const methodCount = data?._embedded?.methods?.length || 0;
+
     return {
       name: 'Mollie Payments',
       status: 'healthy',
       responseTime,
       message: 'Payment gateway operational',
+      details: { availableMethods: methodCount },
     };
   } catch (error: any) {
     return {
