@@ -52,6 +52,8 @@ CREATE TABLE questions (
   model_answer TEXT,
   exam_year INTEGER,
   exam_type TEXT CHECK (exam_type IN ('practice', 'official_exam')),
+  section TEXT,           -- Section title for grouped questions
+  section_intro TEXT,     -- Intro text for section (only on first question)
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -90,6 +92,7 @@ CREATE TABLE student_profiles (
 CREATE INDEX idx_questions_subject ON questions(subject);
 CREATE INDEX idx_questions_level ON questions(level);
 CREATE INDEX idx_questions_type ON questions(type);
+CREATE INDEX idx_questions_section ON questions(section);
 CREATE INDEX idx_exam_results_student ON exam_results(student_name);
 CREATE INDEX idx_exam_results_subject ON exam_results(subject);
 CREATE INDEX idx_exam_results_date ON exam_results(date);

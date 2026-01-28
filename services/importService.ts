@@ -85,7 +85,9 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     contextText: q.contextText,
     imageUrl: q.imageUrl,
     source: q.source,
-    score: q.score
+    score: q.score,
+    section: q.section,
+    sectionIntro: q.sectionIntro
   };
 
   if (q.type === 'MULTIPLE_CHOICE' && q.options && q.correctAnswer) {
@@ -171,6 +173,14 @@ export const parseCSV = (csvText: string): BulkImportQuestion[] => {
         case 'modelantwoord':
         case 'answer':
           question.modelAnswer = value;
+          break;
+        case 'section':
+        case 'sectie':
+          question.section = value;
+          break;
+        case 'sectionintro':
+        case 'sectieintro':
+          question.sectionIntro = value;
           break;
       }
     });
@@ -303,7 +313,9 @@ export const generateCSVTemplate = (): string => {
     'score',
     'options',
     'correctanswer',
-    'modelanswer'
+    'modelanswer',
+    'section',
+    'sectionintro'
   ];
 
   const exampleRows = [
@@ -318,7 +330,9 @@ export const generateCSVTemplate = (): string => {
       '2',
       '1987|1989|1991|1993',
       '1989',
-      ''
+      '',
+      'De Koude Oorlog',
+      'De Koude Oorlog was een periode van geopolitieke spanning...'
     ],
     [
       'Nederlands',
@@ -331,7 +345,9 @@ export const generateCSVTemplate = (): string => {
       '2',
       '',
       '',
-      'De auteur gebruikt veel metaforen en beeldspraak om...'
+      'De auteur gebruikt veel metaforen en beeldspraak om...',
+      'Tekstanalyse',
+      ''
     ],
     [
       'Wiskunde A',
@@ -344,6 +360,8 @@ export const generateCSVTemplate = (): string => {
       '2',
       '16|18|20|22',
       '20',
+      '',
+      '',
       ''
     ]
   ];

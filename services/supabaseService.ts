@@ -55,6 +55,8 @@ interface DbQuestion {
   worksheet_url?: string;
   worksheet_label?: string;
   requires_worksheet?: boolean;
+  section?: string;
+  section_intro?: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -77,7 +79,9 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     examType: dbQuestion.exam_type,
     worksheetUrl: dbQuestion.worksheet_url,
     worksheetLabel: dbQuestion.worksheet_label,
-    requiresWorksheet: dbQuestion.requires_worksheet
+    requiresWorksheet: dbQuestion.requires_worksheet,
+    section: dbQuestion.section,
+    sectionIntro: dbQuestion.section_intro
   };
 };
 
@@ -99,7 +103,9 @@ const questionToDb = (question: Question): DbQuestion => {
     exam_type: question.examType,
     worksheet_url: question.worksheetUrl,
     worksheet_label: question.worksheetLabel,
-    requires_worksheet: question.requiresWorksheet
+    requires_worksheet: question.requiresWorksheet,
+    section: question.section,
+    section_intro: question.sectionIntro
   };
 };
 
