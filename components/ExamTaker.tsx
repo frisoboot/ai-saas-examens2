@@ -473,7 +473,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           <div className="lg:w-1/2 bg-[#fdfbf7] border-r border-[#eaddcf] overflow-y-auto custom-scrollbar">
             <div className="max-w-2xl mx-auto p-8 lg:p-12">
               {/* Section Header */}
-              {currentQuestion.section && (
+              {isNewSection && (
                 <div className="mb-6">
                   <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
                     {currentQuestion.section}
