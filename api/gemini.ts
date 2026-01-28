@@ -148,7 +148,6 @@ async function generateExplanation(question: any, studentAnswer: number | string
 
     const escapedQuestionText = escapePromptString(question.text);
     const escapedSubject = escapePromptString(question.subject);
-    const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 300)) : '';
     const escapedAnsText = escapePromptString(ansText);
     const escapedCorrectAnsText = escapePromptString(correctAnsText);
 
@@ -157,7 +156,6 @@ async function generateExplanation(question: any, studentAnswer: number | string
 
       Vraag: "${escapedQuestionText}"
       Onderwerp: ${escapedSubject}
-      ${escapedContextText ? `Context tekst: "${escapedContextText}..."` : ''}
 
       Leerling antwoord: "${escapedAnsText}"
       Juist antwoord: "${escapedCorrectAnsText}"
@@ -171,7 +169,6 @@ async function generateExplanation(question: any, studentAnswer: number | string
 
     const escapedQuestionText = escapePromptString(question.text);
     const escapedSubject = escapePromptString(question.subject);
-    const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 500)) : '';
     const escapedModelAnswer = escapePromptString(question.modelAnswer);
     const escapedAnsText = escapePromptString(ansText);
 
@@ -180,7 +177,6 @@ async function generateExplanation(question: any, studentAnswer: number | string
 
       Vraag: "${escapedQuestionText}"
       Onderwerp: ${escapedSubject}
-      ${escapedContextText ? `Context tekst: "${escapedContextText}..."` : ''}
 
       Modelantwoord (gebruik dit als referentie voor correctheid): "${escapedModelAnswer}"
 
@@ -803,7 +799,6 @@ async function gradeOpenQuestion(
   studentAnswer: string
 ): Promise<{ grade: 'correct' | 'partial' | 'incorrect'; feedback: string }> {
   const escapedQuestionText = escapePromptString(question.text);
-  const escapedContextText = question.contextText ? escapePromptString(question.contextText.substring(0, 500)) : '';
   const escapedModelAnswer = escapePromptString(question.modelAnswer);
   const escapedStudentAnswer = escapePromptString(studentAnswer);
 
@@ -812,7 +807,6 @@ async function gradeOpenQuestion(
     Beoordeel ALLEEN op inhoudelijke correctheid, niet op spelling of grammatica.
 
     VRAAG: "${escapedQuestionText}"
-    ${escapedContextText ? `CONTEXT: "${escapedContextText}..."` : ''}
 
     MODELANTWOORD (de standaard voor correctheid): "${escapedModelAnswer}"
 
