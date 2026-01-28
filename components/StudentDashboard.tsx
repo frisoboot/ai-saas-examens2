@@ -10,7 +10,7 @@ import { SUBJECTS } from '../constants/subjects';
 
 interface StudentDashboardProps {
   student: StudentProfile;
-  onStartExam: (subject: string, year?: number) => void;
+  onStartExam: (subject: string, year?: number, timeLimit?: number) => void;
   onStartChat: (subject: string) => void;
   onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
@@ -69,7 +69,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         onStartAIQuestions={(count, topic, difficulty, questionTypeMix) =>
           onStartAIQuestions(selectedSubject, count, topic, difficulty, questionTypeMix)
         }
-        onStartExam={(year) => onStartExam(selectedSubject, year)}
+        onStartExam={(year, timeLimit) => onStartExam(selectedSubject, year, timeLimit)}
         onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
         onStartLookalikeExam={(count, topic, examStyle, timeLimit) =>
           onStartLookalikeExam(selectedSubject, count, topic, examStyle, timeLimit)

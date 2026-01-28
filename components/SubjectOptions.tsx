@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap } from 'lucide-react';
+import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap, Clock } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYearsForSubject, getQuestionCountBySubjectAndYear } from '../services/storageService';
 import { AIGeneratorMenu } from './AIGeneratorMenu';
@@ -14,7 +14,7 @@ interface SubjectOptionsProps {
   onBack: () => void;
   onStartChat: () => void;
   onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
-  onStartExam: (year?: number) => void;
+  onStartExam: (year?: number, timeLimit?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
   onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
 }
@@ -32,8 +32,17 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
   const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup' | 'lookalike-setup'>('default');
-  
+  const [examTimeLimit, setExamTimeLimit] = useState<number>(0);
+  const [showTimerOptions, setShowTimerOptions] = useState(false);
+
   const SubjectIcon = getSubjectIcon(subject);
+
+  // Timer opties voor eindexamens (0 = geen timer, tijd in minuten)
+  const EXAM_TIME_LIMITS = [
+    { value: 0, label: 'Geen timer', description: 'Oefenen zonder tijdsdruk' },
+    { value: 150, label: '2,5 uur', description: 'Standaard examenduur' },
+    { value: 180, label: '3 uur', description: 'Uitgebreide examenduur' }
+  ];
   const subjectColorClass = getSubjectColor(subject);
 
   useEffect(() => {
@@ -252,6 +261,53 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
               </div>
             ) : (
               <div className="space-y-4">
+                {/* Timer Toggle */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <button
+                    onClick={() => setShowTimerOptions(!showTimerOptions)}
+                    className="w-full flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${examTimeLimit > 0 ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center transition-colors`}>
+                        <Clock className="w-4 h-4" />
+                      </div>
+                      <div className="text-left">
+                        <span className="font-medium text-slate-900 text-sm">Timer</span>
+                        <span className="text-slate-500 text-xs ml-2">
+                          {examTimeLimit === 0 ? 'Uit' : examTimeLimit === 150 ? '2,5 uur' : '3 uur'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className={`w-10 h-6 rounded-full transition-colors ${examTimeLimit > 0 ? 'bg-amber-500' : 'bg-slate-300'} relative`}>
+                      <div className={`absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-all ${examTimeLimit > 0 ? 'left-5' : 'left-1'}`} />
+                    </div>
+                  </button>
+
+                  {showTimerOptions && (
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <p className="text-xs text-slate-500 mb-3">Kies je examentijd:</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {EXAM_TIME_LIMITS.map(limit => (
+                          <button
+                            key={limit.value}
+                            onClick={() => setExamTimeLimit(limit.value)}
+                            className={`p-3 rounded-xl font-medium transition-all text-center ${
+                              examTimeLimit === limit.value
+                                ? 'bg-amber-500 text-white shadow-lg'
+                                : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                            }`}
+                          >
+                            <div className="text-sm font-semibold">{limit.label}</div>
+                            <div className={`text-xs mt-0.5 ${examTimeLimit === limit.value ? 'text-amber-100' : 'text-slate-400'}`}>
+                              {limit.description}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
                   Beschikbare Examens
@@ -260,7 +316,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   {availableYears.map(year => (
                     <button
                       key={year}
-                      onClick={() => onStartExam(year)}
+                      onClick={() => onStartExam(year, examTimeLimit || undefined)}
                       className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -271,15 +327,23 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                           {year}
                         </span>
                       </div>
-                      <span className="text-xs text-slate-500 font-medium">
-                        {yearCounts.get(year) || 0} vragen
-                      </span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-slate-500 font-medium">
+                          {yearCounts.get(year) || 0} vragen
+                        </span>
+                        {examTimeLimit > 0 && (
+                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {examTimeLimit === 150 ? '2,5u' : '3u'}
+                          </span>
+                        )}
+                      </div>
                     </button>
                   ))}
 
                   {/* Random exam option */}
                   <button
-                    onClick={() => onStartExam()}
+                    onClick={() => onStartExam(undefined, examTimeLimit || undefined)}
                     className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -290,9 +354,17 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                         Mix
                       </span>
                     </div>
-                    <span className="text-xs text-slate-500 font-medium">
-                      Alle jaren
-                    </span>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-slate-500 font-medium">
+                        Alle jaren
+                      </span>
+                      {examTimeLimit > 0 && (
+                        <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          {examTimeLimit === 150 ? '2,5u' : '3u'}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 </div>
               </div>
