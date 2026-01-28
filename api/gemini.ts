@@ -21,6 +21,57 @@ const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'google/gemini-2.5-pro'
 const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
 const PRO_LEVELS = ['HAVO', 'VWO'];
 
+// Niveau-specifieke nakijk instructies gebaseerd op officiële eindexamen richtlijnen
+function getGradingInstructionsForLevel(level?: string): string {
+  switch (level) {
+    case 'VMBO-TL':
+    case 'VMBO-GL':
+    case 'VMBO-BB':
+    case 'VMBO-KB':
+      return `
+    NIVEAU: VMBO - Beoordeel SOEPEL
+    Focus op basiskennis en herkenning van kernbegrippen.
+
+    BEOORDELINGSCRITERIA:
+    - CORRECT: Het antwoord bevat de kernbegrippen/het basisidee uit het modelantwoord. Exacte formulering is NIET vereist.
+    - DEELS CORRECT: Het antwoord toont begrip van het onderwerp maar mist een kernbegrip of bevat een kleine fout.
+    - INCORRECT: Het antwoord mist de kernbegrippen volledig of is feitelijk onjuist.
+
+    Let op: Bij VMBO is het belangrijker DAT de leerling het begrijpt, niet HOE het geformuleerd is.`;
+
+    case 'HAVO':
+      return `
+    NIVEAU: HAVO - Beoordeel GEMIDDELD
+    Focus op correcte toepassing van kennis in praktische situaties.
+
+    BEOORDELINGSCRITERIA:
+    - CORRECT: Het antwoord bevat alle belangrijke elementen uit het modelantwoord en past de kennis correct toe.
+    - DEELS CORRECT: Het antwoord bevat de meeste elementen maar mist een belangrijk onderdeel of de toepassing is onvolledig.
+    - INCORRECT: Het antwoord mist meerdere belangrijke elementen of past de kennis verkeerd toe.
+
+    Let op: Bij HAVO moet de leerling laten zien dat ze de kennis kunnen TOEPASSEN, niet alleen reproduceren.`;
+
+    case 'VWO':
+      return `
+    NIVEAU: VWO - Beoordeel STRENG
+    Focus op diepgaand begrip, verbanden leggen en onderbouwde redeneringen.
+
+    BEOORDELINGSCRITERIA:
+    - CORRECT: Het antwoord bevat alle elementen, toont begrip van de onderliggende concepten en is goed onderbouwd.
+    - DEELS CORRECT: Het antwoord is inhoudelijk grotendeels correct maar mist diepgang, onderbouwing of een belangrijk verband.
+    - INCORRECT: Het antwoord mist essentiële elementen, toont onvoldoende begrip of de redenering klopt niet.
+
+    Let op: Bij VWO moet de leerling laten zien dat ze BEGRIJPEN waarom iets zo is, niet alleen WAT het antwoord is.`;
+
+    default:
+      return `
+    BEOORDELINGSCRITERIA:
+    - CORRECT: Antwoord bevat alle essentiële elementen van het modelantwoord.
+    - DEELS CORRECT: Antwoord bevat sommige essentiële elementen maar mist belangrijke onderdelen.
+    - INCORRECT: Antwoord mist de essentiële elementen of is feitelijk onjuist.`;
+  }
+}
+
 // Bepaal welk model te gebruiken op basis van vak en niveau
 function getModelForSubject(subject?: string, level?: string) {
   const modelId = (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level))
@@ -139,6 +190,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
 async function generateExplanation(question: any, studentAnswer: number | string): Promise<string> {
   let prompt = '';
+  const gradingInstructions = getGradingInstructionsForLevel(question.level);
+  const levelLabel = question.level || 'dit niveau';
 
   if (question.type === 'MULTIPLE_CHOICE') {
     const ansIdx = studentAnswer as number;
@@ -152,7 +205,7 @@ async function generateExplanation(question: any, studentAnswer: number | string
     const escapedCorrectAnsText = escapePromptString(correctAnsText);
 
     prompt = `
-      Je bent een behulpzame leraar. De leerling maakte een meerkeuzevraag.
+      Je bent een behulpzame leraar voor ${levelLabel} leerlingen. De leerling maakte een meerkeuzevraag.
 
       Vraag: "${escapedQuestionText}"
       Onderwerp: ${escapedSubject}
@@ -161,7 +214,7 @@ async function generateExplanation(question: any, studentAnswer: number | string
       Juist antwoord: "${escapedCorrectAnsText}"
       Resultaat: ${isCorrect ? 'Correct' : 'Fout'}
 
-      Geef uitleg (max 3 zinnen). Als het fout is, leg uit waarom het goede antwoord juist is.
+      Geef uitleg (max 3 zinnen) op ${levelLabel} niveau. Als het fout is, leg uit waarom het goede antwoord juist is.
       Antwoord in het Nederlands.
     `;
   } else {
@@ -173,7 +226,7 @@ async function generateExplanation(question: any, studentAnswer: number | string
     const escapedAnsText = escapePromptString(ansText);
 
     prompt = `
-      Je bent een strenge maar eerlijke leraar die een open vraag nakijkt.
+      Je bent een leraar die een open vraag nakijkt voor ${levelLabel} leerlingen.
 
       Vraag: "${escapedQuestionText}"
       Onderwerp: ${escapedSubject}
@@ -181,9 +234,10 @@ async function generateExplanation(question: any, studentAnswer: number | string
       Modelantwoord (gebruik dit als referentie voor correctheid): "${escapedModelAnswer}"
 
       Het antwoord van de leerling: "${escapedAnsText}"
+      ${gradingInstructions}
 
       Opdracht:
-      1. Beoordeel of het antwoord van de leerling inhoudelijk overeenkomt met het modelantwoord.
+      1. Beoordeel het antwoord volgens de beoordelingscriteria hierboven.
       2. Begin met "CORRECT", "DEELS CORRECT" of "INCORRECT".
       3. Geef daarna een korte uitleg (max 3 zinnen) waarom, en wat er eventueel mist.
 
@@ -801,9 +855,10 @@ async function gradeOpenQuestion(
   const escapedQuestionText = escapePromptString(question.text);
   const escapedModelAnswer = escapePromptString(question.modelAnswer);
   const escapedStudentAnswer = escapePromptString(studentAnswer);
+  const gradingInstructions = getGradingInstructionsForLevel(question.level);
 
   const prompt = `
-    Je bent een strenge maar eerlijke examinator die een open vraag nakijkt.
+    Je bent een examinator die een open vraag nakijkt.
     Beoordeel ALLEEN op inhoudelijke correctheid, niet op spelling of grammatica.
 
     VRAAG: "${escapedQuestionText}"
@@ -811,11 +866,7 @@ async function gradeOpenQuestion(
     MODELANTWOORD (de standaard voor correctheid): "${escapedModelAnswer}"
 
     ANTWOORD VAN LEERLING: "${escapedStudentAnswer}"
-
-    BEOORDELING CRITERIA:
-    - CORRECT: Antwoord bevat alle essentiële elementen van het modelantwoord
-    - DEELS CORRECT: Antwoord bevat sommige essentiële elementen maar mist belangrijke onderdelen
-    - INCORRECT: Antwoord mist de essentiële elementen of is feitelijk onjuist
+    ${gradingInstructions}
 
     Geef je antwoord als JSON:
     {
