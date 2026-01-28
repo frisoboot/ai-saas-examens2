@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Question, StudentLevel } from '../types';
 import { getQuestions, saveQuestion } from '../services/storageService';
 import { Button } from './Button';
@@ -31,7 +31,7 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [notificationId, setNotificationId] = useState(0);
+  const notificationId = useRef(0);
 
   // Filters
   const [filterSubject, setFilterSubject] = useState<string>('');
@@ -43,13 +43,12 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
   const [previewQuestion, setPreviewQuestion] = useState<Question | null>(null);
 
   const showNotification = useCallback((type: Notification['type'], message: string) => {
-    const id = notificationId + 1;
-    setNotificationId(id);
+    const id = ++notificationId.current;
     setNotifications(prev => [...prev, { type, message, id }]);
     setTimeout(() => {
       setNotifications(prev => prev.filter(n => n.id !== id));
     }, 4000);
-  }, [notificationId]);
+  }, []);
 
   const loadQuestions = useCallback(async () => {
     setLoading(true);
