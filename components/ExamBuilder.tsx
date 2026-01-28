@@ -18,6 +18,7 @@ interface QuestionDraft extends Partial<Question> {
   text: string;
   type: QuestionType;
   questionNumber?: number;
+  hasImage?: boolean;
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
@@ -48,6 +49,7 @@ interface JsonQuestion {
   correctIndex?: number;
   modelAnswer?: string;
   imageUrl?: string;
+  hasImage?: boolean;  // Mark that this question needs an image (for later upload)
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
@@ -78,14 +80,24 @@ const generateJsonTemplate = (): string => {
         text: "Wat was de belangrijkste oorzaak van de Eerste Wereldoorlog?",
         contextText: "Lees de onderstaande bron over het begin van WO1.",
         options: ["De moord op Frans Ferdinand", "Economische rivaliteit", "Koloniale spanningen", "Nationalisme"],
-        correctIndex: 0
+        correctIndex: 0,
+        hasImage: false
       },
       {
         questionNumber: 2,
         type: "OPEN",
-        text: "Leg uit waarom de industriële revolutie begon in Engeland.",
+        text: "Bekijk de afbeelding en leg uit waarom de industriële revolutie begon in Engeland.",
         contextText: "Gebruik minimaal drie argumenten in je antwoord.",
-        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde."
+        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde.",
+        hasImage: true
+      },
+      {
+        questionNumber: 3,
+        type: "MULTIPLE_CHOICE",
+        text: "Welke grafiek toont de bevolkingsgroei van Nederland in de 19e eeuw?",
+        options: ["Grafiek A", "Grafiek B", "Grafiek C", "Grafiek D"],
+        correctIndex: 1,
+        hasImage: true
       }
     ]
   };
@@ -320,6 +332,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       correctIndex: 0,
       contextText: '',
       imageUrl: '',
+      hasImage: false,
       modelAnswer: '',
       questionNumber: undefined,
       worksheetUrl: '',
@@ -418,6 +431,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         questionNumber: q.questionNumber || (questions.length + index + 1),
         contextText: q.contextText || '',
         imageUrl: q.imageUrl || '',
+        hasImage: q.hasImage || false,
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
         correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
         modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
@@ -572,6 +586,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,
+          hasImage: draft.hasImage || !!draft.imageUrl, // Mark as hasImage if checkbox is checked OR if image is uploaded
           worksheetUrl: draft.worksheetUrl,
           worksheetLabel: draft.worksheetLabel,
           requiresWorksheet: draft.requiresWorksheet,
@@ -1096,7 +1111,31 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Afbeelding (optioneel)</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Afbeelding</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={currentQuestion.hasImage || false}
+                      onChange={(e) => setCurrentQuestion({
+                        ...currentQuestion,
+                        hasImage: e.target.checked
+                      })}
+                      className="w-4 h-4 rounded border-indigo-300 text-indigo-600"
+                    />
+                    <span className="text-sm text-indigo-700 font-medium">
+                      Heeft afbeelding (later toevoegen)
+                    </span>
+                  </label>
+                </div>
+
+                {currentQuestion.hasImage && !currentQuestion.imageUrl && (
+                  <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700 flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4" />
+                    Deze vraag wordt gemarkeerd voor afbeelding - je kunt deze later toevoegen via het Afbeeldingen Overzicht.
+                  </div>
+                )}
+
                 <input
                   type="file"
                   accept="image/*"
@@ -1511,9 +1550,13 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         <span className="ml-2 text-xs font-normal text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
                           {q.type === 'MULTIPLE_CHOICE' ? 'Meerkeuze' : 'Open'}
                         </span>
-                        {q.imageUrl && (
+                        {q.imageUrl ? (
                           <span className="ml-2 text-xs font-normal text-green-600 bg-green-100 px-2 py-0.5 rounded">
                             Afbeelding
+                          </span>
+                        ) : q.hasImage && (
+                          <span className="ml-2 text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
+                            Afbeelding nodig
                           </span>
                         )}
                         {q.contextText && (

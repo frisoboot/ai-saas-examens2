@@ -24,6 +24,7 @@ export interface Question {
 
   // Media & Source
   imageUrl?: string;
+  hasImage?: boolean;  // Mark that this question needs an image (for quick entry workflow)
   source?: string;
 
   // Worksheet/attachment for questions that need external materials (e.g., Binas tables)
@@ -125,6 +126,7 @@ export interface BulkImportQuestion {
   correctAnswer?: string; // Will be converted to correctIndex
   modelAnswer?: string;
   imageUrl?: string; // Base64 string
+  hasImage?: boolean; // Mark that this question needs an image
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
