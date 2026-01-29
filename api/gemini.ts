@@ -108,7 +108,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
     res.setHeader('X-RateLimit-Limit', String(rateLimits.aiApi.maxRequests));
     res.setHeader('X-RateLimit-Remaining', '0');
-    res.setHeader('X-RateLimit-Reset', String(rateLimitResult.resetTime));
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
     return res.status(429).json({
       error: 'Te veel verzoeken. Probeer het later opnieuw.',
       retryAfter: rateLimitResult.retryAfter
@@ -118,7 +118,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Add rate limit headers to successful responses
   res.setHeader('X-RateLimit-Limit', String(rateLimits.aiApi.maxRequests));
   res.setHeader('X-RateLimit-Remaining', String(rateLimitResult.remaining));
-  res.setHeader('X-RateLimit-Reset', String(rateLimitResult.resetTime));
+  res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
 
   try {
     const { action, payload } = req.body;

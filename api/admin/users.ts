@@ -39,18 +39,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  // Rate limiting - prevent brute force attacks on admin endpoints
-  const clientIP = getClientIP(req);
-  const rateLimitResult = checkRateLimit(`admin:${clientIP}`, rateLimits.general);
-
-  if (!rateLimitResult.allowed) {
-    res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
-    return res.status(429).json({
-      error: 'Te veel verzoeken. Probeer het later opnieuw.',
-      retryAfter: rateLimitResult.retryAfter
-    });
-  }
-
   try {
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -78,6 +66,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (!isAdminEmail(user.email)) {
       return res.status(403).json({ error: 'Geen admin rechten' });
+    }
+
+    // Rate limiting - apply after authentication to prevent quota exhaustion by unauthenticated requests
+    const clientIP = getClientIP(req);
+    const rateLimitResult = checkRateLimit(`admin:${clientIP}`, rateLimits.general);
+
+    if (!rateLimitResult.allowed) {
+      res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
+      return res.status(429).json({
+        error: 'Te veel verzoeken. Probeer het later opnieuw.',
+        retryAfter: rateLimitResult.retryAfter
+      });
     }
 
     // GET - Haal alle studenten op
