@@ -90,7 +90,7 @@ const AppContent: React.FC = () => {
     isActive: true
   };
 
-  const startExam = async (subject: string, year?: number) => {
+  const startExam = async (subject: string, year?: number, timeLimit?: number) => {
     try {
       const allQuestions = await getQuestions();
       let subjectQuestions = allQuestions.filter(q =>
@@ -117,7 +117,8 @@ const AppContent: React.FC = () => {
         currentQuestionIndex: 0,
         answers: {},
         examType: year ? 'official_exam' : 'subject_practice',
-        startTime: Date.now()
+        startTime: Date.now(),
+        timeLimit // Time limit in minutes (0 = no limit)
       });
       navigate('/exam');
     } catch (error) {
@@ -252,7 +253,7 @@ const AppContent: React.FC = () => {
         answers: {},
         examType: 'ai_practice',
         startTime: Date.now(),
-        timeLimit: timeLimit || undefined // Time limit in minutes (0 = no limit)
+        timeLimit // Time limit in minutes (0 = no limit)
       });
       navigate('/exam');
     } catch (error: any) {
