@@ -316,7 +316,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   {availableYears.map(year => (
                     <button
                       key={year}
-                      onClick={() => onStartExam(year, examTimeLimit || undefined)}
+                      onClick={() => onStartExam(year, examTimeLimit)}
                       className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -343,7 +343,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
 
                   {/* Random exam option */}
                   <button
-                    onClick={() => onStartExam(undefined, examTimeLimit || undefined)}
+                    onClick={() => onStartExam(undefined, examTimeLimit)}
                     className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                   >
                     <div className="flex items-center gap-2 mb-1">

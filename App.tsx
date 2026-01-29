@@ -118,7 +118,7 @@ const AppContent: React.FC = () => {
         answers: {},
         examType: year ? 'official_exam' : 'subject_practice',
         startTime: Date.now(),
-        timeLimit: timeLimit || undefined // Time limit in minutes (0 = no limit)
+        timeLimit // Time limit in minutes (0 = no limit)
       });
       navigate('/exam');
     } catch (error) {
@@ -253,7 +253,7 @@ const AppContent: React.FC = () => {
         answers: {},
         examType: 'ai_practice',
         startTime: Date.now(),
-        timeLimit: timeLimit || undefined // Time limit in minutes (0 = no limit)
+        timeLimit // Time limit in minutes (0 = no limit)
       });
       navigate('/exam');
     } catch (error: any) {
