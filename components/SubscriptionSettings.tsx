@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { checkSubscription, cancelSubscription, SubscriptionStatus } from '../services/subscriptionService';
+import { SubjectPackageSettings } from './SubjectPackageSettings';
 
 interface SubscriptionSettingsProps {
   userEmail: string;
@@ -136,19 +137,24 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="text-xl font-bold text-slate-900">Abonnement Instellingen</h1>
+          <h1 className="text-xl font-bold text-slate-900">Instellingen</h1>
         </div>
       </header>
 
       <main className="max-w-3xl mx-auto px-4 py-8">
-        {loading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-4" />
-              <p className="text-slate-500">Abonnement laden...</p>
+        <div className="space-y-8">
+          {/* Subject Package Settings */}
+          <SubjectPackageSettings userEmail={userEmail} />
+
+          {/* Subscription Settings */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 text-indigo-600 animate-spin mx-auto mb-4" />
+                <p className="text-slate-500">Abonnement laden...</p>
+              </div>
             </div>
-          </div>
-        ) : (
+          ) : (
           <div className="space-y-6">
             {/* Status Card */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -349,6 +355,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
             </div>
           </div>
         )}
+        </div>
       </main>
     </div>
   );

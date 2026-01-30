@@ -7,6 +7,7 @@ import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
 import { SUBJECTS } from '../constants/subjects';
+import { getVisibleSubjects } from '../services/subjectPreferencesService';
 
 interface StudentDashboardProps {
   student: StudentProfile;
@@ -34,6 +35,16 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
+  // Get visible subjects based on user preferences
+  // Re-compute on every mount (e.g. when returning from settings)
+  const [visibleSubjects, setVisibleSubjects] = useState<readonly string[]>(SUBJECTS);
+
+  useEffect(() => {
+    if (student.email) {
+      setVisibleSubjects(getVisibleSubjects(student.email));
+    }
+  }, [student.email]);
+
   useEffect(() => {
     const loadQuestions = async () => {
       try {
@@ -45,6 +56,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       }
     };
     loadQuestions();
+
+    // Refresh visible subjects when returning to dashboard
+    if (student.email) {
+      setVisibleSubjects(getVisibleSubjects(student.email));
+    }
   }, []);
 
   // Get exam question counts per subject (for display only)
@@ -187,7 +203,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {SUBJECTS.map((subject) => {
+                {visibleSubjects.map((subject) => {
                   const examCount = examCounts.get(subject) || 0;
                   const Icon = getSubjectIcon(subject);
                   const colorClass = getSubjectColor(subject);
