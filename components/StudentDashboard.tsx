@@ -6,7 +6,7 @@ import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } fr
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
-import { SUBJECTS } from '../constants/subjects';
+import { getVisibleSubjects } from '../services/subjectPreferencesService';
 
 interface StudentDashboardProps {
   student: StudentProfile;
@@ -33,6 +33,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+
+  // Get visible subjects based on user preferences (from profile in database)
+  const visibleSubjects = useMemo(() => {
+    return getVisibleSubjects(student.selectedSubjects);
+  }, [student.selectedSubjects]);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -187,7 +192,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               </header>
 
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {SUBJECTS.map((subject) => {
+                {visibleSubjects.map((subject) => {
                   const examCount = examCounts.get(subject) || 0;
                   const Icon = getSubjectIcon(subject);
                   const colorClass = getSubjectColor(subject);

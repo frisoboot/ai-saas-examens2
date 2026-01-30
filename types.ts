@@ -78,6 +78,7 @@ export interface StudentProfile {
   email?: string;
   isActive?: boolean;
   isAdmin?: boolean; // Admin role flag for RLS
+  selectedSubjects?: string[] | null; // Selected subjects for dashboard, null = show all
 }
 
 export type ViewState = 'PUBLIC_LANDING' | 'LOGIN' | 'CHECKOUT' | 'PAYMENT_CALLBACK' | 'PAYMENT_SUCCESS' | 'LANDING' | 'ADMIN' | 'STUDENT_DASHBOARD' | 'EXAM' | 'SUBJECT_CHAT' | 'FLASHCARD_STUDY' | 'SETTINGS';
