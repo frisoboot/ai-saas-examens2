@@ -1,38 +1,22 @@
-import { Subject, SUBJECTS } from '../constants/subjects';
+import { SUBJECTS } from '../constants/subjects';
+import { dbStudents } from './supabaseService';
 
-export interface SubjectPreferences {
-  showAll: boolean;
-  selectedSubjects: string[];
+/**
+ * Save the selected subjects for a user to the database.
+ * Pass null to show all subjects.
+ */
+export async function saveSelectedSubjects(email: string, selectedSubjects: string[] | null): Promise<void> {
+  await dbStudents.updateSelectedSubjects(email, selectedSubjects);
 }
 
-const STORAGE_KEY_PREFIX = 'subject_preferences_';
-
-function getStorageKey(email: string): string {
-  return `${STORAGE_KEY_PREFIX}${email.toLowerCase()}`;
-}
-
-export function getSubjectPreferences(email: string): SubjectPreferences {
-  try {
-    const raw = localStorage.getItem(getStorageKey(email));
-    if (!raw) {
-      return { showAll: true, selectedSubjects: [...SUBJECTS] };
-    }
-    const parsed = JSON.parse(raw) as SubjectPreferences;
-    return parsed;
-  } catch {
-    return { showAll: true, selectedSubjects: [...SUBJECTS] };
-  }
-}
-
-export function saveSubjectPreferences(email: string, prefs: SubjectPreferences): void {
-  localStorage.setItem(getStorageKey(email), JSON.stringify(prefs));
-}
-
-export function getVisibleSubjects(email: string): readonly string[] {
-  const prefs = getSubjectPreferences(email);
-  if (prefs.showAll) {
+/**
+ * Get the list of visible subjects based on the profile's selectedSubjects field.
+ * If selectedSubjects is null or undefined, all subjects are shown.
+ */
+export function getVisibleSubjects(selectedSubjects: string[] | null | undefined): readonly string[] {
+  if (!selectedSubjects || selectedSubjects.length === 0) {
     return SUBJECTS;
   }
   // Return in the same order as SUBJECTS
-  return SUBJECTS.filter(s => prefs.selectedSubjects.includes(s));
+  return SUBJECTS.filter(s => selectedSubjects.includes(s));
 }

@@ -327,7 +327,8 @@ const mapDbToProfile = (row: any): StudentProfile | null => {
     strugglePoints: row.struggle_points || '',
     email: row.email,
     isActive: row.is_active ?? true,
-    isAdmin: row.is_admin ?? false
+    isAdmin: row.is_admin ?? false,
+    selectedSubjects: row.selected_subjects ?? null
   };
 };
 
@@ -339,7 +340,7 @@ export const dbStudents = {
     }
 
     // Converteer naar database format (snake_case)
-    const dbData = {
+    const dbData: Record<string, any> = {
       email: profile.email,
       name: profile.name,
       level: profile.level,
@@ -348,6 +349,11 @@ export const dbStudents = {
       // NOTE: is_admin is protected by RLS policy - normal users can't change it
       is_admin: profile.isAdmin ?? false
     };
+
+    // Only include selected_subjects if explicitly set (avoid overwriting with undefined)
+    if (profile.selectedSubjects !== undefined) {
+      dbData.selected_subjects = profile.selectedSubjects;
+    }
 
     const { data, error } = await supabase
       .from(TABLES.STUDENTS)
@@ -417,6 +423,22 @@ export const dbStudents = {
 
     if (error) {
       console.error('Fout bij verwijderen student profiel:', error);
+      throw error;
+    }
+  },
+
+  async updateSelectedSubjects(email: string, selectedSubjects: string[] | null): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { error } = await supabase
+      .from(TABLES.STUDENTS)
+      .update({ selected_subjects: selectedSubjects })
+      .eq('email', email);
+
+    if (error) {
+      console.error('Fout bij opslaan vakkenpakket:', error);
       throw error;
     }
   }

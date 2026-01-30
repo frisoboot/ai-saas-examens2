@@ -6,7 +6,6 @@ import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } fr
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
-import { SUBJECTS } from '../constants/subjects';
 import { getVisibleSubjects } from '../services/subjectPreferencesService';
 
 interface StudentDashboardProps {
@@ -35,15 +34,10 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
 
-  // Get visible subjects based on user preferences
-  // Re-compute on every mount (e.g. when returning from settings)
-  const [visibleSubjects, setVisibleSubjects] = useState<readonly string[]>(SUBJECTS);
-
-  useEffect(() => {
-    if (student.email) {
-      setVisibleSubjects(getVisibleSubjects(student.email));
-    }
-  }, [student.email]);
+  // Get visible subjects based on user preferences (from profile in database)
+  const visibleSubjects = useMemo(() => {
+    return getVisibleSubjects(student.selectedSubjects);
+  }, [student.selectedSubjects]);
 
   useEffect(() => {
     const loadQuestions = async () => {
@@ -56,11 +50,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       }
     };
     loadQuestions();
-
-    // Refresh visible subjects when returning to dashboard
-    if (student.email) {
-      setVisibleSubjects(getVisibleSubjects(student.email));
-    }
   }, []);
 
   // Get exam question counts per subject (for display only)
