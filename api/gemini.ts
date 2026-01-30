@@ -2,6 +2,7 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
 import { setCorsHeaders } from './utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
 
 /**
  * Gemini API Endpoint - Server-side AI calls via Vercel AI Gateway
@@ -98,6 +99,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Rate limiting - prevent AI API abuse
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(`ai:${clientIP}`, rateLimits.aiApi);
+
+  if (!rateLimitResult.allowed) {
+    res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
+    res.setHeader('X-RateLimit-Limit', String(rateLimits.aiApi.maxRequests));
+    res.setHeader('X-RateLimit-Remaining', '0');
+    res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
+    return res.status(429).json({
+      error: 'Te veel verzoeken. Probeer het later opnieuw.',
+      retryAfter: rateLimitResult.retryAfter
+    });
+  }
+
+  // Add rate limit headers to successful responses
+  res.setHeader('X-RateLimit-Limit', String(rateLimits.aiApi.maxRequests));
+  res.setHeader('X-RateLimit-Remaining', String(rateLimitResult.remaining));
+  res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
 
   try {
     const { action, payload } = req.body;
