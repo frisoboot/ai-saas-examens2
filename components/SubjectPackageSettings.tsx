@@ -58,6 +58,12 @@ export const SubjectPackageSettings: React.FC<SubjectPackageSettingsProps> = ({
     const updated = selectedSubjects.includes(subject)
       ? selectedSubjects.filter(s => s !== subject)
       : [...selectedSubjects, subject];
+    
+    // Don't allow saving an empty selection - user must select at least 1 subject
+    if (updated.length === 0) {
+      return;
+    }
+    
     setSelectedSubjects(updated);
     await persist(updated);
   };
@@ -68,8 +74,10 @@ export const SubjectPackageSettings: React.FC<SubjectPackageSettingsProps> = ({
   };
 
   const handleDeselectAll = async () => {
+    // Don't allow saving an empty selection - user must select at least 1 subject
+    // The warning message already communicates this requirement
     setSelectedSubjects([]);
-    await persist([]);
+    // Note: persist([]) is intentionally NOT called here to prevent saving invalid state
   };
 
   const selectedCount = showAll ? SUBJECTS.length : selectedSubjects.length;
@@ -131,7 +139,7 @@ export const SubjectPackageSettings: React.FC<SubjectPackageSettingsProps> = ({
                 <span className="text-slate-300">|</span>
                 <button
                   onClick={handleDeselectAll}
-                  disabled={saving}
+                  disabled={saving || selectedCount === 0}
                   className="text-xs text-slate-500 hover:text-slate-700 font-medium disabled:opacity-50"
                 >
                   Alles deselecteren
