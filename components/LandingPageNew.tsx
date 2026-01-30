@@ -13,8 +13,6 @@ import {
   TrendingUp,
   Users,
   ChevronDown,
-  Star,
-  Play,
   Shield,
   Award,
   ArrowRight,
@@ -211,12 +209,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 <span className="flex items-center gap-2">
                   Start gratis
                   <ArrowRight className="w-5 h-5" />
-                </span>
-              </StyledButton>
-              <StyledButton onClick={() => scrollToSection('demo')} variant="secondary">
-                <span className="flex items-center gap-2">
-                  <Play className="w-5 h-5" />
-                  Bekijk demo
                 </span>
               </StyledButton>
             </div>
@@ -491,78 +483,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
                 <p className="text-slate-400 text-lg leading-relaxed">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-32 px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
-              Ervaringen
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
-              Wat leerlingen zeggen
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
-            {[
-              {
-                name: 'Sophie de Vries',
-                school: 'HAVO 5 · Amsterdam',
-                text: 'Mijn cijfer voor wiskunde ging van een 5 naar een 7,5. De uitleg bij de vragen is echt super duidelijk en persoonlijk!',
-                avatar: 'S',
-                gradient: 'from-pink-500 to-rose-500'
-              },
-              {
-                name: 'Tim Bakker',
-                school: 'VWO 6 · Utrecht',
-                text: 'Ik gebruik het voor 4 vakken tegelijk. Fijn dat alles op één plek staat en de AI echt snapt waar ik moeite mee heb.',
-                avatar: 'T',
-                gradient: 'from-indigo-500 to-purple-500'
-              },
-              {
-                name: 'Emma Jansen',
-                school: 'VMBO-TL 4 · Rotterdam',
-                text: 'De flashcards zijn perfect voor het leren van begrippen. Ik kan nu overal oefenen, zelfs in de trein!',
-                avatar: 'E',
-                gradient: 'from-emerald-500 to-teal-500'
-              },
-              {
-                name: 'Marieke van Dijk',
-                school: 'Moeder van HAVO-leerling',
-                text: 'Eindelijk minder stress thuis rond de examens. Mijn dochter oefent zelfstandig en ik zie duidelijke verbetering in haar cijfers.',
-                avatar: 'M',
-                gradient: 'from-amber-500 to-orange-500'
-              },
-              {
-                name: 'Dhr. de Jong',
-                school: 'Wiskundedocent · Den Haag',
-                text: 'Bespaart mij enorm veel tijd. Leerlingen komen beter voorbereid naar de les en de resultaten van mijn klas zijn zichtbaar verbeterd.',
-                avatar: 'J',
-                gradient: 'from-cyan-500 to-blue-500'
-              }
-            ].map((testimonial, index) => (
-              <div key={index} className="glass-card rounded-3xl p-8 scroll-reveal hover:shadow-xl transition-shadow duration-300">
-                <div className="flex items-center gap-1 mb-6">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-700 text-lg mb-8 leading-relaxed">"{testimonial.text}"</p>
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${testimonial.gradient} rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-lg`}>
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900">{testimonial.name}</p>
-                    <p className="text-slate-500">{testimonial.school}</p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>
