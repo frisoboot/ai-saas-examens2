@@ -16,7 +16,6 @@ import {
   Heart,
   Users,
   ChevronDown,
-  Star,
   Play
 } from 'lucide-react';
 
@@ -272,58 +271,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                 </div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-3">{item.title}</h3>
                 <p className="text-gray-600">{item.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials */}
-      <section className="py-24 px-6 lg:px-8">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
-              Wat leerlingen zeggen
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                name: 'Sophie',
-                school: 'HAVO 5',
-                text: 'Mijn cijfer voor wiskunde ging van een 5 naar een 7. De uitleg bij de vragen is echt super duidelijk!',
-                avatar: 'S'
-              },
-              {
-                name: 'Tim',
-                school: 'VWO 6',
-                text: 'Ik gebruik het voor 4 vakken tegelijk. Fijn dat alles op één plek staat en de AI echt helpt.',
-                avatar: 'T'
-              },
-              {
-                name: 'Emma',
-                school: 'VMBO-TL 4',
-                text: 'De flashcards zijn perfect voor het leren van begrippen. Aanrader voor iedereen!',
-                avatar: 'E'
-              }
-            ].map((testimonial, index) => (
-              <div key={index} className="bg-white rounded-2xl p-6 border border-gray-100">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-gray-700 mb-6 leading-relaxed">"{testimonial.text}"</p>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center text-white font-medium">
-                    {testimonial.avatar}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{testimonial.name}</p>
-                    <p className="text-sm text-gray-500">{testimonial.school}</p>
-                  </div>
-                </div>
               </div>
             ))}
           </div>
