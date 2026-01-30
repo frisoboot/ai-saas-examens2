@@ -69,8 +69,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Rate limiting - apply after authentication to prevent quota exhaustion by unauthenticated requests
-    const clientIP = getClientIP(req);
-    const rateLimitResult = checkRateLimit(`admin:${clientIP}`, rateLimits.general);
+    // Use user.id for per-user quotas instead of IP, preventing one admin from blocking others
+    const rateLimitResult = checkRateLimit(`admin:${user.id}`, rateLimits.general);
 
     if (!rateLimitResult.allowed) {
       res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
