@@ -147,26 +147,6 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
   };
 };
 
-// Generate AI practice questions
-export const generateAIQuestions = async (
-  subject: string,
-  level: string,
-  count: number = 10,
-  topic?: string
-): Promise<Question[]> => {
-  try {
-    return await callGeminiAPI<Question[]>('generateQuestions', {
-      subject,
-      level,
-      count,
-      topic,
-    });
-  } catch (error: any) {
-    console.error("Fout bij genereren AI vragen:", error);
-    throw new Error(error.message || "Kon geen AI vragen genereren. Controleer je internetverbinding en probeer het opnieuw.");
-  }
-};
-
 // Generate exam summary with feedback and tips
 export const generateExamSummary = async (
   questions: Question[],

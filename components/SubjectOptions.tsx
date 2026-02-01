@@ -3,7 +3,6 @@ import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap, Clock } from 'lucide-react';
 import { StudentProfile } from '../types';
 import { getAvailableYearsForSubject, getQuestionCountBySubjectAndYear } from '../services/storageService';
-import { AIGeneratorMenu } from './AIGeneratorMenu';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
@@ -13,7 +12,6 @@ interface SubjectOptionsProps {
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartAIQuestions: (count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartExam: (year?: number, timeLimit?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
   onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
@@ -24,14 +22,13 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   student,
   onBack,
   onStartChat,
-  onStartAIQuestions,
   onStartExam,
   onStartFlashcards,
   onStartLookalikeExam
 }) => {
   const [availableYears, setAvailableYears] = useState<number[]>([]);
   const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
-  const [view, setView] = useState<'default' | 'ai-setup' | 'flashcard-setup' | 'lookalike-setup'>('default');
+  const [view, setView] = useState<'default' | 'flashcard-setup' | 'lookalike-setup'>('default');
   const [examTimeLimit, setExamTimeLimit] = useState<number>(0);
   const [showTimerOptions, setShowTimerOptions] = useState(false);
 
@@ -66,17 +63,6 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
     };
     loadYears();
   }, [subject, student.level]);
-
-  if (view === 'ai-setup') {
-    return (
-      <AIGeneratorMenu
-        subject={subject}
-        studentLevel={student.level}
-        onBack={() => setView('default')}
-        onGenerate={onStartAIQuestions}
-      />
-    );
-  }
 
   if (view === 'flashcard-setup') {
     return (
@@ -148,30 +134,6 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   <span className="text-slate-300">•</span>
                   <Sparkles className="w-4 h-4" />
                   <span>AI Powered</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* AI Gegenereerde Toetsen */}
-          <div
-            onClick={() => setView('ai-setup')}
-            className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 cursor-pointer"
-          >
-            <div className="flex items-start gap-6">
-              <div className={`w-14 h-14 rounded-2xl ${subjectColorClass} flex items-center justify-center group-hover:scale-110 transition-all duration-300 shadow-sm flex-shrink-0`}>
-                <SubjectIcon className="w-7 h-7" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">AI Examen Generator</h3>
-                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
-                  De AI genereert nieuwe {subject} eindexamenvragen op {student.level} niveau. Kies hoeveel vragen je wilt maken.
-                </p>
-                <div className="flex items-center gap-2 text-sm text-slate-500">
-                  <Sparkles className="w-4 h-4" />
-                  <span>AI Toetsen</span>
-                  <span className="text-slate-300">•</span>
-                  <span>Altijd nieuwe vragen</span>
                 </div>
               </div>
             </div>
