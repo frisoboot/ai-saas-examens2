@@ -17,16 +17,6 @@ const isAdminEmail = (email: string | undefined): boolean => {
   return adminEmails.includes(email.toLowerCase());
 };
 
-// Genereer een veilig random wachtwoord
-const generatePassword = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
-  let password = '';
-  for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-};
-
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers direct in de functie
   const origin = req.headers.origin || '*';
@@ -102,10 +92,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // POST - Maak nieuwe student aan
     if (req.method === 'POST') {
-      const { email, name, level, customPassword } = req.body;
+      const { email, name, level, password } = req.body;
 
-      if (!email || !name || !level) {
-        return res.status(400).json({ error: 'Email, naam en niveau zijn verplicht' });
+      if (!email || !name || !level || !password) {
+        return res.status(400).json({ error: 'Email, naam, niveau en wachtwoord zijn verplicht' });
+      }
+
+      if (typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
       }
 
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -116,17 +110,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const validLevels = ['VMBO-TL', 'HAVO', 'VWO'];
       if (!validLevels.includes(level)) {
         return res.status(400).json({ error: 'Ongeldig niveau' });
-      }
-
-      // Gebruik custom wachtwoord als meegegeven, anders genereer er een
-      let password: string;
-      if (customPassword && customPassword.trim().length > 0) {
-        if (customPassword.length < 8) {
-          return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
-        }
-        password = customPassword;
-      } else {
-        password = generatePassword();
       }
       const cleanEmail = email.trim().toLowerCase();
       const cleanName = name.trim();
@@ -171,8 +154,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(201).json({
         success: true,
         message: 'Student succesvol aangemaakt',
-        user: { id: newUser.user.id, email: cleanEmail, name: cleanName, level },
-        temporaryPassword: password
+        user: { id: newUser.user.id, email: cleanEmail, name: cleanName, level }
       });
     }
 
