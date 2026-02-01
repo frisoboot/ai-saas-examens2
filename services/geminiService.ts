@@ -6,16 +6,28 @@
  */
 
 import { Question, StudentProfile, Flashcard, StudentLevel } from "../types";
+import { supabase } from "./supabaseService";
 
 // API endpoint for server-side Gemini calls
 const GEMINI_API_ENDPOINT = '/api/gemini';
 
+/**
+ * Haal het huidige auth token op voor API calls
+ */
+async function getAuthToken(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
+
 // Helper function to call the Gemini API endpoint
 async function callGeminiAPI<T>(action: string, payload: Record<string, any>): Promise<T> {
+  const token = await getAuthToken();
   const response = await fetch(GEMINI_API_ENDPOINT, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
     },
     body: JSON.stringify({ action, payload }),
   });

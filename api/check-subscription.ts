@@ -9,6 +9,16 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from './utils/cors.js';
 
+// Check of email een admin is
+const isAdminEmail = (email: string | undefined): boolean => {
+  if (!email) return false;
+  const adminEmails = (process.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  return adminEmails.includes(email.toLowerCase());
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
   setCorsHeaders(res, req.headers.origin, 'GET,POST,OPTIONS');
@@ -31,6 +41,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
+    // Initialize Supabase client
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    });
+
+    // Verifieer authenticatie - gebruiker moet ingelogd zijn
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet geautoriseerd' });
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Ongeldige sessie' });
+    }
+
     // Haal email uit query params (GET) of body (POST)
     const email = req.method === 'GET'
       ? (req.query.email as string)
@@ -40,13 +71,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Email is verplicht' });
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    // Autorisatie: gebruiker mag alleen eigen subscription checken, tenzij admin
+    if (user.email?.toLowerCase() !== email.toLowerCase() && !isAdminEmail(user.email)) {
+      return res.status(403).json({ error: 'Geen rechten om dit abonnement te bekijken' });
+    }
 
     // Haal subscription op
     const { data: subscription, error } = await supabase
@@ -135,8 +163,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Check subscription error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis'
     });
   }
 }

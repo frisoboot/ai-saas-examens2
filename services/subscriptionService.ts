@@ -4,7 +4,18 @@
  * Handelt alle subscription-gerelateerde API calls af.
  */
 
+import { supabase } from './supabaseService';
+
 const API_BASE = import.meta.env.VITE_API_URL || '';
+
+/**
+ * Haal het huidige auth token op voor API calls
+ */
+async function getAuthToken(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token || null;
+}
 
 export interface SubscriptionStatus {
   hasAccess: boolean;
@@ -42,7 +53,12 @@ export interface PaymentStatusResponse {
  */
 export async function checkSubscription(email: string): Promise<SubscriptionStatus> {
   try {
-    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`);
+    const token = await getAuthToken();
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`, { headers });
     const data = await response.json();
 
     if (!response.ok) {
@@ -115,10 +131,12 @@ export async function cancelSubscription(email: string): Promise<{
   accessUntil?: string;
 }> {
   try {
+    const token = await getAuthToken();
     const response = await fetch(`${API_BASE}/api/cancel-subscription`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
       },
       body: JSON.stringify({ email })
     });

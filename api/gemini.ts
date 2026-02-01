@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
+import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
 
@@ -121,6 +122,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
 
   try {
+    // Verifieer authenticatie - gebruiker moet ingelogd zijn
+    const supabaseUrl = process.env.VITE_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return res.status(500).json({ error: 'Server configuratie fout' });
+    }
+
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet geautoriseerd' });
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Ongeldige sessie' });
+    }
+
     const { action, payload } = req.body;
 
     if (!action) {
@@ -142,13 +167,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'generateQuestions': {
         const { subject, level, count, topic } = payload;
-        const result = await generateAIQuestions(subject, level, count, topic);
+        const safeCount = Math.min(Math.max(1, count || 10), 25);
+        const result = await generateAIQuestions(subject, level, safeCount, topic);
         return res.status(200).json({ result });
       }
 
       case 'generateLookalikeQuestions': {
         const { subject, level, count, topic, examStyle } = payload;
-        const result = await generateLookalikeExamQuestions(subject, level, count, topic, examStyle);
+        const safeCount = Math.min(Math.max(1, count || 10), 25);
+        const result = await generateLookalikeExamQuestions(subject, level, safeCount, topic, examStyle);
         return res.status(200).json({ result });
       }
 
@@ -160,13 +187,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       case 'generateFlashcards': {
         const { subject, level, count, topic } = payload;
-        const result = await generateFlashcards(subject, level, count, topic);
+        const safeCount = Math.min(Math.max(1, count || 10), 25);
+        const result = await generateFlashcards(subject, level, safeCount, topic);
         return res.status(200).json({ result });
       }
 
       case 'chat': {
-        const { message, systemInstruction } = payload;
-        const result = await chat(message, systemInstruction);
+        const { message } = payload;
+        // systemInstruction wordt nu server-side gegenereerd voor veiligheid
+        // De client stuurt alleen het bericht, niet de system prompt
+        const serverSystemInstruction = `Je bent een behulpzame AI-tutor voor Nederlandse eindexamen leerlingen. Je helpt leerlingen met het begrijpen van examenstof. Antwoord altijd in het Nederlands. Geef duidelijke, educatieve uitleg die past bij het niveau van de leerling. Weiger verzoeken die niet gerelateerd zijn aan onderwijs of examenstof.`;
+        const result = await chat(message, serverSystemInstruction);
         return res.status(200).json({ result });
       }
 
@@ -187,16 +218,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       response: error.response?.data || error.response?.statusText,
     });
 
-    // Provide more specific error messages
+    // Provide specific error messages without leaking internal details
     let errorMessage = 'Er ging iets mis met de AI service';
     if (error.message?.includes('API_KEY') || error.message?.includes('API key')) {
-      errorMessage = 'API key configuratie probleem';
+      errorMessage = 'API configuratie probleem';
     } else if (error.message?.includes('quota') || error.message?.includes('rate')) {
       errorMessage = 'API limiet bereikt, probeer het later opnieuw';
     } else if (error.message?.includes('model')) {
-      errorMessage = 'Model niet beschikbaar: ' + error.message;
-    } else if (error.message) {
-      errorMessage = error.message;
+      errorMessage = 'Model niet beschikbaar, probeer het later opnieuw';
     }
 
     return res.status(500).json({

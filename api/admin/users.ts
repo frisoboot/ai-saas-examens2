@@ -5,6 +5,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import crypto from 'crypto';
+import { setCorsHeaders } from '../utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from '../utils/rateLimiter.js';
 
 // Check of email een admin is
@@ -17,23 +19,20 @@ const isAdminEmail = (email: string | undefined): boolean => {
   return adminEmails.includes(email.toLowerCase());
 };
 
-// Genereer een veilig random wachtwoord
+// Genereer een cryptografisch veilig random wachtwoord
 const generatePassword = (): string => {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789';
+  const randomBytes = crypto.randomBytes(16);
   let password = '';
   for (let i = 0; i < 16; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
+    password += chars.charAt(randomBytes[i] % chars.length);
   }
   return password;
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers direct in de functie
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS headers via gedeelde whitelist utility
+  setCorsHeaders(res, req.headers.origin, 'GET,POST,DELETE,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -228,6 +227,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error: any) {
-    return res.status(500).json({ error: 'Er ging iets mis', details: error.message });
+    return res.status(500).json({ error: 'Er ging iets mis' });
   }
 }

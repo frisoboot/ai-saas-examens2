@@ -10,6 +10,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
 
+// Check of email een admin is
+const isAdminEmail = (email: string | undefined): boolean => {
+  if (!email) return false;
+  const adminEmails = (process.env.VITE_ADMIN_EMAILS || '')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean);
+  return adminEmails.includes(email.toLowerCase());
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
   setCorsHeaders(res, req.headers.origin, 'POST,OPTIONS');
@@ -33,20 +43,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
+    // Verifieer authenticatie - gebruiker moet ingelogd zijn
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet geautoriseerd' });
+    }
+
+    const supabaseAuth = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token);
+
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Ongeldige sessie' });
+    }
+
     const { email } = req.body;
 
     if (!email) {
       return res.status(400).json({ error: 'Email is verplicht' });
     }
 
+    // Autorisatie: gebruiker mag alleen eigen subscription opzeggen, tenzij admin
+    if (user.email?.toLowerCase() !== email.toLowerCase() && !isAdminEmail(user.email)) {
+      return res.status(403).json({ error: 'Geen rechten om dit abonnement op te zeggen' });
+    }
+
     // Initialize clients
     const mollie = createMollieClient({ apiKey: mollieApiKey });
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const supabase = supabaseAuth;
 
     // Haal subscription op
     const { data: subscription, error } = await supabase
@@ -100,8 +127,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Cancel subscription error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis bij het opzeggen',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis bij het opzeggen'
     });
   }
 }

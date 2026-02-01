@@ -498,7 +498,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               {/* Section Introduction (only on first question of section) */}
               {showSectionIntro && (
                 <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
-                  <ReactMarkdown>{currentQuestion.sectionIntro}</ReactMarkdown>
+                  <ReactMarkdown skipHtml={true}>{currentQuestion.sectionIntro}</ReactMarkdown>
                 </div>
               )}
 
@@ -509,7 +509,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                     <span>Bronmateriaal</span>
                   </div>
                   <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                    <ReactMarkdown>{currentQuestion.contextText}</ReactMarkdown>
+                    <ReactMarkdown skipHtml={true}>{currentQuestion.contextText}</ReactMarkdown>
                   </div>
                 </>
               )}

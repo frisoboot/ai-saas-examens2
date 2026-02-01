@@ -26,16 +26,27 @@ function generateSecurePassword(): string {
 function decryptPassword(encryptedData: string, secretKey: string): string | null {
   try {
     const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
+
+    let salt: Buffer, iv: Buffer, authTag: Buffer, encrypted: string;
+
+    if (parts.length === 4) {
+      // Nieuw formaat: salt:iv:authTag:encrypted
+      salt = Buffer.from(parts[0], 'hex');
+      iv = Buffer.from(parts[1], 'hex');
+      authTag = Buffer.from(parts[2], 'hex');
+      encrypted = parts[3];
+    } else if (parts.length === 3) {
+      // Legacy formaat: iv:authTag:encrypted (hardcoded salt)
+      salt = Buffer.from('salt');
+      iv = Buffer.from(parts[0], 'hex');
+      authTag = Buffer.from(parts[1], 'hex');
+      encrypted = parts[2];
+    } else {
       console.error('Invalid encrypted password format');
       return null;
     }
 
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-
-    const key = crypto.scryptSync(secretKey, 'salt', 32);
+    const key = crypto.scryptSync(secretKey, salt, 32);
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);
 

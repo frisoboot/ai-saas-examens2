@@ -14,7 +14,8 @@ const ALLOWED_ORIGINS = [
 
 // Regex patterns voor dynamische origins (Vercel previews, localhost, development)
 const ALLOWED_PATTERNS = [
-  /^https:\/\/.*\.vercel\.app$/,
+  /^https:\/\/ai-saas-examens2[a-z0-9-]*\.vercel\.app$/,
+  /^https:\/\/ai-examentrainer[a-z0-9-]*\.vercel\.app$/,
   /^http:\/\/localhost:\d+$/,
   /^http:\/\/127\.0\.0\.1:\d+$/,
   /^http:\/\/\[::1\]:\d+$/,

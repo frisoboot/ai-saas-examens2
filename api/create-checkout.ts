@@ -23,15 +23,16 @@ import crypto from 'crypto';
  */
 function encryptPassword(password: string, secretKey: string): string {
   const iv = crypto.randomBytes(16);
-  const key = crypto.scryptSync(secretKey, 'salt', 32);
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(secretKey, salt, 32);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
   let encrypted = cipher.update(password, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag();
 
-  // Combineer IV + authTag + encrypted data
-  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+  // Combineer salt + IV + authTag + encrypted data
+  return salt.toString('hex') + ':' + iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
 interface CheckoutRequest {
@@ -96,9 +97,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
     }
 
+    // Level validatie (runtime check - TypeScript types gelden niet at runtime)
+    const validLevels = ['VMBO-TL', 'HAVO', 'VWO'];
+    if (!validLevels.includes(level)) {
+      return res.status(400).json({ error: 'Ongeldig niveau. Kies VMBO-TL, HAVO of VWO.' });
+    }
+
     // Password validatie
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 6 tekens zijn' });
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
     }
 
     // Initialize clients
@@ -220,8 +227,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Checkout error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis bij het starten van de checkout',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis bij het starten van de checkout'
     });
   }
 }

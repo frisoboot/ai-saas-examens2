@@ -210,7 +210,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                 <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
               </div>
               <div className="text-sm text-slate-700 prose prose-sm max-w-none prose-p:my-1">
-                <ReactMarkdown>{aiExplanation}</ReactMarkdown>
+                <ReactMarkdown skipHtml={true}>{aiExplanation}</ReactMarkdown>
               </div>
             </div>
           ) : (
