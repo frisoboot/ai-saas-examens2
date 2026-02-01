@@ -12,7 +12,6 @@ interface StudentDashboardProps {
   student: StudentProfile;
   onStartExam: (subject: string, year?: number, timeLimit?: number) => void;
   onStartChat: (subject: string) => void;
-  onStartAIQuestions: (subject: string, count: number, topic?: string, difficulty?: string, questionTypeMix?: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
   onLogout?: () => void;
@@ -24,7 +23,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   student,
   onStartExam,
   onStartChat,
-  onStartAIQuestions,
   onStartFlashcards,
   onStartLookalikeExam,
   onLogout,
@@ -71,9 +69,6 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         student={student}
         onBack={() => setSelectedSubject(null)}
         onStartChat={() => onStartChat(selectedSubject)}
-        onStartAIQuestions={(count, topic, difficulty, questionTypeMix) =>
-          onStartAIQuestions(selectedSubject, count, topic, difficulty, questionTypeMix)
-        }
         onStartExam={(year, timeLimit) => onStartExam(selectedSubject, year, timeLimit)}
         onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
         onStartLookalikeExam={(count, topic, examStyle, timeLimit) =>

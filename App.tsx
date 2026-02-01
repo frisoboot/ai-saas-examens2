@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ExamSession, StudentProfile, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
-import { generateAIQuestions, generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
+import { generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
@@ -124,53 +124,6 @@ const AppContent: React.FC = () => {
     } catch (error) {
       console.error('Fout bij ophalen vragen:', error);
       alert('Er ging iets mis bij het ophalen van de vragen.');
-    }
-  };
-
-  const startAIQuestions = async (
-    subject: string,
-    count: number = 10,
-    topic?: string,
-    difficulty?: string,
-    questionTypeMix?: string
-  ) => {
-    // Show loading feedback
-    console.log(`Gemini genereert ${count} ${currentProfile.level} AI examen vragen voor ${subject}${topic ? ` over "${topic}"` : ''}...\n\nDit kan 10-20 seconden duren.`);
-
-    try {
-      const aiQuestions = await generateAIQuestions(subject, currentProfile.level, count, topic);
-
-      if (aiQuestions.length === 0) {
-          alert(`Kon geen AI examen vragen genereren voor ${subject}.\n\nControleer of:\n- De AI service correct is geconfigureerd\n- Je internetverbinding werkt`);
-          return;
-      }
-
-      setCurrentExamSession({
-        studentName: currentProfile.name,
-        subject,
-        questions: aiQuestions,
-        currentQuestionIndex: 0,
-        answers: {},
-        examType: 'ai_practice',
-        startTime: Date.now()
-      });
-      navigate('/exam');
-    } catch (error: any) {
-      console.error('Fout bij genereren AI examen vragen:', error);
-
-      let errorMessage = 'Er ging iets mis bij het genereren van de AI examen vragen.\n\n';
-
-      if (error.message?.includes('API key') || error.message?.includes('API_KEY')) {
-        errorMessage += 'Er is een probleem met de AI service configuratie. Neem contact op met de beheerder.';
-      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-        errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage += 'Controleer je internetverbinding en probeer het opnieuw.';
-      } else {
-        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
-      }
-
-      alert(errorMessage);
     }
   };
 
@@ -353,7 +306,6 @@ const AppContent: React.FC = () => {
               student={currentProfile}
               onStartExam={startExam}
               onStartChat={startChat}
-              onStartAIQuestions={startAIQuestions}
               onStartFlashcards={startFlashcards}
               onStartLookalikeExam={startLookalikeExam}
               onLogout={handleLogout}
