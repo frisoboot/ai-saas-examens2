@@ -18,6 +18,7 @@ import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
 import { LoadingScreen } from './components/LoadingScreen';
+import { XCircle, RefreshCw } from 'lucide-react';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -48,6 +49,73 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
   if (!isAdmin) {
     return <Navigate to="/dashboard" replace />;
+  }
+
+  return <>{children}</>;
+};
+
+// Subscription Route Component - controleert of de gebruiker een actief abonnement heeft
+const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isAdmin, isLoading, hasSubscriptionAccess, subscriptionLoading, subscriptionStatus, refreshSubscription } = useAuth();
+  const navigate = useNavigate();
+
+  if (isLoading || subscriptionLoading) {
+    return <LoadingScreen message="Toegang controleren..." />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Admins hebben altijd toegang
+  if (isAdmin) {
+    return <>{children}</>;
+  }
+
+  // Geen toegang - toon melding
+  if (!hasSubscriptionAccess) {
+    const statusMessage = subscriptionStatus?.status === 'cancelled'
+      ? 'Je abonnement is opgezegd en de toegangsperiode is verlopen.'
+      : subscriptionStatus?.status === 'trial_expired'
+      ? 'Je proefperiode is verlopen.'
+      : subscriptionStatus?.status === 'expired'
+      ? 'Je abonnement is verlopen.'
+      : subscriptionStatus?.status === 'none'
+      ? 'Je hebt nog geen abonnement.'
+      : 'Je hebt geen actief abonnement.';
+
+    return (
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm max-w-md w-full p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+            <XCircle className="w-8 h-8 text-red-600" />
+          </div>
+          <h1 className="text-xl font-bold text-slate-900 mb-2">Geen toegang</h1>
+          <p className="text-slate-600 mb-6">{statusMessage}</p>
+          <div className="space-y-3">
+            <button
+              onClick={() => navigate('/checkout')}
+              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
+            >
+              Abonnement afsluiten
+            </button>
+            <button
+              onClick={() => navigate('/settings')}
+              className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+            >
+              Instellingen bekijken
+            </button>
+            <button
+              onClick={refreshSubscription}
+              className="w-full px-4 py-2 text-slate-500 hover:text-slate-700 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Status vernieuwen
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <>{children}</>;
@@ -309,9 +377,9 @@ const AppContent: React.FC = () => {
           />
         } />
 
-        {/* Protected Routes */}
+        {/* Protected Routes - met subscription check */}
         <Route path="/dashboard" element={
-          <ProtectedRoute>
+          <SubscriptionRoute>
             <StudentDashboard
               student={currentProfile}
               onStartExam={startExam}
@@ -321,11 +389,11 @@ const AppContent: React.FC = () => {
               onLogout={handleLogout}
               onSettings={() => navigate('/settings')}
             />
-          </ProtectedRoute>
+          </SubscriptionRoute>
         } />
 
         <Route path="/exam" element={
-          <ProtectedRoute>
+          <SubscriptionRoute>
             {currentExamSession ? (
               <ExamTaker
                 session={currentExamSession}
@@ -334,11 +402,11 @@ const AppContent: React.FC = () => {
             ) : (
               <Navigate to="/dashboard" replace />
             )}
-          </ProtectedRoute>
+          </SubscriptionRoute>
         } />
 
         <Route path="/chat" element={
-          <ProtectedRoute>
+          <SubscriptionRoute>
             {chatSubject ? (
               <SubjectChat
                 subject={chatSubject}
@@ -348,11 +416,11 @@ const AppContent: React.FC = () => {
             ) : (
               <Navigate to="/dashboard" replace />
             )}
-          </ProtectedRoute>
+          </SubscriptionRoute>
         } />
 
         <Route path="/flashcards" element={
-          <ProtectedRoute>
+          <SubscriptionRoute>
             {currentFlashcardSession ? (
               <FlashcardStudy
                 session={currentFlashcardSession}
@@ -363,9 +431,10 @@ const AppContent: React.FC = () => {
             ) : (
               <Navigate to="/dashboard" replace />
             )}
-          </ProtectedRoute>
+          </SubscriptionRoute>
         } />
 
+        {/* Settings - alleen auth check, geen subscription check nodig */}
         <Route path="/settings" element={
           <ProtectedRoute>
             <SubscriptionSettings
