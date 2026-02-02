@@ -18,7 +18,7 @@ import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
 import { LoadingScreen } from './components/LoadingScreen';
-import { XCircle, RefreshCw } from 'lucide-react';
+import { XCircle, RefreshCw, LogOut } from 'lucide-react';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -56,7 +56,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 // Subscription Route Component - controleert of de gebruiker een actief abonnement heeft
 const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isAdmin, isLoading, hasSubscriptionAccess, subscriptionLoading, subscriptionStatus, refreshSubscription } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, hasSubscriptionAccess, subscriptionLoading, subscriptionStatus, refreshSubscription, signOut } = useAuth();
   const navigate = useNavigate();
 
   if (isLoading || subscriptionLoading) {
@@ -84,6 +84,13 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
       ? 'Je hebt nog geen abonnement.'
       : 'Je hebt geen actief abonnement.';
 
+    const handleLogoutFromBlocked = async () => {
+      await signOut();
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/';
+    };
+
     return (
       <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl border border-slate-200 shadow-sm max-w-md w-full p-8 text-center">
@@ -97,7 +104,7 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
               onClick={() => navigate('/checkout')}
               className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
-              Abonnement afsluiten
+              Opnieuw abonneren
             </button>
             <button
               onClick={() => navigate('/settings')}
@@ -111,6 +118,13 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
             >
               <RefreshCw className="w-4 h-4" />
               Status vernieuwen
+            </button>
+            <button
+              onClick={handleLogoutFromBlocked}
+              className="w-full px-4 py-2 text-slate-500 hover:text-red-600 text-sm font-medium transition-colors flex items-center justify-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Uitloggen
             </button>
           </div>
         </div>

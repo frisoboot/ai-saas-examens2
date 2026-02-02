@@ -242,6 +242,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .from('student_profiles')
           .update({ auth_user_id: authUserId, is_active: true })
           .eq('email', email);
+      } else if (existingProfile && existingProfile.auth_user_id) {
+        // Profile bestaat met auth_user_id - reactiveer (her-abonneren na verlopen subscription)
+        await supabase
+          .from('student_profiles')
+          .update({ is_active: true })
+          .eq('email', email);
+        console.log('Reactivated existing profile for re-subscription:', email);
       }
 
       console.log('Student profile ready for:', email);
@@ -254,26 +261,63 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Haal Mollie customer ID op
       const customerId = payment.customerId;
 
-      // Maak subscription record aan
-      const { data: subscription, error: subscriptionError } = await supabase
+      // Check of er al een subscription record bestaat (her-abonneren)
+      const { data: existingSub } = await supabase
         .from('subscriptions')
-        .insert({
-          user_email: email,
-          user_name: email, // Gebruik email als naam
-          status: 'trial',
-          plan_type: 'individual',
-          price_cents: 1250,
-          trial_started_at: trialStarted.toISOString(),
-          trial_ends_at: trialEnds.toISOString(),
-          mollie_customer_id: customerId
-        })
-        .select()
-        .single();
+        .select('id')
+        .eq('user_email', email)
+        .maybeSingle();
 
-      if (subscriptionError) {
-        console.error('Subscription error:', subscriptionError);
+      let subscription: { id: string } | null = null;
+
+      if (existingSub) {
+        // Her-abonneren: update bestaand record
+        console.log('Re-subscription: updating existing subscription record for:', email);
+        const { data: updatedSub, error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'trial',
+            plan_type: 'individual',
+            price_cents: 1250,
+            trial_started_at: trialStarted.toISOString(),
+            trial_ends_at: trialEnds.toISOString(),
+            mollie_customer_id: customerId,
+            current_period_start: null,
+            current_period_end: null
+          })
+          .eq('id', existingSub.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Subscription update error:', updateError);
+        } else {
+          subscription = updatedSub;
+          console.log('Updated subscription:', subscription?.id);
+        }
       } else {
-        console.log('Created subscription:', subscription.id);
+        // Nieuwe subscription
+        const { data: newSub, error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_email: email,
+            user_name: email,
+            status: 'trial',
+            plan_type: 'individual',
+            price_cents: 1250,
+            trial_started_at: trialStarted.toISOString(),
+            trial_ends_at: trialEnds.toISOString(),
+            mollie_customer_id: customerId
+          })
+          .select()
+          .single();
+
+        if (subscriptionError) {
+          console.error('Subscription insert error:', subscriptionError);
+        } else {
+          subscription = newSub;
+          console.log('Created subscription:', subscription?.id);
+        }
       }
 
       // Log verificatie payment
