@@ -2,11 +2,12 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Award, Target, LogOut, Settings } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
 import { getVisibleSubjects } from '../services/subjectPreferencesService';
+import { StudentDifficultyOverview } from './StudentDifficultyOverview';
 
 interface StudentDashboardProps {
   student: StudentProfile;
@@ -112,16 +113,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         </div>
 
         <nav className="flex-1 p-6 space-y-2 overflow-y-auto">
-           <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-2">Jouw Voortgang</div>
-
-           {/* Placeholder stats */}
-           <div className="flex items-center gap-3 p-3 rounded-xl bg-indigo-50 text-indigo-700">
-              <Award className="w-5 h-5" />
-              <div className="flex-1">
-                <div className="text-sm font-bold">Start met oefenen</div>
-                <div className="text-xs opacity-70">Maak je eerste toets</div>
-              </div>
-           </div>
+           <StudentDifficultyOverview />
         </nav>
 
         {/* Settings & Logout Buttons */}

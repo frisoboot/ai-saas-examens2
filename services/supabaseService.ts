@@ -295,6 +295,25 @@ export const dbResults = {
     return (data || []).map(dbToExamResult);
   },
 
+  async getByUser(userId: string): Promise<ExamResult[]> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from(TABLES.RESULTS)
+      .select('*')
+      .eq('user_id', userId)
+      .order('date', { ascending: false });
+
+    if (error) {
+      console.error('Fout bij ophalen resultaten voor gebruiker:', error);
+      throw error;
+    }
+
+    return (data || []).map(dbToExamResult);
+  },
+
   async save(result: ExamResult): Promise<ExamResult> {
     if (!supabase) {
       throw new Error('Supabase niet geconfigureerd');
