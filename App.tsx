@@ -233,8 +233,10 @@ const AppContent: React.FC = () => {
     }
   };
 
-  const handleLogout = () => {
-    // Simpel en robuust: wis alles en redirect
+  const handleLogout = async () => {
+    // Stap 1: Roep signOut aan om Supabase sessie te invalideren
+    await signOut();
+    // Stap 2: Wis resterende storage en redirect
     localStorage.clear();
     sessionStorage.clear();
     window.location.href = '/';

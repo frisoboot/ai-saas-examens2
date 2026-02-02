@@ -74,8 +74,6 @@ export async function createCheckout(
   level: 'VMBO-TL' | 'HAVO' | 'VWO'
 ): Promise<CheckoutResponse> {
   try {
-    console.log('Starting checkout for:', email, level);
-
     const response = await fetch(`${API_BASE}/api/create-checkout`, {
       method: 'POST',
       headers: {
@@ -84,10 +82,7 @@ export async function createCheckout(
       body: JSON.stringify({ email, password, level })
     });
 
-    console.log('Checkout response status:', response.status);
-
     const data = await response.json();
-    console.log('Checkout response data:', data);
 
     if (!response.ok) {
       return {

@@ -47,8 +47,23 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
       return;
     }
 
-    if (password.length < 6) {
-      setError('Wachtwoord moet minimaal 6 tekens zijn');
+    if (password.length < 8) {
+      setError('Wachtwoord moet minimaal 8 tekens zijn');
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setError('Wachtwoord moet minimaal 1 hoofdletter bevatten');
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setError('Wachtwoord moet minimaal 1 kleine letter bevatten');
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setError('Wachtwoord moet minimaal 1 cijfer bevatten');
       return;
     }
 
@@ -58,7 +73,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     try {
       const result = await createCheckout(email, password, level);
 
-      console.log('Checkout result:', result);
+      console.log('Checkout result status:', result.success);
 
       if (!result.success) {
         setError(result.message || 'Er ging iets mis');
@@ -187,7 +202,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                     type={showPassword ? 'text' : 'password'}
                     required
                     className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-12 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                    placeholder="Minimaal 6 tekens"
+                    placeholder="Minimaal 8 tekens, met hoofdletter en cijfer"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                   />
