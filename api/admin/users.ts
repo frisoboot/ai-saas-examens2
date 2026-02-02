@@ -151,6 +151,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // Ga door - de user is aangemaakt in Auth
       }
 
+      // Maak subscription aan zodat admin-aangemaakte gebruikers direct toegang hebben
+      try {
+        const now = new Date();
+        const farFuture = new Date(now);
+        farFuture.setFullYear(farFuture.getFullYear() + 100);
+
+        await supabaseAdmin
+          .from('subscriptions')
+          .upsert({
+            user_email: cleanEmail,
+            user_name: cleanName,
+            status: 'active',
+            plan_type: 'individual',
+            price_cents: 0,
+            current_period_start: now.toISOString(),
+            current_period_end: farFuture.toISOString(),
+            created_at: now.toISOString(),
+            updated_at: now.toISOString()
+          }, { onConflict: 'user_email' });
+      } catch (subscriptionError) {
+        console.error('Subscription aanmaken warning:', subscriptionError);
+        // Ga door - de user is aangemaakt in Auth en heeft een profiel
+      }
+
       return res.status(201).json({
         success: true,
         message: 'Student succesvol aangemaakt',
