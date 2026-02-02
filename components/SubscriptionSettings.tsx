@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { checkSubscription, cancelSubscription, SubscriptionStatus } from '../services/subscriptionService';
+import { auth } from '../services/supabaseService';
 import { SubjectPackageSettings } from './SubjectPackageSettings';
 
 interface SubscriptionSettingsProps {
@@ -43,7 +44,12 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   const handleCancelSubscription = async () => {
     setCancelling(true);
     try {
-      const result = await cancelSubscription(userEmail);
+      const { session } = await auth.getSession();
+      if (!session?.access_token) {
+        setCancelResult({ success: false, message: 'Geen geldige sessie. Log opnieuw in.' });
+        return;
+      }
+      const result = await cancelSubscription(session.access_token);
       setCancelResult(result);
       setShowCancelConfirm(false);
 

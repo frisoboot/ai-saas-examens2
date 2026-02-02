@@ -109,7 +109,7 @@ export async function createCheckout(
 /**
  * Cancel subscription
  */
-export async function cancelSubscription(email: string): Promise<{
+export async function cancelSubscription(token: string): Promise<{
   success: boolean;
   message: string;
   accessUntil?: string;
@@ -118,9 +118,9 @@ export async function cancelSubscription(email: string): Promise<{
     const response = await fetch(`${API_BASE}/api/cancel-subscription`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ email })
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      }
     });
 
     const data = await response.json();

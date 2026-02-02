@@ -33,12 +33,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
-    const { email } = req.body;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is verplicht' });
-    }
-
     // Initialize clients
     const mollie = createMollieClient({ apiKey: mollieApiKey });
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
@@ -48,11 +42,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // Verifieer authenticatie - gebruiker mag alleen eigen abonnement opzeggen
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Niet geautoriseerd' });
+    }
+
+    const token = authHeader.substring(7);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+    if (authError || !user || !user.email) {
+      return res.status(401).json({ error: 'Ongeldige sessie' });
+    }
+
+    const email = user.email.toLowerCase();
+
     // Haal subscription op
     const { data: subscription, error } = await supabase
       .from('subscriptions')
       .select('*')
-      .eq('user_email', email.toLowerCase())
+      .eq('user_email', email)
       .maybeSingle();
 
     if (error || !subscription) {
@@ -80,7 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         status: 'cancelled',
         cancelled_at: new Date().toISOString()
       })
-      .eq('user_email', email.toLowerCase());
+      .eq('user_email', email);
 
     // Bepaal einddatum
     let accessUntil: string | null = null;
