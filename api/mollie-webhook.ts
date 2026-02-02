@@ -7,7 +7,7 @@
  * 3. Bij failed payment: markeert subscription als expired
  */
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, User } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
@@ -177,15 +177,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.log('Auth user already exists for:', email, '- looking up existing user');
 
           // Zoek de bestaande user op
-          const { data: userList } = await supabase.auth.admin.listUsers();
-          const existingUser = userList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+          const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
+          const users = (!listError && userList?.users ? userList.users : []) as User[];
+          const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
           if (existingUser) {
             authUserId = existingUser.id;
             console.log('Found existing auth user:', authUserId);
 
             // Update het wachtwoord naar het door de gebruiker gekozen wachtwoord
-            await supabase.auth.admin.updateUser(authUserId, {
+            await supabase.auth.admin.updateUserById(authUserId, {
               password: userPassword,
               email_confirm: true
             });
