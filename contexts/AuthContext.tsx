@@ -120,13 +120,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { session } = await auth.getSession();
 
       if (session?.user && mounted) {
+        const needsSubscriptionCheck = !isAdminEmail(session.user.email) && !!session.user.email;
         setState(prev => ({
           ...prev,
           user: session.user,
           session,
           isAuthenticated: true,
           isAdmin: isAdminEmail(session.user.email),
-          isLoading: false
+          isLoading: false,
+          // Voorkom race condition: zet subscriptionLoading alvast op true
+          // zodat SubscriptionRoute de loading screen toont tot de check klaar is
+          subscriptionLoading: needsSubscriptionCheck
         }));
         loadUserProfile(session.user);
         if (session.user.email) {
@@ -143,12 +147,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return;
 
       if (session?.user) {
+        const needsSubscriptionCheck = event === 'SIGNED_IN' && !isAdminEmail(session.user.email) && !!session.user.email;
         setState(prev => ({
           ...prev,
           user: session.user,
           session,
           isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email)
+          isAdmin: isAdminEmail(session.user.email),
+          subscriptionLoading: needsSubscriptionCheck ? true : prev.subscriptionLoading
         }));
         if (event === 'SIGNED_IN') {
           loadUserProfile(session.user);
@@ -203,7 +209,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile: null,
       isLoading: false,
       isAuthenticated: false,
-      isAdmin: false
+      isAdmin: false,
+      subscriptionStatus: null,
+      hasSubscriptionAccess: false,
+      subscriptionLoading: false
     });
 
     try {
