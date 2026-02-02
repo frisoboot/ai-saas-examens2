@@ -125,7 +125,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
     }
 
-    // Cancelled/Expired
+    // Cancelled - check of de gebruiker nog tijd heeft in huidige periode
+    if (subscription.status === 'cancelled') {
+      // Check trial periode
+      if (subscription.trial_ends_at) {
+        const trialEnds = new Date(subscription.trial_ends_at);
+        if (trialEnds > now) {
+          const daysLeft = Math.ceil((trialEnds.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return res.status(200).json({
+            hasAccess: true,
+            status: 'cancelled',
+            trialEndsAt: subscription.trial_ends_at,
+            daysLeft: daysLeft,
+            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`
+          });
+        }
+      }
+      // Check betaalperiode
+      if (subscription.current_period_end) {
+        const periodEnd = new Date(subscription.current_period_end);
+        if (periodEnd > now) {
+          const daysLeft = Math.ceil((periodEnd.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return res.status(200).json({
+            hasAccess: true,
+            status: 'cancelled',
+            periodEnd: subscription.current_period_end,
+            daysLeft: daysLeft,
+            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`
+          });
+        }
+      }
+    }
+
+    // Expired/overige statussen
     return res.status(200).json({
       hasAccess: false,
       status: subscription.status,

@@ -13,13 +13,6 @@ import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
 
 /**
- * Genereer een veilig random wachtwoord (fallback als geen opgeslagen wachtwoord)
- */
-function generateSecurePassword(): string {
-  return crypto.randomBytes(16).toString('base64url');
-}
-
-/**
  * Decrypt een versleuteld wachtwoord
  * Gebruikt AES-256-GCM voor veilige decryptie
  */
@@ -144,32 +137,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Probeer het originele wachtwoord van de gebruiker te gebruiken
-      let userPassword: string;
-      let passwordIsUserProvided = false;
+      // Decrypt het wachtwoord dat de gebruiker bij registratie heeft gekozen
       const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+      let userPassword: string | null = null;
 
       if (pending?.password_hash) {
-        const decryptedPassword = decryptPassword(pending.password_hash, encryptionKey);
-        if (decryptedPassword) {
-          userPassword = decryptedPassword;
-          passwordIsUserProvided = true;
-          console.log('Using user-provided password');
-        } else {
-          // Decryptie mislukt - probeer ook met alleen de mollieApiKey als fallback
-          const fallbackDecrypt = decryptPassword(pending.password_hash, mollieApiKey);
-          if (fallbackDecrypt) {
-            userPassword = fallbackDecrypt;
-            passwordIsUserProvided = true;
-            console.log('Using user-provided password (fallback key)');
-          } else {
-            userPassword = generateSecurePassword();
-            console.error('PASSWORD DECRYPTION FAILED - user will need password reset for:', email);
-          }
+        userPassword = decryptPassword(pending.password_hash, encryptionKey);
+        if (!userPassword) {
+          // Probeer ook met alleen de mollieApiKey als fallback
+          userPassword = decryptPassword(pending.password_hash, mollieApiKey);
         }
-      } else {
-        userPassword = generateSecurePassword();
-        console.error('No stored password found for:', email, '- user will need password reset');
+      }
+
+      if (!userPassword) {
+        console.error('CRITICAL: Could not retrieve user password for:', email);
+        console.error('pending_registration has password_hash:', !!pending?.password_hash);
+        // Geen tijdelijk wachtwoord genereren - gebruiker zou dan niet kunnen inloggen
+        // Mollie zal de webhook opnieuw proberen
+        return res.status(500).json({ received: false, error: 'Password decryption failed' });
       }
 
       // Maak Supabase Auth user aan, of haal bestaande op als die al bestaat
@@ -199,14 +184,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             authUserId = existingUser.id;
             console.log('Found existing auth user:', authUserId);
 
-            // Update het wachtwoord als we het originele wachtwoord hebben
-            if (passwordIsUserProvided) {
-              await supabase.auth.admin.updateUser(authUserId, {
-                password: userPassword,
-                email_confirm: true
-              });
-              console.log('Updated password for existing auth user');
-            }
+            // Update het wachtwoord naar het door de gebruiker gekozen wachtwoord
+            await supabase.auth.admin.updateUser(authUserId, {
+              password: userPassword,
+              email_confirm: true
+            });
+            console.log('Updated password for existing auth user');
           } else {
             console.error('Auth user exists but could not be found in user list for:', email);
             return res.status(200).json({ received: true, error: 'Could not find existing auth user' });

@@ -96,9 +96,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
     }
 
-    // Password validatie
-    if (password.length < 6) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 6 tekens zijn' });
+    // Password validatie - zelfde eisen als reset pagina
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+    }
+    if (!/[A-Z]/.test(password)) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 hoofdletter bevatten' });
+    }
+    if (!/[a-z]/.test(password)) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 kleine letter bevatten' });
+    }
+    if (!/[0-9]/.test(password)) {
+      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 cijfer bevatten' });
     }
 
     // Initialize clients
