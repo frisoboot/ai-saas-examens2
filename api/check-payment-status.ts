@@ -3,6 +3,8 @@
  *
  * Checkt de werkelijke status van een Mollie betaling.
  * Gebruikt door de frontend om te bepalen of de betaling geslaagd of mislukt is.
+ *
+ * Robuuste validatie: checkt DB eerst, maar valt terug op Mollie als DB record ontbreekt.
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -29,6 +31,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing payment_id parameter' });
     }
 
+    // Basis format-validatie: Mollie payment IDs beginnen met 'tr_'
+    if (!paymentId.startsWith('tr_')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ongeldig betaling ID formaat'
+      });
+    }
+
     // Environment variables check
     const mollieApiKey = process.env.MOLLIE_API_KEY;
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -53,42 +63,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // Security: Valideer eerst dat dit een bekende payment is van ons systeem
-    // Dit voorkomt dat willekeurige payment IDs kunnen worden opgevraagd
+    // Check of payment bekend is in ons systeem (pending_registrations of payments)
     const { data: knownPayment } = await supabase
       .from('pending_registrations')
       .select('id, email')
       .eq('mollie_payment_id', paymentId)
       .maybeSingle();
 
-    // Als de payment niet in pending_registrations staat, check of er een payment record is
     const { data: paymentRecord } = await supabase
       .from('payments')
       .select('id')
       .eq('mollie_payment_id', paymentId)
       .maybeSingle();
 
-    // Payment moet bekend zijn in ons systeem
-    if (!knownPayment && !paymentRecord) {
-      console.log('Unknown payment ID requested:', paymentId);
+    const isKnownInDb = !!(knownPayment || paymentRecord);
+
+    // Haal payment op bij Mollie - dit valideert ook dat het een echte betaling is
+    // We doen dit altijd, ook als DB record ontbreekt (kan door race condition of insert-fout)
+    let payment;
+    try {
+      payment = await mollie.payments.get(paymentId);
+    } catch (mollieError) {
+      console.error('Mollie payment fetch error:', mollieError);
       return res.status(404).json({
         success: false,
-        error: 'Betaling niet gevonden'
+        error: 'Betaling niet gevonden bij de betaalprovider'
       });
     }
-
-    // Haal payment op bij Mollie
-    const payment = await mollie.payments.get(paymentId);
 
     const metadata = payment.metadata as {
       type?: string;
       email?: string;
     } | null;
 
+    // Extra security check: als payment niet in onze DB staat,
+    // controleer dat de metadata aangeeft dat het van ons systeem komt
+    if (!isKnownInDb && metadata?.type !== 'verification') {
+      console.log('Unknown payment ID without verification metadata:', paymentId);
+      return res.status(404).json({
+        success: false,
+        error: 'Betaling niet gevonden'
+      });
+    }
+
+    if (!isKnownInDb) {
+      console.warn('Payment not found in DB but valid at Mollie (possible insert failure):', paymentId);
+    }
+
     // Bepaal de status
     let status: 'paid' | 'pending' | 'failed' | 'canceled' | 'expired' | 'open';
     let message: string;
-    let email: string | null = metadata?.email || null;
+    let email: string | null = knownPayment?.email || metadata?.email || null;
 
     switch (payment.status) {
       case 'paid':
@@ -144,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Check payment status error:', error);
 
-    // Als de payment niet gevonden wordt
+    // Als de payment niet gevonden wordt bij Mollie
     if (error instanceof Error && error.message.includes('not found')) {
       return res.status(404).json({
         success: false,
