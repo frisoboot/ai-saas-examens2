@@ -59,6 +59,8 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
+  // Payment ID uit Mollie redirect URL (fallback voor localStorage)
+  const [urlPaymentId, setUrlPaymentId] = useState<string | null>(null);
 
   // Exam/Chat State
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
@@ -70,9 +72,14 @@ const AppContent: React.FC = () => {
     const paymentCallback = searchParams.get('payment_callback');
     const payment = searchParams.get('payment');
     const username = searchParams.get('username');
+    // Payment ID uit Mollie redirect URL (fallback voor als localStorage leeg is)
+    const pid = searchParams.get('pid');
 
     // Nieuwe flow: payment_callback=true na Mollie redirect
     if (paymentCallback === 'true') {
+      if (pid) {
+        setUrlPaymentId(pid);
+      }
       navigate('/payment/callback', { replace: true });
     }
     // Legacy flow: voor oude redirects met payment=success
@@ -289,6 +296,7 @@ const AppContent: React.FC = () => {
           <PaymentCallback
             onLogin={() => navigate('/login')}
             onRetry={() => navigate('/checkout')}
+            urlPaymentId={urlPaymentId}
           />
         } />
 

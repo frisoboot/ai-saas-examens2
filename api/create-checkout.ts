@@ -161,7 +161,53 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Mollie customer created:', customer.id);
 
+    // Versleutel het wachtwoord veilig voor tijdelijke opslag
+    // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
+    // Het wachtwoord wordt verwijderd na account activatie
+    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+    const encryptedPassword = encryptPassword(password, encryptionKey);
+
+    // Sla pending registration op VOOR de Mollie betaling
+    // Dit moet slagen, anders kan check-payment-status de betaling niet traceren
+    const { error: pendingError } = await supabase
+      .from('pending_registrations')
+      .insert({
+        email: email.toLowerCase(),
+        password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
+        level: level,
+        mollie_customer_id: customer.id,
+        mollie_payment_id: 'pending', // Wordt geüpdatet na Mollie payment creatie
+        status: 'pending',
+        created_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 uur geldig
+      });
+
+    if (pendingError) {
+      console.error('Pending registration insert failed:', pendingError);
+      // Retry eenmaal
+      const { error: retryError } = await supabase
+        .from('pending_registrations')
+        .insert({
+          email: email.toLowerCase(),
+          password_hash: encryptedPassword,
+          level: level,
+          mollie_customer_id: customer.id,
+          mollie_payment_id: 'pending',
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
+        });
+
+      if (retryError) {
+        console.error('Pending registration retry also failed:', retryError);
+        return res.status(500).json({
+          error: 'Er ging iets mis bij het voorbereiden van je registratie. Probeer het opnieuw.'
+        });
+      }
+    }
+
     // Maak €1.00 verificatiebetaling aan (first payment voor mandaat)
+    // Payment ID wordt meegegeven in de redirect URL als fallback voor localStorage
     const payment = (await mollie.payments.create({
       amount: {
         currency: 'EUR',
@@ -170,9 +216,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customerId: customer.id,
       sequenceType: SequenceType.first, // Dit creëert een mandaat voor recurring payments
       description: 'AI Examentrainer - Verificatie voor proefperiode',
-      // Redirect naar payment callback pagina met payment_id (niet hardcoded success)
-      // De frontend checkt vervolgens de werkelijke betalingsstatus via de API
-      redirectUrl: `${appUrl}?payment_callback=true`,
+      redirectUrl: `${appUrl}?payment_callback=true&pid=${customer.id}`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
       metadata: {
         type: 'verification',
@@ -183,33 +227,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
-    // Versleutel het wachtwoord veilig voor tijdelijke opslag
-    // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
-    // Het wachtwoord wordt verwijderd na account activatie
-    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
-    const encryptedPassword = encryptPassword(password, encryptionKey);
-
-    // Sla pending registration op met versleuteld wachtwoord
-    const { error: pendingError } = await supabase
+    // Update pending registration met het echte Mollie payment ID
+    await supabase
       .from('pending_registrations')
-      .insert({
-        email: email.toLowerCase(),
-        password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
-        level: level,
-        mollie_customer_id: customer.id,
-        mollie_payment_id: payment.id,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 uur geldig
-      });
+      .update({ mollie_payment_id: payment.id })
+      .eq('email', email.toLowerCase())
+      .eq('mollie_payment_id', 'pending');
 
-    if (pendingError) {
-      console.error('Pending registration error:', pendingError);
-      // Probeer toch door te gaan - payment metadata bevat ook de gegevens
+    // Update redirect URL met payment ID (fallback voor als localStorage niet werkt)
+    try {
+      await mollie.payments.update(payment.id, {
+        redirectUrl: `${appUrl}?payment_callback=true&pid=${payment.id}`
+      });
+    } catch (updateError) {
+      // Als update faalt, werkt de oude redirect nog steeds (localStorage fallback)
+      console.warn('Could not update redirect URL with payment ID:', updateError);
     }
 
     // Return checkout URL en payment ID
-    // Payment ID wordt opgeslagen in localStorage zodat we na redirect de status kunnen checken
+    // Payment ID wordt opgeslagen in localStorage EN zit in redirect URL als fallback
     return res.status(200).json({
       success: true,
       checkoutUrl: payment.getCheckoutUrl(),

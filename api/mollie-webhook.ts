@@ -125,34 +125,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, error: 'Missing registration data' });
       }
 
-      // Probeer het originele wachtwoord van de gebruiker te gebruiken
-      // Als dit niet lukt, genereer een tijdelijk wachtwoord
-      let userPassword: string;
-      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
-
-      if (pending?.password_hash) {
-        const decryptedPassword = decryptPassword(pending.password_hash, encryptionKey);
-        if (decryptedPassword) {
-          userPassword = decryptedPassword;
-          console.log('Using user-provided password');
-        } else {
-          userPassword = generateSecurePassword();
-          console.log('Password decryption failed, using generated password');
-        }
-      } else {
-        userPassword = generateSecurePassword();
-        console.log('No stored password, using generated password');
-      }
-
-      // Check of account al bestaat (idempotency)
+      // Check of account al VOLLEDIG bestaat (profile + auth user)
       const { data: existingProfile } = await supabase
         .from('student_profiles')
-        .select('email')
+        .select('email, auth_user_id')
         .eq('email', email)
         .maybeSingle();
 
-      if (existingProfile) {
-        console.log('Account already exists, skipping creation');
+      if (existingProfile && existingProfile.auth_user_id) {
+        console.log('Account already fully exists, skipping creation');
         // Verwijder pending registration
         if (pending) {
           await supabase
@@ -163,7 +144,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ received: true, message: 'Account already exists' });
       }
 
-      // Maak Supabase Auth user aan met het echte email adres
+      // Probeer het originele wachtwoord van de gebruiker te gebruiken
+      let userPassword: string;
+      let passwordIsUserProvided = false;
+      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+
+      if (pending?.password_hash) {
+        const decryptedPassword = decryptPassword(pending.password_hash, encryptionKey);
+        if (decryptedPassword) {
+          userPassword = decryptedPassword;
+          passwordIsUserProvided = true;
+          console.log('Using user-provided password');
+        } else {
+          // Decryptie mislukt - probeer ook met alleen de mollieApiKey als fallback
+          const fallbackDecrypt = decryptPassword(pending.password_hash, mollieApiKey);
+          if (fallbackDecrypt) {
+            userPassword = fallbackDecrypt;
+            passwordIsUserProvided = true;
+            console.log('Using user-provided password (fallback key)');
+          } else {
+            userPassword = generateSecurePassword();
+            console.error('PASSWORD DECRYPTION FAILED - user will need password reset for:', email);
+          }
+        }
+      } else {
+        userPassword = generateSecurePassword();
+        console.error('No stored password found for:', email, '- user will need password reset');
+      }
+
+      // Maak Supabase Auth user aan, of haal bestaande op als die al bestaat
+      let authUserId: string | undefined;
+
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: email,
         password: userPassword,
@@ -175,34 +186,81 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       });
 
       if (authError) {
-        console.error('Auth error:', authError);
-        return res.status(200).json({ received: true, error: authError.message });
-      }
+        // Check of de user al bestaat (bijv. van een eerdere mislukte poging)
+        if (authError.message?.includes('already') || authError.message?.includes('exists') ||
+            authError.message?.includes('duplicate') || authError.status === 422) {
+          console.log('Auth user already exists for:', email, '- looking up existing user');
 
-      console.log('Created auth user:', authUser.user?.id);
+          // Zoek de bestaande user op
+          const { data: userList } = await supabase.auth.admin.listUsers();
+          const existingUser = userList?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
-      // Maak student profile aan (email als primary key)
-      const { error: profileError } = await supabase
-        .from('student_profiles')
-        .insert({
-          email: email,
-          name: email, // Gebruik email als naam
-          level: level,
-          struggle_points: '',
-          is_active: true,
-          auth_user_id: authUser.user?.id
-        });
+          if (existingUser) {
+            authUserId = existingUser.id;
+            console.log('Found existing auth user:', authUserId);
 
-      if (profileError) {
-        console.error('Profile error:', profileError);
-        // Cleanup auth user als profile aanmaken mislukt
-        if (authUser.user?.id) {
-          await supabase.auth.admin.deleteUser(authUser.user.id);
+            // Update het wachtwoord als we het originele wachtwoord hebben
+            if (passwordIsUserProvided) {
+              await supabase.auth.admin.updateUser(authUserId, {
+                password: userPassword,
+                email_confirm: true
+              });
+              console.log('Updated password for existing auth user');
+            }
+          } else {
+            console.error('Auth user exists but could not be found in user list for:', email);
+            return res.status(200).json({ received: true, error: 'Could not find existing auth user' });
+          }
+        } else {
+          console.error('Auth error:', authError);
+          return res.status(200).json({ received: true, error: authError.message });
         }
-        return res.status(200).json({ received: true, error: profileError.message });
+      } else {
+        authUserId = authUser.user?.id;
+        console.log('Created auth user:', authUserId);
       }
 
-      console.log('Created student profile');
+      // Maak student profile aan als dat nog niet bestaat
+      if (!existingProfile && authUserId) {
+        const { error: profileError } = await supabase
+          .from('student_profiles')
+          .insert({
+            email: email,
+            name: email,
+            level: level,
+            struggle_points: '',
+            is_active: true,
+            auth_user_id: authUserId
+          });
+
+        if (profileError) {
+          console.error('Profile error:', profileError);
+          // Probeer upsert als fallback (bijv. bij race condition)
+          const { error: upsertError } = await supabase
+            .from('student_profiles')
+            .upsert({
+              email: email,
+              name: email,
+              level: level,
+              struggle_points: '',
+              is_active: true,
+              auth_user_id: authUserId
+            }, { onConflict: 'email' });
+
+          if (upsertError) {
+            console.error('Profile upsert also failed:', upsertError);
+            return res.status(200).json({ received: true, error: upsertError.message });
+          }
+        }
+      } else if (existingProfile && !existingProfile.auth_user_id && authUserId) {
+        // Profile bestaat maar zonder auth_user_id - update het
+        await supabase
+          .from('student_profiles')
+          .update({ auth_user_id: authUserId, is_active: true })
+          .eq('email', email);
+      }
+
+      console.log('Student profile ready for:', email);
 
       // Bereken trial periode (3 dagen)
       const trialStarted = new Date();

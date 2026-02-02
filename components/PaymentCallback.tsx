@@ -8,18 +8,21 @@ import {
   ArrowRight,
   AlertTriangle,
   RefreshCw,
-  Sparkles
+  Sparkles,
+  Mail
 } from 'lucide-react';
 import { checkPaymentStatus } from '../services/subscriptionService';
 
 interface PaymentCallbackProps {
   onLogin: () => void;
   onRetry: () => void;
+  /** Payment ID uit URL parameter (fallback als localStorage niet beschikbaar is) */
+  urlPaymentId?: string | null;
 }
 
 type PaymentState = 'checking' | 'paid' | 'pending' | 'failed' | 'no_payment';
 
-export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRetry }) => {
+export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRetry, urlPaymentId }) => {
   const [state, setState] = useState<PaymentState>('checking');
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState<string | null>(null);
@@ -31,8 +34,11 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
 
   // Check betaalstatus bij laden
   useEffect(() => {
-    // Gebruik ref als we al een payment ID hebben opgeslagen, anders haal uit localStorage
-    const paymentId = paymentIdRef.current || localStorage.getItem('pending_payment_id');
+    // Payment ID ophalen: ref > localStorage > URL parameter (fallback)
+    const paymentId = paymentIdRef.current
+      || localStorage.getItem('pending_payment_id')
+      || urlPaymentId
+      || null;
 
     if (!paymentId) {
       setState('no_payment');
@@ -63,7 +69,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               setState('pending');
               setMessage(result.message);
               // Blijf checken voor pending payments
-              if (checkCount < 30) { // Max 30 checks (2.5 minuten)
+              if (checkCount < 60) { // Max 60 checks (5 minuten)
                 setTimeout(() => setCheckCount(c => c + 1), 5000);
               }
               break;
@@ -77,23 +83,34 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               break;
           }
         } else {
-          setState('failed');
-          setMessage(result.message || 'Er ging iets mis bij het ophalen van de betaalstatus.');
-          localStorage.removeItem('pending_payment_id');
+          // API call mislukt - probeer opnieuw in plaats van direct "failed" te tonen
+          if (checkCount < 5) {
+            console.warn('Payment status check returned error, retrying...', result.message);
+            setTimeout(() => setCheckCount(c => c + 1), 3000);
+          } else {
+            setState('failed');
+            setMessage(result.message || 'Er ging iets mis bij het ophalen van de betaalstatus.');
+            localStorage.removeItem('pending_payment_id');
+          }
         }
       } catch (error) {
         console.error('Payment status check error:', error);
-        setState('failed');
-        setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
+        // Bij netwerkfout: retry een paar keer
+        if (checkCount < 5) {
+          setTimeout(() => setCheckCount(c => c + 1), 3000);
+        } else {
+          setState('failed');
+          setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
+        }
       }
     };
 
     checkStatus();
-  }, [checkCount]);
+  }, [checkCount, urlPaymentId]);
 
   // Bij success: check of account klaar is
   useEffect(() => {
-    if (state === 'paid' && !accountReady && checkCount < 30) {
+    if (state === 'paid' && !accountReady && checkCount < 60) {
       // Gebruik de ref in plaats van localStorage (die is al verwijderd na paid status)
       const paymentId = paymentIdRef.current;
       if (paymentId) {
@@ -180,7 +197,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
                   <p className="text-gray-600">Je account wordt aangemaakt...</p>
-                  <p className="text-gray-400 text-sm mt-2">Dit duurt een paar seconden</p>
+                  <p className="text-gray-400 text-sm mt-2">Dit kan tot een minuut duren</p>
                 </div>
               ) : (
                 <>
@@ -301,14 +318,24 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               </div>
             </div>
 
-            <Button
-              onClick={onRetry}
-              className="w-full justify-center h-14 text-lg font-semibold"
-              size="lg"
-            >
-              <RefreshCw className="w-5 h-5 mr-2" />
-              Opnieuw proberen
-            </Button>
+            <div className="space-y-3">
+              <Button
+                onClick={onRetry}
+                className="w-full justify-center h-14 text-lg font-semibold"
+                size="lg"
+              >
+                <RefreshCw className="w-5 h-5 mr-2" />
+                Opnieuw proberen
+              </Button>
+
+              <a
+                href="mailto:info@ai-examentrainer.nl"
+                className="flex items-center justify-center gap-2 w-full h-12 text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+              >
+                <Mail className="w-4 h-4" />
+                Hulp nodig? Neem contact op
+              </a>
+            </div>
           </div>
         );
 
@@ -326,14 +353,32 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
             <p className="text-gray-600 mb-6">
               {message}
             </p>
-            <Button
-              onClick={onRetry}
-              className="w-full justify-center h-14 text-lg font-semibold"
-              size="lg"
-            >
-              Naar registratie
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
+
+            <div className="bg-amber-50 rounded-xl p-4 border border-amber-100 mb-6 text-left">
+              <p className="text-amber-800 font-medium mb-2">Heb je al betaald?</p>
+              <p className="text-sm text-amber-700">
+                Als je al hebt betaald, probeer dan in te loggen met het e-mailadres en wachtwoord dat je bij registratie hebt gekozen. Het kan even duren voordat je account is aangemaakt.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <Button
+                onClick={onLogin}
+                className="w-full justify-center h-14 text-lg font-semibold"
+                size="lg"
+              >
+                Probeer in te loggen
+                <ArrowRight className="w-5 h-5 ml-2" />
+              </Button>
+              <Button
+                variant="outline"
+                onClick={onRetry}
+                className="w-full justify-center"
+                size="lg"
+              >
+                Opnieuw registreren
+              </Button>
+            </div>
           </div>
         );
 
