@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { auth, userProfile } from '../services/supabaseService';
+import { checkSubscription, SubscriptionStatus } from '../services/subscriptionService';
 import { StudentProfile } from '../types';
 
 // ============================================================================
@@ -14,12 +15,16 @@ interface AuthState {
   isLoading: boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
+  subscriptionStatus: SubscriptionStatus | null;
+  hasSubscriptionAccess: boolean;
+  subscriptionLoading: boolean;
 }
 
 interface AuthContextType extends AuthState {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
+  refreshSubscription: () => Promise<void>;
 }
 
 // ============================================================================
@@ -53,7 +58,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     profile: null,
     isLoading: true,
     isAuthenticated: false,
-    isAdmin: false
+    isAdmin: false,
+    subscriptionStatus: null,
+    hasSubscriptionAccess: false,
+    subscriptionLoading: false
   });
 
   // Initialiseer auth en luister naar changes
@@ -67,19 +75,67 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
+    const loadSubscriptionStatus = async (email: string) => {
+      // Admins hoeven geen subscription check
+      if (isAdminEmail(email)) {
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            subscriptionStatus: null,
+            hasSubscriptionAccess: true,
+            subscriptionLoading: false
+          }));
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(prev => ({ ...prev, subscriptionLoading: true }));
+      }
+
+      try {
+        const status = await checkSubscription(email);
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            subscriptionStatus: status,
+            hasSubscriptionAccess: status.hasAccess,
+            subscriptionLoading: false
+          }));
+        }
+      } catch (error) {
+        console.error('[AuthContext] Subscription check failed:', error);
+        if (mounted) {
+          setState(prev => ({
+            ...prev,
+            subscriptionStatus: null,
+            hasSubscriptionAccess: false,
+            subscriptionLoading: false
+          }));
+        }
+      }
+    };
+
     const initAuth = async () => {
       const { session } = await auth.getSession();
 
       if (session?.user && mounted) {
+        const needsSubscriptionCheck = !isAdminEmail(session.user.email) && !!session.user.email;
         setState(prev => ({
           ...prev,
           user: session.user,
           session,
           isAuthenticated: true,
           isAdmin: isAdminEmail(session.user.email),
-          isLoading: false
+          isLoading: false,
+          // Voorkom race condition: zet subscriptionLoading alvast op true
+          // zodat SubscriptionRoute de loading screen toont tot de check klaar is
+          subscriptionLoading: needsSubscriptionCheck
         }));
         loadUserProfile(session.user);
+        if (session.user.email) {
+          loadSubscriptionStatus(session.user.email);
+        }
       } else if (mounted) {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -91,15 +147,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (!mounted) return;
 
       if (session?.user) {
+        const needsSubscriptionCheck = event === 'SIGNED_IN' && !isAdminEmail(session.user.email) && !!session.user.email;
         setState(prev => ({
           ...prev,
           user: session.user,
           session,
           isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email)
+          isAdmin: isAdminEmail(session.user.email),
+          subscriptionLoading: needsSubscriptionCheck ? true : prev.subscriptionLoading
         }));
         if (event === 'SIGNED_IN') {
           loadUserProfile(session.user);
+          if (session.user.email) {
+            loadSubscriptionStatus(session.user.email);
+          }
         }
       } else {
         setState({
@@ -108,7 +169,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           profile: null,
           isLoading: false,
           isAuthenticated: false,
-          isAdmin: false
+          isAdmin: false,
+          subscriptionStatus: null,
+          hasSubscriptionAccess: false,
+          subscriptionLoading: false
         });
       }
     });
@@ -145,7 +209,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       profile: null,
       isLoading: false,
       isAuthenticated: false,
-      isAdmin: false
+      isAdmin: false,
+      subscriptionStatus: null,
+      hasSubscriptionAccess: false,
+      subscriptionLoading: false
     });
 
     try {
@@ -174,12 +241,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setState(prev => ({ ...prev, profile }));
   };
 
+  // Refresh subscription status
+  const refreshSubscription = async () => {
+    const email = state.user?.email;
+    if (!email) return;
+
+    if (isAdminEmail(email)) {
+      setState(prev => ({ ...prev, hasSubscriptionAccess: true }));
+      return;
+    }
+
+    setState(prev => ({ ...prev, subscriptionLoading: true }));
+    try {
+      const status = await checkSubscription(email);
+      setState(prev => ({
+        ...prev,
+        subscriptionStatus: status,
+        hasSubscriptionAccess: status.hasAccess,
+        subscriptionLoading: false
+      }));
+    } catch (error) {
+      console.error('[AuthContext] Subscription refresh failed:', error);
+      setState(prev => ({ ...prev, subscriptionLoading: false }));
+    }
+  };
+
   return (
     <AuthContext.Provider value={{
       ...state,
       signIn,
       signOut,
-      refreshProfile
+      refreshProfile,
+      refreshSubscription
     }}>
       {children}
     </AuthContext.Provider>
