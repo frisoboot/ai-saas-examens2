@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StudentProfile, StudentLevel } from '../types';
 import { dbStudents, auth } from '../services/supabaseService';
 import { Button } from './Button';
-import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Copy, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import { Search, Mail, UserCheck, UserX, Plus, Trash2, X, Check, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 interface AdminStudentManagementProps {
   adminUsername: string;
@@ -12,12 +12,6 @@ interface NewStudentForm {
   name: string;
   email: string;
   level: StudentLevel;
-}
-
-interface CreatedStudent {
-  email: string;
-  name: string;
-  temporaryPassword: string;
 }
 
 export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ adminUsername }) => {
@@ -35,10 +29,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     email: '',
     level: 'HAVO'
   });
-  const [createdStudent, setCreatedStudent] = useState<CreatedStudent | null>(null);
-  const [copiedPassword, setCopiedPassword] = useState(false);
-  const [useCustomPassword, setUseCustomPassword] = useState(false);
-  const [customPassword, setCustomPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   // Delete confirmation state
@@ -91,7 +82,7 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
           name: newStudent.name,
           email: newStudent.email,
           level: newStudent.level,
-          customPassword: useCustomPassword ? customPassword : undefined
+          password: password
         })
       });
 
@@ -101,18 +92,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
         throw new Error(data.error || 'Kon student niet aanmaken');
       }
 
-      // Toon het gegenereerde wachtwoord
-      setCreatedStudent({
-        email: newStudent.email,
-        name: newStudent.name,
-        temporaryPassword: data.temporaryPassword
-      });
-
-      // Reset form
+      // Reset form en sluit modal
       setNewStudent({ name: '', email: '', level: 'HAVO' });
-      setUseCustomPassword(false);
-      setCustomPassword('');
+      setPassword('');
       setShowPassword(false);
+      setShowAddModal(false);
+      setSuccess(`${newStudent.name} is succesvol aangemaakt`);
+      setTimeout(() => setSuccess(''), 3000);
 
       // Herlaad studenten lijst
       await loadStudents();
@@ -173,21 +159,10 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
     }
   };
 
-  const copyPassword = async () => {
-    if (createdStudent?.temporaryPassword) {
-      await navigator.clipboard.writeText(createdStudent.temporaryPassword);
-      setCopiedPassword(true);
-      setTimeout(() => setCopiedPassword(false), 2000);
-    }
-  };
-
   const closeAddModal = () => {
     setShowAddModal(false);
-    setCreatedStudent(null);
     setNewStudent({ name: '', email: '', level: 'HAVO' });
-    setCopiedPassword(false);
-    setUseCustomPassword(false);
-    setCustomPassword('');
+    setPassword('');
     setShowPassword(false);
   };
 
@@ -345,75 +320,13 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
             <div className="flex items-center justify-between p-4 border-b border-slate-200">
               <h3 className="text-lg font-semibold text-slate-900">
-                {createdStudent ? 'Student Aangemaakt' : 'Nieuwe Student Toevoegen'}
+                Nieuwe Student Toevoegen
               </h3>
               <button onClick={closeAddModal} className="p-1 hover:bg-slate-100 rounded">
                 <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
 
-            {createdStudent ? (
-              // Success view with password
-              <div className="p-4 space-y-4">
-                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-green-700 font-medium">Student succesvol aangemaakt!</p>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm text-slate-500">Naam</label>
-                    <p className="font-medium">{createdStudent.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-500">Email</label>
-                    <p className="font-medium">{createdStudent.email}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-slate-500">Tijdelijk Wachtwoord</label>
-                    <div className="flex items-center gap-2 mt-1">
-                      <code className="flex-1 p-2 bg-slate-100 rounded font-mono text-sm">
-                        {createdStudent.temporaryPassword}
-                      </code>
-                      <button
-                        onClick={copyPassword}
-                        className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-                        title="Kopieer wachtwoord"
-                      >
-                        {copiedPassword ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <Copy className="w-4 h-4 text-slate-600" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
-                  <strong>Let op:</strong> Deel dit wachtwoord veilig met de student. Ze kunnen dit later wijzigen in hun profiel.
-                </div>
-
-                <div className="flex gap-2 pt-2">
-                  <Button onClick={closeAddModal} className="flex-1">
-                    Sluiten
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setCreatedStudent(null);
-                      setNewStudent({ name: '', email: '', level: 'HAVO' });
-                      setUseCustomPassword(false);
-                      setCustomPassword('');
-                      setShowPassword(false);
-                    }}
-                    variant="secondary"
-                    className="flex-1"
-                  >
-                    Nog een student
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              // Add student form
               <form onSubmit={handleAddStudent} className="p-4 space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
@@ -459,56 +372,28 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                   </select>
                 </div>
 
-                {/* Wachtwoord opties */}
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Wachtwoord * <span className="font-normal text-slate-500">(minimaal 8 tekens)</span>
+                  </label>
+                  <div className="relative">
                     <input
-                      type="checkbox"
-                      id="useCustomPassword"
-                      checked={useCustomPassword}
-                      onChange={(e) => {
-                        setUseCustomPassword(e.target.checked);
-                        if (!e.target.checked) {
-                          setCustomPassword('');
-                          setShowPassword(false);
-                        }
-                      }}
-                      className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      minLength={8}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                      placeholder="Voer een wachtwoord in"
                     />
-                    <label htmlFor="useCustomPassword" className="text-sm font-medium text-slate-700">
-                      Eigen wachtwoord instellen
-                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
                   </div>
-
-                  {useCustomPassword ? (
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1">
-                        Wachtwoord * <span className="font-normal text-slate-500">(minimaal 8 tekens)</span>
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showPassword ? 'text' : 'password'}
-                          required
-                          minLength={8}
-                          value={customPassword}
-                          onChange={(e) => setCustomPassword(e.target.value)}
-                          className="w-full px-3 py-2 pr-10 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                          placeholder="Voer een wachtwoord in"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-600"
-                        >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
-                      Er wordt automatisch een veilig wachtwoord gegenereerd. Dit wordt getoond nadat de student is aangemaakt.
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex gap-2 pt-2">
@@ -530,7 +415,6 @@ export const AdminStudentManagement: React.FC<AdminStudentManagementProps> = ({ 
                   </Button>
                 </div>
               </form>
-            )}
           </div>
         </div>
       )}
