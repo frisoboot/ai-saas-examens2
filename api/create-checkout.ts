@@ -125,36 +125,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('subscriptions')
       .select('*')
       .eq('user_email', email.toLowerCase())
-      .in('status', ['trial', 'active'])
       .maybeSingle();
 
     if (existingSubscription) {
+      // Blokkeer alleen als er een actieve trial of actief abonnement is
       if (existingSubscription.status === 'trial') {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actieve proefperiode. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
           });
         }
       }
       if (existingSubscription.status === 'active') {
-        return res.status(400).json({
-          error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
-        });
+        const periodEnd = existingSubscription.current_period_end
+          ? new Date(existingSubscription.current_period_end)
+          : null;
+        if (periodEnd && periodEnd > new Date()) {
+          return res.status(400).json({
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+          });
+        }
       }
+      // Verlopen/cancelled/trial_expired/payment_failed → sta her-abonneren toe
+      console.log('Existing subscription with status:', existingSubscription.status, '- allowing re-subscription for:', email);
     }
 
     // Check of er al een bestaand account is (student profile)
+    // Sta her-abonneren toe als het abonnement verlopen is
     const { data: existingProfile } = await supabase
       .from('student_profiles')
       .select('id')
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
-    if (existingProfile) {
-      return res.status(400).json({
-        error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
-      });
+    const isResubscription = !!existingProfile;
+
+    if (existingProfile && !existingSubscription) {
+      // Profiel bestaat maar geen subscription record → sta toe (edge case)
+      console.log('Existing profile without subscription, allowing checkout for:', email);
+    } else if (existingProfile && existingSubscription) {
+      // Profiel + verlopen subscription → sta her-abonneren toe (actieve subs zijn al geblokkeerd hierboven)
+      console.log('Re-subscription flow for existing user:', email);
     }
 
     // Check of er al een pending registration is
