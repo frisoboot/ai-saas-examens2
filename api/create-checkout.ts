@@ -133,15 +133,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
+            error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
           });
         }
       }
       if (existingSubscription.status === 'active') {
         return res.status(400).json({
-          error: 'Registratie niet mogelijk. Controleer je gegevens of neem contact op.'
+          error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
         });
       }
+    }
+
+    // Check of er al een bestaand account is (student profile)
+    const { data: existingProfile } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('email', email.toLowerCase())
+      .maybeSingle();
+
+    if (existingProfile) {
+      return res.status(400).json({
+        error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+      });
     }
 
     // Check of er al een pending registration is
