@@ -48,6 +48,11 @@ interface ChatSession {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
+// Maximum number of recent messages to send to the AI per turn.
+// Keeps token usage constant regardless of conversation length.
+// 8 messages = 4 full back-and-forth turns of context.
+const MAX_CHAT_CONTEXT_MESSAGES = 8;
+
 const chatSessions = new Map<string, ChatSession>();
 
 // Subject Expert Chat - returns a chat-like interface
@@ -100,7 +105,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
     4. Sluit af en toe af met een korte quizvraag om kennis te testen.
 
     CONVERSATIE CONTEXT:
-    Je krijgt de volledige gespreksgeschiedenis mee bij elke vraag.
+    Je krijgt de recente gespreksgeschiedenis mee bij elke vraag.
   `;
 
   // Create a unique session ID
@@ -122,8 +127,12 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
       // Add user message to history
       session.messages.push({ role: 'user', content: message });
 
-      // Build the full conversation context
-      const conversationContext = session.messages
+      // Build conversation context using only recent messages (sliding window).
+      // The system instruction already contains student level, subject, and struggle points,
+      // so older messages can be dropped without losing critical context.
+      const recentMessages = session.messages.slice(-MAX_CHAT_CONTEXT_MESSAGES);
+
+      const conversationContext = recentMessages
         .map(m => `${m.role === 'user' ? 'Leerling' : 'Docent'}: ${m.content}`)
         .join('\n\n');
 
