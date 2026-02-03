@@ -737,8 +737,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
             <div className="flex items-center gap-8 text-slate-400">
               <a href="mailto:info@ai-examentrainer.nl" className="hover:text-white transition-colors">Contact</a>
-              <a href="#" className="hover:text-white transition-colors">Privacy</a>
-              <a href="#" className="hover:text-white transition-colors">Voorwaarden</a>
+              <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
+              <a href="/voorwaarden" className="hover:text-white transition-colors">Voorwaarden</a>
             </div>
 
             <p className="text-slate-500">

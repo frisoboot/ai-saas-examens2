@@ -455,8 +455,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
 
             <div className="flex items-center gap-6 text-sm text-gray-500">
               <a href="mailto:info@ai-examentrainer.nl" className="hover:text-gray-700 transition-colors">Contact</a>
-              <a href="#" className="hover:text-gray-700 transition-colors">Privacy</a>
-              <a href="#" className="hover:text-gray-700 transition-colors">Voorwaarden</a>
+              <a href="/privacy" className="hover:text-gray-700 transition-colors">Privacy</a>
+              <a href="/voorwaarden" className="hover:text-gray-700 transition-colors">Voorwaarden</a>
             </div>
 
             <p className="text-sm text-gray-400">

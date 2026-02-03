@@ -262,7 +262,10 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               </Button>
 
               <p className="text-center text-xs text-gray-500">
-                Door te registreren ga je akkoord met onze voorwaarden.
+                Door te registreren ga je akkoord met onze{' '}
+                <a href="/voorwaarden" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">algemene voorwaarden</a>
+                {' '}en{' '}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">privacybeleid</a>.
                 <br />
                 Na je proefperiode wordt €12,50/maand automatisch afgeschreven.
               </p>

@@ -17,6 +17,8 @@ import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
+import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
+import { TermsOfService } from './components/legal/TermsOfService';
 import { LoadingScreen } from './components/LoadingScreen';
 import { XCircle, RefreshCw, LogOut } from 'lucide-react';
 
@@ -375,6 +377,9 @@ const AppContent: React.FC = () => {
             onSuccess={() => navigate('/login')}
           />
         } />
+
+        <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
+        <Route path="/voorwaarden" element={<TermsOfService onBack={() => navigate('/')} />} />
 
         <Route path="/payment/callback" element={
           <PaymentCallback
