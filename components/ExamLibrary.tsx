@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Question, StudentLevel } from '../types';
-import { getQuestions, deleteQuestion } from '../services/storageService';
+import { getQuestions, deleteQuestion, deleteExam } from '../services/storageService';
 import { Button } from './Button';
 import {
   FolderOpen,
@@ -44,6 +44,7 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
   const [expandedYears, setExpandedYears] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<StudentLevel | 'ALL'>('ALL');
+  const [deletingExam, setDeletingExam] = useState<string | null>(null);
 
   useEffect(() => {
     loadQuestions();
@@ -190,6 +191,31 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
         console.error('Fout bij verwijderen:', error);
         alert('Kon vraag niet verwijderen.');
       }
+    }
+  };
+
+  const handleDeleteExam = async (subject: string, year: number, level: StudentLevel, questionCount: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const examLabel = `${subject} ${year} ${level}`;
+    if (!confirm(`Weet je zeker dat je het hele examen "${examLabel}" wilt verwijderen?\n\nDit verwijdert ${questionCount} vragen inclusief alle afbeeldingen, bijlagen en PDF's.\n\nDeze actie kan niet ongedaan worden gemaakt.`)) {
+      return;
+    }
+
+    const deleteKey = `${subject}-${year}-${level}`;
+    setDeletingExam(deleteKey);
+    try {
+      const result = await deleteExam(subject, year, level);
+      const messages = [`${result.deletedQuestions} vragen verwijderd`];
+      if (result.deletedImages > 0) messages.push(`${result.deletedImages} afbeeldingen verwijderd`);
+      if (result.deletedWorksheets > 0) messages.push(`${result.deletedWorksheets} bijlagen/PDF's verwijderd`);
+      if (result.errors.length > 0) messages.push(`${result.errors.length} fouten opgetreden`);
+      alert(messages.join('\n'));
+      await loadQuestions();
+    } catch (error) {
+      console.error('Fout bij verwijderen examen:', error);
+      alert('Er ging iets mis bij het verwijderen van het examen.');
+    } finally {
+      setDeletingExam(null);
     }
   };
 
@@ -355,9 +381,42 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
                             </div>
                           </button>
 
-                          {/* Questions */}
+                          {/* Expanded: delete buttons + questions */}
                           {isYearExpanded && (
                             <div className="bg-white border-t border-slate-100">
+                              {/* Delete exam per level */}
+                              {yearGroup.year > 0 && (
+                                <div className="flex items-center gap-2 px-16 py-2 bg-slate-50 border-b border-slate-100">
+                                  <span className="text-xs text-slate-500 mr-1">Verwijder examen:</span>
+                                  {(['VMBO-TL', 'HAVO', 'VWO'] as StudentLevel[]).map(lvl => {
+                                    const count = yearGroup.byLevel[lvl].length;
+                                    if (count === 0) return null;
+                                    const deleteKey = `${subjectGroup.subject}-${yearGroup.year}-${lvl}`;
+                                    const isDeleting = deletingExam === deleteKey;
+                                    return (
+                                      <button
+                                        key={lvl}
+                                        onClick={(e) => handleDeleteExam(subjectGroup.subject, yearGroup.year, lvl, count, e)}
+                                        disabled={isDeleting}
+                                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded border transition-colors ${
+                                          isDeleting
+                                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed'
+                                            : 'bg-white text-red-600 border-red-200 hover:bg-red-50'
+                                        }`}
+                                        title={`Verwijder ${subjectGroup.subject} ${yearGroup.year} ${lvl} (${count} vragen)`}
+                                      >
+                                        {isDeleting ? (
+                                          <RefreshCw className="w-3 h-3 animate-spin" />
+                                        ) : (
+                                          <Trash2 className="w-3 h-3" />
+                                        )}
+                                        {lvl} ({count})
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
+
                               {yearGroup.questions.map(q => (
                                 <div
                                   key={q.id}

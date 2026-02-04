@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { ExamSession, StudentProfile, FlashcardSession } from './types';
 import { getQuestions } from './services/storageService';
+import { sortExamQuestions } from './utils/sortExamQuestions';
 import { generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
@@ -201,15 +202,22 @@ const AppContent: React.FC = () => {
           return;
       }
 
+      // Sort questions by question number, keeping sections grouped together
+      const sortedQuestions = sortExamQuestions(subjectQuestions);
+
+      // Extract exam PDF URL from questions (shared across all questions in one exam)
+      const examPdfUrl = sortedQuestions.find(q => q.examPdfUrl)?.examPdfUrl;
+
       setCurrentExamSession({
         studentName: currentProfile.name,
         subject,
-        questions: subjectQuestions,
+        questions: sortedQuestions,
         currentQuestionIndex: 0,
         answers: {},
         examType: year ? 'official_exam' : 'subject_practice',
         startTime: Date.now(),
-        timeLimit // Time limit in minutes (0 = no limit)
+        timeLimit, // Time limit in minutes (0 = no limit)
+        pdfUrl: examPdfUrl
       });
       navigate('/exam');
     } catch (error) {
