@@ -70,38 +70,90 @@ interface JsonImportFormat {
 const DRAFT_STORAGE_KEY = 'examBuilder_draft';
 const AUTO_SAVE_DELAY = 1000;
 
-// Generate JSON template
+// Generate JSON template with full field documentation for AI and human readability
 const generateJsonTemplate = (): string => {
-  const template: JsonImportFormat = {
-    subject: "Geschiedenis",
+  const template = {
+    _readme: {
+      description: "JSON import formaat voor AI Examentrainer (ai-examentrainer.nl). Dit bestand wordt gebruikt om examenvragen te importeren in het platform.",
+      instructions: "Vul alle verplichte velden in en verwijder dit _readme object voor import. Het _readme object wordt automatisch genegeerd bij import.",
+      subjects: [
+        "Aardrijkskunde", "Bedrijfseconomie", "Biologie", "Duits", "Economie",
+        "Engels", "Frans", "Geschiedenis", "Kunst Algemeen", "Maatschappijwetenschappen",
+        "Natuurkunde", "Nederlands", "Scheikunde", "Wiskunde A", "Wiskunde B", "Wiskunde C"
+      ],
+      levels: ["VMBO-TL", "HAVO", "VWO"],
+      questionTypes: ["MULTIPLE_CHOICE", "OPEN"],
+      fieldExplanations: {
+        "subject": "VERPLICHT - Vaknaam, moet exact overeenkomen met een van de subjects hierboven (hoofdlettergevoelig)",
+        "year": "VERPLICHT - Examenjaar als getal, bijv. 2024",
+        "tijdvak": "VERPLICHT - Tijdvak als getal: 1 (eerste tijdvak), 2 (tweede tijdvak), of 3 (herkansing)",
+        "level": "VERPLICHT - Niveau: 'VMBO-TL', 'HAVO', of 'VWO' (hoofdlettergevoelig, exact deze waarden)",
+        "examPdfUrl": "OPTIONEEL - URL naar een PDF tekstboekje dat bij het hele examen hoort. Wordt als split-screen naast de vragen getoond. Gebruikt voor vakken als Nederlands, Engels, Geschiedenis waar leerlingen een tekstboekje krijgen.",
+        "questions": "VERPLICHT - Array van vraag-objecten (zie fieldExplanations_question)"
+      },
+      fieldExplanations_question: {
+        "questionNumber": "OPTIONEEL - Volgnummer van de vraag (getal). Als je dit weglaat wordt het automatisch bepaald op volgorde (1, 2, 3...)",
+        "type": "VERPLICHT - Type vraag: 'MULTIPLE_CHOICE' voor meerkeuzevragen of 'OPEN' voor open vragen",
+        "text": "VERPLICHT - De vraagtekst. Dit is de eigenlijke vraag die de leerling te zien krijgt",
+        "contextText": "OPTIONEEL - Brontekst of context die bij de vraag hoort. Wordt in het linker paneel getoond naast de vraag. Gebruik dit voor korte bronteksten, citaten, of instructies. Voor lange teksten (hele tekstboekjes) gebruik examPdfUrl in plaats hiervan",
+        "options": "VERPLICHT bij MULTIPLE_CHOICE - Array van antwoordopties als strings. Minimaal 2, maximaal 6 opties. Voorbeeld: [\"Optie A\", \"Optie B\", \"Optie C\", \"Optie D\"]",
+        "correctIndex": "VERPLICHT bij MULTIPLE_CHOICE - Index (0-gebaseerd) van het juiste antwoord in de options array. 0 = eerste optie, 1 = tweede optie, etc.",
+        "modelAnswer": "VERPLICHT bij OPEN - Het ideale/verwachte antwoord. Wordt gebruikt door de AI om het antwoord van de leerling te beoordelen. Wees zo volledig mogelijk",
+        "imageUrl": "OPTIONEEL - Base64-encoded afbeelding of URL naar een afbeelding. Wordt boven de vraagtekst getoond. Tip: je kunt afbeeldingen ook later toevoegen via de preview modus in de ExamBuilder",
+        "hasImage": "OPTIONEEL - true als deze vraag een afbeelding nodig heeft maar die nog niet is toegevoegd. De vraag wordt dan gemarkeerd zodat je later de afbeelding kunt uploaden",
+        "pdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in het PDF tekstboekje (examPdfUrl). Als je dit invult springt de PDF viewer automatisch naar deze pagina wanneer de leerling bij deze vraag komt. Alleen zinvol als examPdfUrl is ingevuld",
+        "worksheetUrl": "OPTIONEEL - URL naar een bijlage (PDF of afbeelding) die specifiek bij deze ene vraag hoort, bijv. een Binas-tabel of uitwerkpapier. Anders dan examPdfUrl (dat is voor het hele examen)",
+        "worksheetLabel": "OPTIONEEL - Label voor de bijlage, bijv. 'Binas-tabel 45' of 'Uitwerkpapier'. Wordt getoond in de vraag-interface",
+        "requiresWorksheet": "OPTIONEEL - true als de leerling de bijlage (worksheetUrl) nodig heeft om de vraag te beantwoorden. Als true kan de leerling de vraag overslaan als ze de bijlage niet hebben"
+      },
+      examples: {
+        simple_mc: "Simpele meerkeuzevraag: type='MULTIPLE_CHOICE', text, options (array), correctIndex (0-gebaseerd getal)",
+        simple_open: "Simpele open vraag: type='OPEN', text, modelAnswer",
+        with_context: "Vraag met brontekst: voeg contextText toe (wordt links van de vraag getoond)",
+        with_pdf: "Examen met tekstboekje: voeg examPdfUrl toe op top-level, en optioneel pdfPage per vraag",
+        with_image: "Vraag met afbeelding: voeg imageUrl toe (base64 of URL), of zet hasImage=true om later toe te voegen"
+      }
+    },
+
+    subject: "Nederlands",
     year: 2024,
     tijdvak: 1,
     level: "HAVO",
+    examPdfUrl: "",
+
     questions: [
       {
         questionNumber: 1,
-        type: "MULTIPLE_CHOICE",
-        text: "Wat was de belangrijkste oorzaak van de Eerste Wereldoorlog?",
-        contextText: "Lees de onderstaande bron over het begin van WO1.",
-        options: ["De moord op Frans Ferdinand", "Economische rivaliteit", "Koloniale spanningen", "Nationalisme"],
+        type: "MULTIPLE_CHOICE" as const,
+        text: "Welke stijlfiguur wordt in de derde alinea van tekst 1 gebruikt?",
+        contextText: "Lees tekst 1 uit het tekstboekje (pagina 2-3).",
+        options: ["Metafoor", "Personificatie", "Hyperbool", "Ironie"],
         correctIndex: 0,
-        hasImage: false
+        hasImage: false,
+        pdfPage: 2
       },
       {
         questionNumber: 2,
-        type: "OPEN",
-        text: "Bekijk de afbeelding en leg uit waarom de industriële revolutie begon in Engeland.",
-        contextText: "Gebruik minimaal drie argumenten in je antwoord.",
-        modelAnswer: "De industriële revolutie begon in Engeland vanwege: 1) beschikbaarheid van steenkool en ijzer, 2) een groot koloniaal rijk voor grondstoffen en afzetmarkten, 3) een stabiel politiek systeem dat innovatie stimuleerde.",
-        hasImage: true
+        type: "OPEN" as const,
+        text: "Leg uit waarom de schrijver in alinea 4 van tekst 1 overgaat op een andere toon. Gebruik in je antwoord een citaat uit de tekst.",
+        contextText: "Gebruik tekst 1 (pagina 2-3) bij je antwoord.",
+        modelAnswer: "De schrijver gaat over op een serieuzere toon om de lezer te confronteren met de ernst van het probleem. Dit blijkt uit het citaat '...' waarmee hij afstand neemt van de luchtige toon uit de eerste alinea's.",
+        pdfPage: 3
       },
       {
         questionNumber: 3,
-        type: "MULTIPLE_CHOICE",
-        text: "Welke grafiek toont de bevolkingsgroei van Nederland in de 19e eeuw?",
-        options: ["Grafiek A", "Grafiek B", "Grafiek C", "Grafiek D"],
-        correctIndex: 1,
-        hasImage: true
+        type: "MULTIPLE_CHOICE" as const,
+        text: "Wat is de hoofdgedachte van tekst 2?",
+        contextText: "Lees tekst 2 (pagina 5-7).",
+        options: [
+          "Sociale media hebben een negatieve invloed op jongeren",
+          "De overheid moet meer investeren in onderwijs",
+          "Technologie verandert de manier waarop we communiceren",
+          "Jongeren lezen minder dan vroeger"
+        ],
+        correctIndex: 2,
+        hasImage: false,
+        pdfPage: 5
       }
     ]
   };
@@ -846,31 +898,38 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <h4 className="text-sm font-bold text-blue-900 mb-2">JSON Formaat:</h4>
                 <pre className="text-xs text-blue-800 font-mono overflow-x-auto whitespace-pre-wrap">
 {`{
-  "subject": "Vak naam",
+  "subject": "Nederlands",
   "year": 2024,
   "tijdvak": 1,
   "level": "HAVO",
+  "examPdfUrl": "(optioneel) URL naar tekstboekje PDF",
   "questions": [
     {
       "questionNumber": 1,
       "type": "MULTIPLE_CHOICE",
       "text": "Vraag tekst",
-      "contextText": "Brontekst (optioneel)",
+      "contextText": "(optioneel) Brontekst",
       "options": ["A", "B", "C", "D"],
-      "correctIndex": 0
+      "correctIndex": 0,
+      "pdfPage": 2,
+      "hasImage": false
     },
     {
       "questionNumber": 2,
       "type": "OPEN",
       "text": "Open vraag",
-      "modelAnswer": "Antwoord"
+      "modelAnswer": "Verwacht antwoord",
+      "pdfPage": 5
     }
   ]
 }`}
                 </pre>
-                <p className="text-xs text-blue-700 mt-2">
-                  Tip: Je kunt afbeeldingen later toevoegen in de preview modus.
-                </p>
+                <div className="text-xs text-blue-700 mt-2 space-y-1">
+                  <p><strong>Tip:</strong> Download de template voor een volledig voorbeeld met uitleg van elk veld.</p>
+                  <p><strong>examPdfUrl:</strong> Voor vakken met een tekstboekje (Nederlands, Engels, Geschiedenis).</p>
+                  <p><strong>pdfPage:</strong> Pagina in de PDF die automatisch getoond wordt bij die vraag.</p>
+                  <p><strong>hasImage:</strong> Zet op true om later een afbeelding toe te voegen via preview.</p>
+                </div>
               </div>
             </div>
           </div>
