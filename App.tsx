@@ -201,6 +201,9 @@ const AppContent: React.FC = () => {
           return;
       }
 
+      // Extract exam PDF URL from questions (shared across all questions in one exam)
+      const examPdfUrl = subjectQuestions.find(q => q.examPdfUrl)?.examPdfUrl;
+
       setCurrentExamSession({
         studentName: currentProfile.name,
         subject,
@@ -209,7 +212,8 @@ const AppContent: React.FC = () => {
         answers: {},
         examType: year ? 'official_exam' : 'subject_practice',
         startTime: Date.now(),
-        timeLimit // Time limit in minutes (0 = no limit)
+        timeLimit, // Time limit in minutes (0 = no limit)
+        pdfUrl: examPdfUrl
       });
       navigate('/exam');
     } catch (error) {

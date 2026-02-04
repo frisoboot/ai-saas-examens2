@@ -4,10 +4,11 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
+import { PdfViewer } from './PdfViewer';
 
 interface ExamTakerProps {
   session: ExamSession;
@@ -45,6 +46,11 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
   // Image zoom state
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
+
+  // PDF split-screen state
+  const [leftPanelTab, setLeftPanelTab] = useState<'pdf' | 'context'>('pdf');
+  // Mobile: toggle between PDF and questions
+  const [showMobilePdf, setShowMobilePdf] = useState(false);
 
   // Timer state for Look-alike exams
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(() => {
@@ -441,6 +447,15 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Has context includes section intro OR question-specific context
   const hasContext = !!currentQuestion.contextText || showSectionIntro;
 
+  // PDF support: check if exam has a PDF tekstboekje
+  const examPdfUrl = session.pdfUrl;
+  const hasPdf = !!examPdfUrl;
+  const hasLeftPanel = hasContext || hasPdf;
+
+  // Determine which content to show in left panel
+  const showPdfPanel = hasPdf && leftPanelTab === 'pdf';
+  const showContextPanel = hasContext && (!hasPdf || leftPanelTab === 'context');
+
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden text-slate-900 font-sans">
       {/* Header */}
@@ -461,6 +476,21 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Mobile PDF toggle button */}
+          {hasPdf && (
+            <button
+              onClick={() => setShowMobilePdf(!showMobilePdf)}
+              className={`lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                showMobilePdf
+                  ? 'bg-indigo-100 text-indigo-700'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              {showMobilePdf ? 'Vragen' : 'PDF'}
+            </button>
+          )}
+
           {remainingSeconds !== null && (
             <div className={`flex items-center gap-2 px-4 py-2 rounded-full font-mono text-lg font-bold transition-all ${
               isTimeLow ? 'bg-red-100 text-red-700 animate-pulse' : 'bg-amber-100 text-amber-800'
@@ -482,45 +512,96 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
       {/* Main Content Split */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* LEFT COLUMN: Context */}
-        {hasContext ? (
-          <div className="lg:w-1/2 bg-[#fdfbf7] border-r border-[#eaddcf] overflow-y-auto custom-scrollbar">
-            <div className="max-w-2xl mx-auto p-8 lg:p-12">
-              {/* Section Header */}
-              {isNewSection && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
-                    {currentQuestion.section}
-                  </h2>
-                </div>
-              )}
+        {/* LEFT COLUMN: PDF / Context / Tabs */}
+        {hasLeftPanel ? (
+          <div className={`lg:w-1/2 flex flex-col overflow-hidden border-r border-slate-200 ${showMobilePdf ? '' : 'hidden lg:flex'}`}>
+            {/* Tab bar: show when both PDF and context are available */}
+            {hasPdf && hasContext && (
+              <div className="flex-shrink-0 flex border-b border-slate-200 bg-white">
+                <button
+                  onClick={() => setLeftPanelTab('pdf')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                    leftPanelTab === 'pdf'
+                      ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Tekstboekje
+                </button>
+                <button
+                  onClick={() => setLeftPanelTab('context')}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                    leftPanelTab === 'context'
+                      ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Context
+                </button>
+              </div>
+            )}
 
-              {/* Section Introduction (only on first question of section) */}
-              {showSectionIntro && (
-                <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
-                  <ReactMarkdown>{currentQuestion.sectionIntro}</ReactMarkdown>
-                </div>
-              )}
+            {/* PDF Viewer */}
+            {showPdfPanel && examPdfUrl && (
+              <PdfViewer
+                url={examPdfUrl}
+                page={currentQuestion.pdfPage}
+                className="flex-1"
+              />
+            )}
 
-              {/* Question-specific Context */}
-              {currentQuestion.contextText && (
-                <>
-                  <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
-                    <span>Bronmateriaal</span>
-                  </div>
-                  <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                    <ReactMarkdown>{currentQuestion.contextText}</ReactMarkdown>
-                  </div>
-                </>
-              )}
-            </div>
+            {/* Context Text */}
+            {showContextPanel && (
+              <div className="flex-1 bg-[#fdfbf7] overflow-y-auto custom-scrollbar">
+                <div className="max-w-2xl mx-auto p-8 lg:p-12">
+                  {/* Section Header */}
+                  {isNewSection && (
+                    <div className="mb-6">
+                      <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
+                        {currentQuestion.section}
+                      </h2>
+                    </div>
+                  )}
+
+                  {/* Section Introduction (only on first question of section) */}
+                  {showSectionIntro && (
+                    <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
+                      <ReactMarkdown>{currentQuestion.sectionIntro}</ReactMarkdown>
+                    </div>
+                  )}
+
+                  {/* Question-specific Context */}
+                  {currentQuestion.contextText && (
+                    <>
+                      <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
+                        <span>Bronmateriaal</span>
+                      </div>
+                      <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
+                        <ReactMarkdown>{currentQuestion.contextText}</ReactMarkdown>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* PDF-only (no context available): show PDF without tabs */}
+            {hasPdf && !hasContext && !showPdfPanel && examPdfUrl && (
+              <PdfViewer
+                url={examPdfUrl}
+                page={currentQuestion.pdfPage}
+                className="flex-1"
+              />
+            )}
           </div>
         ) : (
           <div className="hidden lg:block lg:w-1/4 bg-[#f8fafc] border-r border-slate-100" />
         )}
 
         {/* RIGHT COLUMN: Question */}
-        <div className={`flex-1 bg-white overflow-y-auto flex flex-col ${hasContext ? 'lg:w-1/2' : 'lg:w-2/4 lg:max-w-3xl lg:border-r lg:border-slate-100'}`}>
+        <div className={`flex-1 bg-white overflow-y-auto flex flex-col ${showMobilePdf ? 'hidden lg:flex' : ''} ${hasLeftPanel ? 'lg:w-1/2' : 'lg:w-2/4 lg:max-w-3xl lg:border-r lg:border-slate-100'}`}>
           <div className="flex-1 p-6 lg:p-10 max-w-3xl mx-auto w-full flex flex-col">
             {currentQuestion.imageUrl && (
               <div
@@ -674,7 +755,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           </div>
         </div>
 
-        {!hasContext && <div className="hidden lg:block lg:w-1/4 bg-[#f8fafc]" />}
+        {!hasLeftPanel && <div className="hidden lg:block lg:w-1/4 bg-[#f8fafc]" />}
       </div>
 
       {/* Image Zoom Modal */}

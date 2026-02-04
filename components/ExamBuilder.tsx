@@ -11,6 +11,7 @@ interface ExamMetadata {
   year: number;
   tijdvak: number;
   level: StudentLevel;
+  examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
 }
 
 interface QuestionDraft extends Partial<Question> {
@@ -22,6 +23,7 @@ interface QuestionDraft extends Partial<Question> {
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
+  pdfPage?: number;
 }
 
 interface ValidationErrors {
@@ -53,6 +55,7 @@ interface JsonQuestion {
   worksheetUrl?: string;
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
+  pdfPage?: number;    // Page number in the exam PDF tekstboekje
 }
 
 interface JsonImportFormat {
@@ -60,6 +63,7 @@ interface JsonImportFormat {
   year?: number;
   tijdvak?: number;
   level?: StudentLevel;
+  examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
   questions: JsonQuestion[];
 }
 
@@ -337,7 +341,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       questionNumber: undefined,
       worksheetUrl: '',
       worksheetLabel: '',
-      requiresWorksheet: false
+      requiresWorksheet: false,
+      pdfPage: undefined
     });
     setValidationErrors({});
   };
@@ -423,6 +428,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         setExamMeta(prev => ({ ...prev, level: data.level! }));
       }
 
+      // Import exam PDF URL if provided
+      if (data.examPdfUrl) {
+        setExamMeta(prev => ({ ...prev, examPdfUrl: data.examPdfUrl }));
+      }
+
       // Convert JSON questions to QuestionDraft format
       const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
         tempId: `import-${Date.now()}-${index}`,
@@ -437,7 +447,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
         worksheetUrl: q.worksheetUrl || '',
         worksheetLabel: q.worksheetLabel || '',
-        requiresWorksheet: q.requiresWorksheet || false
+        requiresWorksheet: q.requiresWorksheet || false,
+        pdfPage: q.pdfPage
       }));
 
       // Add to existing questions
@@ -586,10 +597,12 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           source: `Examen ${examMeta.year} Tijdvak ${examMeta.tijdvak}`,
           contextText: draft.contextText,
           imageUrl: draft.imageUrl,
-          hasImage: draft.hasImage || !!draft.imageUrl, // Mark as hasImage if checkbox is checked OR if image is uploaded
+          hasImage: draft.hasImage || !!draft.imageUrl,
           worksheetUrl: draft.worksheetUrl,
           worksheetLabel: draft.worksheetLabel,
           requiresWorksheet: draft.requiresWorksheet,
+          examPdfUrl: examMeta.examPdfUrl,
+          pdfPage: draft.pdfPage,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -988,6 +1001,64 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </p>
                 </div>
 
+                {/* PDF Tekstboekje Upload */}
+                <div className="pt-4 border-t">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileText className="w-4 h-4 inline mr-1" />
+                    Tekstboekje PDF (optioneel)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload een PDF tekstboekje dat bij het hele examen hoort (bijv. voor Nederlands, Engels, Geschiedenis)
+                  </p>
+                  {examMeta.examPdfUrl ? (
+                    <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-5 h-5 text-indigo-600" />
+                          <span className="text-sm font-medium text-indigo-900">Tekstboekje geüpload</span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (examMeta.examPdfUrl && examMeta.examPdfUrl.includes('/storage/v1/object/public/')) {
+                              await worksheetStorage.deleteWorksheet(examMeta.examPdfUrl);
+                            }
+                            setExamMeta({ ...examMeta, examPdfUrl: undefined });
+                            showNotification('info', 'Tekstboekje verwijderd');
+                          }}
+                          className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <a
+                        href={examMeta.examPdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-indigo-600 hover:underline mt-1 block truncate"
+                      >
+                        Bekijk PDF
+                      </a>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await worksheetStorage.uploadWorksheet(file);
+                          setExamMeta({ ...examMeta, examPdfUrl: url });
+                          showNotification('success', 'Tekstboekje geüpload');
+                        } catch (error) {
+                          showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden PDF');
+                        }
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  )}
+                </div>
+
                 <div className="pt-4 border-t">
                   <p className="text-sm font-medium text-gray-900 mb-2">
                     Vragen toegevoegd: {questions.length}
@@ -1077,6 +1148,31 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   </select>
                 </div>
               </div>
+
+              {/* PDF Page number - only shown when exam has a PDF */}
+              {examMeta.examPdfUrl && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileText className="w-4 h-4 inline mr-1" />
+                    PDF Pagina (optioneel)
+                  </label>
+                  <input
+                    type="number"
+                    value={currentQuestion.pdfPage || ''}
+                    onChange={(e) => {
+                      const num = parseInt(e.target.value);
+                      setCurrentQuestion({
+                        ...currentQuestion,
+                        pdfPage: isNaN(num) ? undefined : num
+                      });
+                    }}
+                    className="w-full p-2 border border-gray-300 rounded-lg"
+                    min="1"
+                    placeholder="Pagina in tekstboekje (auto-scroll)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">De PDF scrollt automatisch naar deze pagina bij deze vraag</p>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Brontekst (optioneel)</label>
@@ -1527,6 +1623,24 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             )}
                           </div>
 
+                          {/* PDF Page number (only when exam has PDF) */}
+                          {examMeta.examPdfUrl && (
+                            <div>
+                              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">PDF Pagina</label>
+                              <input
+                                type="number"
+                                value={editingQuestion.pdfPage || ''}
+                                onChange={(e) => {
+                                  const num = parseInt(e.target.value);
+                                  setEditingQuestion({ ...editingQuestion, pdfPage: isNaN(num) ? undefined : num });
+                                }}
+                                className="w-full p-2 border border-indigo-200 rounded-lg text-sm"
+                                min="1"
+                                placeholder="Pagina in tekstboekje"
+                              />
+                            </div>
+                          )}
+
                           <div className="flex justify-end gap-2 pt-2">
                             <Button variant="secondary" onClick={cancelEditQuestion}>
                               Annuleren
@@ -1567,6 +1681,11 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         {q.worksheetUrl && (
                           <span className="ml-2 text-xs font-normal text-amber-600 bg-amber-100 px-2 py-0.5 rounded">
                             {q.worksheetLabel || 'Bijlage'}
+                          </span>
+                        )}
+                        {q.pdfPage && (
+                          <span className="ml-2 text-xs font-normal text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded">
+                            PDF p.{q.pdfPage}
                           </span>
                         )}
                       </h3>

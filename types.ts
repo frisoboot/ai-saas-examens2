@@ -45,6 +45,10 @@ export interface Question {
   // Section grouping (for official exams with multiple sections)
   section?: string;        // Section title (e.g., "Kwaliteitscontrole voor straight whiskey")
   sectionIntro?: string;   // Intro text for the section (only needed on first question of section)
+
+  // PDF tekstboekje (for exams like Nederlands, Engels, Geschiedenis)
+  examPdfUrl?: string;     // URL to exam PDF (tekstboekje) in Supabase Storage - shared across all questions in one exam
+  pdfPage?: number;        // Specific page number in the PDF to show for this question
 }
 
 export interface Answer {
@@ -95,6 +99,9 @@ export interface ExamSession {
   examType: 'subject_practice' | 'year_exam' | 'ai_practice' | 'official_exam';
   startTime?: number; // Timestamp when exam started
   timeLimit?: number; // Time limit in minutes (0 = no limit)
+
+  // PDF tekstboekje URL (extracted from questions for the entire exam)
+  pdfUrl?: string;
 }
 
 
