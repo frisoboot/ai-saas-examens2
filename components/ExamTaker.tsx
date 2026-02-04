@@ -587,14 +587,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               </div>
             )}
 
-            {/* PDF-only (no context available): show PDF without tabs */}
-            {hasPdf && !hasContext && !showPdfPanel && examPdfUrl && (
-              <PdfViewer
-                url={examPdfUrl}
-                page={currentQuestion.pdfPage}
-                className="flex-1"
-              />
-            )}
+
           </div>
         ) : (
           <div className="hidden lg:block lg:w-1/4 bg-[#f8fafc] border-r border-slate-100" />
