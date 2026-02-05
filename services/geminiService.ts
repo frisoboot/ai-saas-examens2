@@ -5,7 +5,7 @@
  * Alle AI calls gaan via de /api/gemini endpoint op de server.
  */
 
-import { Question, StudentProfile, Flashcard, StudentLevel } from "../types";
+import { Question, StudentProfile, Flashcard, StudentLevel, AIStudyFeedback } from "../types";
 
 // API endpoint for server-side Gemini calls
 const GEMINI_API_ENDPOINT = '/api/gemini';
@@ -220,6 +220,30 @@ export const gradeOpenQuestion = async (
   } catch (error) {
     console.error("Fout bij nakijken open vraag:", error);
     return { grade: 'incorrect', feedback: 'Kon antwoord niet automatisch nakijken.' };
+  }
+};
+
+// Generate personalized AI study feedback
+export const generateStudyFeedback = async (
+  studentName: string,
+  level: StudentLevel,
+  subjectAnalyses: Array<{ subject: string; averageScore: number; totalExams: number; weakTopics: string[] }>,
+  overallProgress: { totalExams: number; averageScore: number; improvementRate: number }
+): Promise<AIStudyFeedback> => {
+  try {
+    const result = await callGeminiAPI<{ personalizedAdvice: string; prioritySubjects: Array<{ subject: string; advice: string }>; weeklyGoal: string }>('generateStudyFeedback', {
+      studentName,
+      level,
+      subjectAnalyses,
+      overallProgress,
+    });
+    return {
+      ...result,
+      generatedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("Fout bij genereren studieadvies:", error);
+    throw new Error("Kon geen studieadvies genereren. Probeer het later opnieuw.");
   }
 };
 

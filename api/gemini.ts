@@ -170,6 +170,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ result });
       }
 
+      case 'generateStudyFeedback': {
+        const { studentName, level, subjectAnalyses, overallProgress } = payload;
+        const result = await generateStudyFeedback(studentName, level, subjectAnalyses, overallProgress);
+        return res.status(200).json({ result });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -649,6 +655,81 @@ async function chat(message: string, systemInstruction: string): Promise<string>
 function escapePromptString(str: string): string {
   if (!str) return '';
   return str.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n').replace(/\r/g, '\\r');
+}
+
+async function generateStudyFeedback(
+  studentName: string,
+  level: string,
+  subjectAnalyses: Array<{ subject: string; averageScore: number; totalExams: number; weakTopics: string[] }>,
+  overallProgress: { totalExams: number; averageScore: number; improvementRate: number }
+): Promise<{ personalizedAdvice: string; prioritySubjects: Array<{ subject: string; advice: string }>; weeklyGoal: string }> {
+  const escapedName = escapePromptString(studentName);
+
+  const subjectLines = subjectAnalyses.map(s =>
+    `- ${escapePromptString(s.subject)}: ${s.averageScore}% gemiddeld, ${s.totalExams} toetsen gemaakt${s.weakTopics.length > 0 ? `, zwakke onderwerpen: ${s.weakTopics.join(', ')}` : ''}`
+  ).join('\n');
+
+  const prompt = `
+    Je bent een ervaren studiecoach voor een ${level} leerling genaamd ${escapedName}.
+
+    VOORTGANGSGEGEVENS:
+    - Totaal ${overallProgress.totalExams} toetsen gemaakt
+    - Gemiddelde score: ${overallProgress.averageScore}%
+    - Verbeteringssnelheid: ${overallProgress.improvementRate}%
+
+    PER VAK:
+    ${subjectLines || 'Nog geen vakgegevens beschikbaar.'}
+
+    OPDRACHT:
+    Geef persoonlijk, motiverend studieadvies in het Nederlands. Wees specifiek en concreet.
+
+    Geef je antwoord als JSON:
+    {
+      "personalizedAdvice": "2-3 zinnen persoonlijk studieadvies gericht op de zwakste punten",
+      "prioritySubjects": [
+        { "subject": "Vaknaam", "advice": "Specifiek advies voor dit vak (1-2 zinnen)" }
+      ],
+      "weeklyGoal": "Een concreet, haalbaar weekdoel"
+    }
+
+    Geef ALLEEN de JSON terug. Maximaal 3 prioriteitsvakken.
+  `;
+
+  // Use flash model - this doesn't require deep subject knowledge
+  const model = gateway(GEMINI_MODEL_FLASH);
+
+  const { text: responseText } = await generateText({
+    model,
+    prompt,
+  });
+
+  if (!responseText?.trim()) {
+    throw new Error("AI gaf een lege response terug.");
+  }
+
+  let jsonText = responseText.trim();
+  const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+  const match = jsonText.match(codeBlockRegex);
+  if (match) {
+    jsonText = match[1].trim();
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  if (!jsonText.startsWith('{')) {
+    const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      jsonText = objectMatch[0];
+    }
+  }
+
+  const feedback = JSON.parse(jsonText);
+
+  return {
+    personalizedAdvice: feedback.personalizedAdvice || 'Blijf oefenen en focus op je zwakke punten.',
+    prioritySubjects: Array.isArray(feedback.prioritySubjects) ? feedback.prioritySubjects.slice(0, 3) : [],
+    weeklyGoal: feedback.weeklyGoal || 'Maak deze week minstens 3 oefentoetsen.'
+  };
 }
 
 async function gradeOpenQuestion(

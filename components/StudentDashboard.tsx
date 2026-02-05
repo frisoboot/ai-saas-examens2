@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question, FeedbackMode } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3 } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
@@ -18,6 +18,7 @@ interface StudentDashboardProps {
   onLogout?: () => void;
   onAdminDashboard?: () => void;
   onSettings?: () => void;
+  onFeedback?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -28,7 +29,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onStartLookalikeExam,
   onLogout,
   onAdminDashboard,
-  onSettings
+  onSettings,
+  onFeedback
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -116,8 +118,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
            <StudentDifficultyOverview />
         </nav>
 
-        {/* Settings & Logout Buttons */}
+        {/* Feedback, Settings & Logout Buttons */}
         <div className="p-6 border-t border-slate-100 space-y-2">
+          {onFeedback && (
+            <button
+              onClick={onFeedback}
+              className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+            >
+              <BarChart3 className="w-5 h-5" />
+              <span className="text-sm font-medium">Voortgang & Feedback</span>
+            </button>
+          )}
           {onSettings && (
             <button
               onClick={onSettings}
@@ -150,6 +161,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <span className="font-bold text-slate-800">{student.name}</span>
            </div>
            <div className="flex items-center gap-2">
+             {onFeedback && (
+               <button
+                 onClick={onFeedback}
+                 className="p-2 rounded-lg text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                 title="Voortgang & Feedback"
+               >
+                 <BarChart3 className="w-5 h-5" />
+               </button>
+             )}
              {onSettings && (
                <button
                  onClick={onSettings}

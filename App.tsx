@@ -18,6 +18,7 @@ import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
+import { FeedbackPage } from './components/FeedbackPage';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { LoadingScreen } from './components/LoadingScreen';
@@ -416,6 +417,7 @@ const AppContent: React.FC = () => {
               onStartLookalikeExam={startLookalikeExam}
               onLogout={handleLogout}
               onSettings={() => navigate('/settings')}
+              onFeedback={() => navigate('/feedback')}
             />
           </SubscriptionRoute>
         } />
@@ -459,6 +461,15 @@ const AppContent: React.FC = () => {
             ) : (
               <Navigate to="/dashboard" replace />
             )}
+          </SubscriptionRoute>
+        } />
+
+        {/* Feedback - voortgang en AI studieadvies */}
+        <Route path="/feedback" element={
+          <SubscriptionRoute>
+            <FeedbackPage
+              onBack={() => navigate('/dashboard')}
+            />
           </SubscriptionRoute>
         } />
 
