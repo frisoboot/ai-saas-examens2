@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
@@ -44,6 +44,14 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Skipped questions (for questions requiring worksheets)
   const [skippedQuestions, setSkippedQuestions] = useState<Set<string>>(new Set());
 
+  // "Vind ik moeilijk" - difficult questions marked by student
+  const [difficultQuestions, setDifficultQuestions] = useState<Set<string>>(new Set());
+
+  // Coach Modus: instant feedback state
+  const [showingCoachFeedback, setShowingCoachFeedback] = useState(false);
+  const [coachGradingOpen, setCoachGradingOpen] = useState(false);
+  const isCoachMode = initialSession.feedbackMode === 'coach';
+
   // Image zoom state
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
 
@@ -71,6 +79,8 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       const existingAns = session.answers[currentQuestion.id];
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
     }
+    // Reset coach feedback when navigating to a new question
+    setShowingCoachFeedback(false);
   }, [activeQuestionIdx, currentQuestion]);
 
   // Close zoomed image on ESC key
@@ -108,6 +118,18 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
   const isTimeLow = remainingSeconds !== null && remainingSeconds < 120;
 
+  const toggleDifficult = () => {
+    setDifficultQuestions(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(currentQuestion.id)) {
+        newSet.delete(currentQuestion.id);
+      } else {
+        newSet.add(currentQuestion.id);
+      }
+      return newSet;
+    });
+  };
+
   const handleSelectAnswer = (val: number | string) => {
     setSession(prev => ({
       ...prev,
@@ -134,10 +156,52 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
   };
 
+  // Coach Modus: grade current question and show inline feedback
+  const handleCoachCheck = async () => {
+    // Save open answer first
+    if (currentQuestion.type === 'OPEN') {
+      handleSelectAnswer(openAnswerInput);
+    }
+
+    setShowingCoachFeedback(true);
+
+    // Grade open questions with AI
+    if (currentQuestion.type === 'OPEN' && openAnswerInput.trim()) {
+      setCoachGradingOpen(true);
+      try {
+        const result = await gradeOpenQuestion(currentQuestion, openAnswerInput);
+        setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: result.grade }));
+        setAiExplanations(prev => ({ ...prev, [currentQuestion.id]: result.feedback }));
+      } catch (error) {
+        console.error('Error grading question:', currentQuestion.id, error);
+        setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: null }));
+      } finally {
+        setCoachGradingOpen(false);
+      }
+    }
+  };
+
+  // Coach Modus: move to next question after viewing feedback
+  const handleCoachNext = () => {
+    setShowingCoachFeedback(false);
+    if (isLastQuestion) {
+      finishExam();
+    } else {
+      setActiveQuestionIdx(prev => prev + 1);
+    }
+  };
+
   const handleNext = () => {
     if (currentQuestion.type === 'OPEN') {
       handleSelectAnswer(openAnswerInput);
     }
+
+    // In Coach Modus: show feedback first (unless skipping)
+    if (isCoachMode && !showingCoachFeedback) {
+      handleCoachCheck();
+      return;
+    }
+
     if (isLastQuestion) {
       finishExam();
     } else {
@@ -232,8 +296,19 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       // SUCCESS: Move state updates inside try block
       setSession(prev => ({ ...prev, answers: finalAnswers }));
 
-      // Start grading open questions and wait for completion before showing results
-      await gradeAllOpenQuestions(session.questions, finalAnswers);
+      // In coach mode, open questions were already graded one by one during the exam
+      // Only bulk-grade remaining ungraded open questions
+      if (!isCoachMode) {
+        await gradeAllOpenQuestions(session.questions, finalAnswers);
+      } else {
+        // Grade any open questions that weren't graded yet (e.g., if timer ran out)
+        const ungradedOpen = session.questions.filter(
+          q => q.type === 'OPEN' && finalAnswers[q.id] && !(q.id in openQuestionGrades)
+        );
+        if (ungradedOpen.length > 0) {
+          await gradeAllOpenQuestions(ungradedOpen, finalAnswers);
+        }
+      }
       
       setIsFinished(true);
 
@@ -410,6 +485,46 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             </div>
           )}
 
+          {/* Difficult Questions Section */}
+          {difficultQuestions.size > 0 && (
+            <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center">
+                  <Flag className="w-5 h-5 text-orange-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-orange-900">
+                    Moeilijke vragen ({difficultQuestions.size})
+                  </h3>
+                  <p className="text-sm text-orange-700">
+                    Vragen die je als moeilijk hebt gemarkeerd — vraag AI uitleg om ze beter te begrijpen
+                  </p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {session.questions
+                  .filter(q => difficultQuestions.has(q.id))
+                  .map((q, _) => {
+                    const originalIdx = session.questions.findIndex(sq => sq.id === q.id);
+                    return (
+                      <QuestionReviewCard
+                        key={`diff-${q.id}`}
+                        question={q}
+                        questionIndex={originalIdx}
+                        answer={session.answers[q.id]}
+                        aiExplanation={aiExplanations[q.id]}
+                        isLoadingExplanation={loadingExplanation === q.id}
+                        onRequestExplanation={() => handleRequestAIExplanation(q)}
+                        openQuestionGrade={openQuestionGrades[q.id]}
+                        isGradingOpen={gradingQuestions.has(q.id)}
+                        isSkipped={skippedQuestions.has(q.id)}
+                      />
+                    );
+                  })}
+              </div>
+            </div>
+          )}
+
           {/* Question Review - Compact List */}
           <div className="bg-white rounded-xl border border-slate-200 p-4">
             <h3 className="font-semibold text-slate-900 mb-4">Vraag overzicht</h3>
@@ -426,6 +541,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   openQuestionGrade={openQuestionGrades[q.id]}
                   isGradingOpen={gradingQuestions.has(q.id)}
                   isSkipped={skippedQuestions.has(q.id)}
+                  isDifficult={difficultQuestions.has(q.id)}
                 />
               ))}
             </div>
@@ -476,6 +592,22 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Coach Modus indicator */}
+          {isCoachMode && (
+            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-xs font-semibold">
+              <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+              Coach Modus
+            </span>
+          )}
+
+          {/* Difficult questions counter */}
+          {difficultQuestions.size > 0 && (
+            <span className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 text-orange-600 text-xs font-semibold">
+              <Flag className="w-3 h-3" />
+              {difficultQuestions.size}
+            </span>
+          )}
+
           {/* Mobile PDF toggle button */}
           {hasPdf && (
             <button
@@ -696,24 +828,57 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               {currentQuestion.type === 'MULTIPLE_CHOICE' ? (
                 currentQuestion.options?.map((opt, idx) => {
                   const isSelected = session.answers[currentQuestion.id] === idx;
+                  const isDisabledByFeedback = showingCoachFeedback;
+                  // Coach feedback: highlight correct/incorrect answers
+                  const showCoachColors = showingCoachFeedback && isCoachMode;
+                  const isCorrectOption = idx === currentQuestion.correctIndex;
                   return (
                     <button
                       key={idx}
-                      onClick={() => handleSelectAnswer(idx)}
+                      onClick={() => !isDisabledByFeedback && handleSelectAnswer(idx)}
+                      disabled={isDisabledByFeedback}
                       className={`w-full text-left p-5 rounded-xl border-2 transition-all duration-200 flex items-center group relative ${
-                        isSelected
-                          ? 'border-indigo-600 bg-indigo-50/50 shadow-sm z-10'
-                          : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50 bg-white'
-                      }`}
+                        showCoachColors
+                          ? isCorrectOption
+                            ? 'border-green-500 bg-green-50/50 shadow-sm z-10'
+                            : isSelected
+                              ? 'border-red-400 bg-red-50/50'
+                              : 'border-slate-100 bg-white opacity-60'
+                          : isSelected
+                            ? 'border-indigo-600 bg-indigo-50/50 shadow-sm z-10'
+                            : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50 bg-white'
+                      } ${isDisabledByFeedback ? 'cursor-default' : ''}`}
                     >
                       <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center mr-5 font-bold text-sm transition-colors flex-shrink-0 ${
-                        isSelected
-                          ? 'border-indigo-600 bg-indigo-600 text-white'
-                          : 'border-slate-300 text-slate-400 group-hover:border-indigo-400 group-hover:text-indigo-500'
+                        showCoachColors
+                          ? isCorrectOption
+                            ? 'border-green-600 bg-green-600 text-white'
+                            : isSelected
+                              ? 'border-red-500 bg-red-500 text-white'
+                              : 'border-slate-300 text-slate-400'
+                          : isSelected
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'border-slate-300 text-slate-400 group-hover:border-indigo-400 group-hover:text-indigo-500'
                       }`}>
-                        {String.fromCharCode(65 + idx)}
+                        {showCoachColors && isCorrectOption ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : showCoachColors && isSelected && !isCorrectOption ? (
+                          <X className="w-4 h-4" />
+                        ) : (
+                          String.fromCharCode(65 + idx)
+                        )}
                       </div>
-                      <span className={`text-lg ${isSelected ? 'font-semibold text-indigo-900' : 'text-slate-700'}`}>{opt}</span>
+                      <span className={`text-lg ${
+                        showCoachColors
+                          ? isCorrectOption
+                            ? 'font-semibold text-green-900'
+                            : isSelected
+                              ? 'font-semibold text-red-800'
+                              : 'text-slate-500'
+                          : isSelected
+                            ? 'font-semibold text-indigo-900'
+                            : 'text-slate-700'
+                      }`}>{opt}</span>
                     </button>
                   );
                 })
@@ -723,27 +888,162 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   <textarea
                     value={openAnswerInput}
                     onChange={(e) => setOpenAnswerInput(e.target.value)}
-                    className="w-full p-5 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 text-lg leading-relaxed bg-white text-slate-900 min-h-[250px] resize-none transition-all placeholder-slate-300"
+                    disabled={showingCoachFeedback}
+                    className={`w-full p-5 border-2 border-slate-200 rounded-xl focus:ring-4 focus:ring-indigo-50 focus:border-indigo-500 text-lg leading-relaxed bg-white text-slate-900 min-h-[250px] resize-none transition-all placeholder-slate-300 ${
+                      showingCoachFeedback ? 'opacity-75 cursor-default' : ''
+                    }`}
                     placeholder="Typ hier je uitwerking..."
-                    autoFocus
+                    autoFocus={!showingCoachFeedback}
                   />
                 </div>
               )}
             </div>
 
-            <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
-              <div className="text-xs text-slate-400 max-w-[200px] truncate">
-                {currentQuestion.source && `Bron: ${currentQuestion.source}`}
+            {/* Coach Modus: Inline Feedback Panel */}
+            {showingCoachFeedback && (
+              <div className="mb-6 rounded-xl border-2 border-indigo-200 bg-indigo-50/50 p-5 space-y-4 animate-in fade-in">
+                {currentQuestion.type === 'MULTIPLE_CHOICE' ? (
+                  // MC feedback
+                  (() => {
+                    const isCorrectMC = session.answers[currentQuestion.id] === currentQuestion.correctIndex;
+                    const selectedIdx = session.answers[currentQuestion.id] as number;
+                    const selectedText = currentQuestion.options?.[selectedIdx];
+                    const correctText = currentQuestion.options?.[currentQuestion.correctIndex!];
+                    return (
+                      <div className="space-y-3">
+                        <div className={`flex items-center gap-3 text-lg font-bold ${isCorrectMC ? 'text-green-700' : 'text-red-700'}`}>
+                          {isCorrectMC ? (
+                            <><CheckCircle className="w-6 h-6" /> Goed!</>
+                          ) : (
+                            <><X className="w-6 h-6" /> Helaas, fout</>
+                          )}
+                        </div>
+                        {!isCorrectMC && (
+                          <div className="text-sm space-y-2">
+                            <div className="flex items-start gap-2 p-2 bg-red-50 rounded-lg">
+                              <X className="w-4 h-4 text-red-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-red-700 font-medium">Jouw antwoord: </span>
+                                <span className="text-red-600">{selectedText}</span>
+                              </div>
+                            </div>
+                            <div className="flex items-start gap-2 p-2 bg-green-50 rounded-lg">
+                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
+                              <div>
+                                <span className="text-green-700 font-medium">Correct antwoord: </span>
+                                <span className="text-green-600">{correctText}</span>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  // Open question feedback
+                  <div className="space-y-3">
+                    {coachGradingOpen ? (
+                      <div className="flex items-center gap-3 text-indigo-700">
+                        <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                        <span className="font-medium">AI nakijken...</span>
+                      </div>
+                    ) : (
+                      <>
+                        {openQuestionGrades[currentQuestion.id] === 'correct' && (
+                          <div className="flex items-center gap-3 text-lg font-bold text-green-700">
+                            <CheckCircle className="w-6 h-6" /> Correct!
+                          </div>
+                        )}
+                        {openQuestionGrades[currentQuestion.id] === 'partial' && (
+                          <div className="flex items-center gap-3 text-lg font-bold text-amber-700">
+                            <AlertTriangle className="w-6 h-6" /> Deels correct
+                          </div>
+                        )}
+                        {openQuestionGrades[currentQuestion.id] === 'incorrect' && (
+                          <div className="flex items-center gap-3 text-lg font-bold text-red-700">
+                            <X className="w-6 h-6" /> Incorrect
+                          </div>
+                        )}
+                        {openQuestionGrades[currentQuestion.id] === null && (
+                          <div className="flex items-center gap-3 text-lg font-bold text-slate-600">
+                            <AlertTriangle className="w-6 h-6" /> Kon niet nakijken
+                          </div>
+                        )}
+                        {currentQuestion.modelAnswer && (
+                          <div className="p-3 bg-green-50 rounded-lg text-sm">
+                            <span className="text-green-700 text-xs font-medium uppercase tracking-wide">Modelantwoord</span>
+                            <p className="text-green-800 mt-1">{currentQuestion.modelAnswer}</p>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {aiExplanations[currentQuestion.id] && (
+                      <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Sparkles className="w-4 h-4 text-indigo-500" />
+                          <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
+                        </div>
+                        <div className="text-sm text-slate-700 prose prose-sm max-w-none prose-p:my-1">
+                          <ReactMarkdown>{aiExplanations[currentQuestion.id]}</ReactMarkdown>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-              <Button
-                onClick={handleNext}
-                disabled={currentQuestion.type === 'MULTIPLE_CHOICE' && session.answers[currentQuestion.id] === undefined}
-                size="xl"
-                className="pl-8 pr-6 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transform hover:-translate-y-0.5"
-              >
-                {isLastQuestion ? 'Afronden' : 'Volgende'}
-                <ChevronRight className="w-5 h-5 ml-2" />
-              </Button>
+            )}
+
+            <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="text-xs text-slate-400 max-w-[200px] truncate">
+                  {currentQuestion.source && `Bron: ${currentQuestion.source}`}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {/* "Vind ik moeilijk" button */}
+                <button
+                  onClick={toggleDifficult}
+                  disabled={showingCoachFeedback && isCoachMode}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                    difficultQuestions.has(currentQuestion.id)
+                      ? 'bg-orange-100 text-orange-700 border-2 border-orange-300 shadow-sm'
+                      : 'bg-slate-50 text-slate-500 border-2 border-transparent hover:bg-orange-50 hover:text-orange-600'
+                  }`}
+                  title={difficultQuestions.has(currentQuestion.id) ? 'Markering verwijderen' : 'Markeer als moeilijk'}
+                >
+                  <Flag className={`w-4 h-4 ${difficultQuestions.has(currentQuestion.id) ? 'fill-orange-500' : ''}`} />
+                  <span className="hidden sm:inline">
+                    {difficultQuestions.has(currentQuestion.id) ? 'Gemarkeerd' : 'Vind ik moeilijk'}
+                  </span>
+                </button>
+
+                {/* Next / Check / Continue button */}
+                {showingCoachFeedback ? (
+                  <Button
+                    onClick={handleCoachNext}
+                    disabled={coachGradingOpen}
+                    size="xl"
+                    className="pl-8 pr-6 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transform hover:-translate-y-0.5"
+                  >
+                    {isLastQuestion ? 'Afronden' : 'Volgende vraag'}
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={handleNext}
+                    disabled={currentQuestion.type === 'MULTIPLE_CHOICE' && session.answers[currentQuestion.id] === undefined}
+                    size="xl"
+                    className="pl-8 pr-6 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transform hover:-translate-y-0.5"
+                  >
+                    {isCoachMode
+                      ? (isLastQuestion ? 'Check & Afronden' : 'Check')
+                      : (isLastQuestion ? 'Afronden' : 'Volgende')
+                    }
+                    <ChevronRight className="w-5 h-5 ml-2" />
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </div>

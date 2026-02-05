@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { ExamSession, StudentProfile, FlashcardSession } from './types';
+import { ExamSession, StudentProfile, FlashcardSession, FeedbackMode } from './types';
 import { getQuestions } from './services/storageService';
 import { sortExamQuestions } from './utils/sortExamQuestions';
 import { generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
@@ -182,7 +182,7 @@ const AppContent: React.FC = () => {
     isActive: true
   };
 
-  const startExam = async (subject: string, year?: number, timeLimit?: number) => {
+  const startExam = async (subject: string, year?: number, timeLimit?: number, feedbackMode?: FeedbackMode) => {
     try {
       const allQuestions = await getQuestions();
       let subjectQuestions = allQuestions.filter(q =>
@@ -217,7 +217,8 @@ const AppContent: React.FC = () => {
         examType: year ? 'official_exam' : 'subject_practice',
         startTime: Date.now(),
         timeLimit, // Time limit in minutes (0 = no limit)
-        pdfUrl: examPdfUrl
+        pdfUrl: examPdfUrl,
+        feedbackMode: feedbackMode || 'exam'
       });
       navigate('/exam');
     } catch (error) {
