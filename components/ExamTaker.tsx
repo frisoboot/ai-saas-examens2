@@ -253,8 +253,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       finalAnswers[currentQuestion.id] = openAnswerInput;
     }
 
+    // Ensure ALL questions are in finalAnswers (unanswered MC = -1, unanswered OPEN = '')
+    // This way unanswered questions are counted as incorrect in topic analysis
+    session.questions.forEach(q => {
+      if (!(q.id in finalAnswers)) {
+        finalAnswers[q.id] = q.type === 'MULTIPLE_CHOICE' ? -1 : '';
+      }
+    });
+
     let correctCount = 0;
-    const questionsTakenCount = session.questions.filter(q => !skippedQuestions.has(q.id)).length;
+    const totalQuestionCount = session.questions.length; // Count ALL questions, not just answered
     session.questions.forEach(q => {
       if (q.type === 'MULTIPLE_CHOICE' && finalAnswers[q.id] === q.correctIndex) {
         correctCount++;
@@ -280,7 +288,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       studentName: session.studentName,
       subject: session.subject,
       score: correctCount,
-      totalQuestions: questionsTakenCount,
+      totalQuestions: totalQuestionCount,
       date: new Date().toISOString(),
       answers: Object.entries(finalAnswers).map(([qid, val]) => ({ questionId: qid, value: val as string | number })),
       examYear: session.examYear,
@@ -320,7 +328,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             session.questions,
             finalAnswers,
             correctCount,
-            questionsTakenCount,
+            totalQuestionCount,
             session.studentName,
             session.subject
           );
