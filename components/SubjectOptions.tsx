@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap, Clock } from 'lucide-react';
-import { StudentProfile } from '../types';
+import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap, Clock, Eye, ClipboardCheck } from 'lucide-react';
+import { StudentProfile, FeedbackMode } from '../types';
 import { getAvailableYearsForSubject, getQuestionCountBySubjectAndYear } from '../services/storageService';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
@@ -12,7 +12,7 @@ interface SubjectOptionsProps {
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartExam: (year?: number, timeLimit?: number) => void;
+  onStartExam: (year?: number, timeLimit?: number, feedbackMode?: FeedbackMode) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
   onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
 }
@@ -31,6 +31,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   const [view, setView] = useState<'default' | 'flashcard-setup' | 'lookalike-setup'>('default');
   const [examTimeLimit, setExamTimeLimit] = useState<number>(0);
   const [showTimerOptions, setShowTimerOptions] = useState(false);
+  const [feedbackMode, setFeedbackMode] = useState<FeedbackMode>('exam');
 
   const SubjectIcon = getSubjectIcon(subject);
 
@@ -270,6 +271,57 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   )}
                 </div>
 
+                {/* Feedback Mode Toggle - Coach Modus vs Examen Modus */}
+                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className={`w-8 h-8 rounded-lg ${feedbackMode === 'coach' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center transition-colors`}>
+                        {feedbackMode === 'coach' ? <Eye className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
+                      </div>
+                      <div className="text-left">
+                        <span className="font-medium text-slate-900 text-sm">Nakijkmodus</span>
+                        <span className="text-slate-500 text-xs ml-2">
+                          {feedbackMode === 'coach' ? 'Coach Modus' : 'Examen Modus'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => setFeedbackMode('exam')}
+                      className={`p-3 rounded-xl font-medium transition-all text-center ${
+                        feedbackMode === 'exam'
+                          ? 'bg-slate-700 text-white shadow-lg'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2 text-sm font-semibold">
+                        <ClipboardCheck className="w-4 h-4" />
+                        Examen Modus
+                      </div>
+                      <div className={`text-xs mt-1 ${feedbackMode === 'exam' ? 'text-slate-300' : 'text-slate-400'}`}>
+                        Alles aan het einde nakijken
+                      </div>
+                    </button>
+                    <button
+                      onClick={() => setFeedbackMode('coach')}
+                      className={`p-3 rounded-xl font-medium transition-all text-center ${
+                        feedbackMode === 'coach'
+                          ? 'bg-indigo-600 text-white shadow-lg'
+                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-2 text-sm font-semibold">
+                        <Eye className="w-4 h-4" />
+                        Coach Modus
+                      </div>
+                      <div className={`text-xs mt-1 ${feedbackMode === 'coach' ? 'text-indigo-200' : 'text-slate-400'}`}>
+                        Direct feedback per vraag
+                      </div>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
                   <Calendar className="w-3 h-3" />
                   Beschikbare Examens
@@ -278,7 +330,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   {availableYears.map(year => (
                     <button
                       key={year}
-                      onClick={() => onStartExam(year, examTimeLimit)}
+                      onClick={() => onStartExam(year, examTimeLimit, feedbackMode)}
                       className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                     >
                       <div className="flex items-center gap-2 mb-1">
@@ -293,19 +345,27 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                         <span className="text-xs text-slate-500 font-medium">
                           {yearCounts.get(year) || 0} vragen
                         </span>
-                        {examTimeLimit > 0 && (
-                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {examTimeLimit === 150 ? '2,5u' : '3u'}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {feedbackMode === 'coach' && (
+                            <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                              <Eye className="w-3 h-3" />
+                              Coach
+                            </span>
+                          )}
+                          {examTimeLimit > 0 && (
+                            <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {examTimeLimit === 150 ? '2,5u' : '3u'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </button>
                   ))}
 
                   {/* Random exam option */}
                   <button
-                    onClick={() => onStartExam(undefined, examTimeLimit)}
+                    onClick={() => onStartExam(undefined, examTimeLimit, feedbackMode)}
                     className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
                   >
                     <div className="flex items-center gap-2 mb-1">
@@ -320,12 +380,20 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                       <span className="text-xs text-slate-500 font-medium">
                         Alle jaren
                       </span>
-                      {examTimeLimit > 0 && (
-                        <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {examTimeLimit === 150 ? '2,5u' : '3u'}
-                        </span>
-                      )}
+                      <div className="flex items-center gap-2">
+                        {feedbackMode === 'coach' && (
+                          <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            Coach
+                          </span>
+                        )}
+                        {examTimeLimit > 0 && (
+                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {examTimeLimit === 150 ? '2,5u' : '3u'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </button>
                 </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Question } from '../../types';
-import { CheckCircle, XCircle, MinusCircle, ChevronDown, Sparkles } from 'lucide-react';
+import { CheckCircle, XCircle, MinusCircle, ChevronDown, Sparkles, Flag } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { compactMarkdownComponents } from '../../utils/markdownComponents';
 
@@ -16,6 +16,7 @@ interface QuestionReviewCardProps {
   openQuestionGrade?: OpenQuestionGrade;
   isGradingOpen?: boolean;
   isSkipped?: boolean;
+  isDifficult?: boolean;
 }
 
 export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
@@ -27,7 +28,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
   onRequestExplanation,
   openQuestionGrade,
   isGradingOpen,
-  isSkipped = false
+  isSkipped = false,
+  isDifficult = false
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -143,6 +145,11 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
         <span className="flex-1 text-sm text-slate-700 truncate">
           {question.text}
         </span>
+
+        {/* Difficult flag */}
+        {isDifficult && (
+          <Flag className="w-4 h-4 text-orange-500 fill-orange-500 flex-shrink-0" />
+        )}
 
         {/* Status text */}
         <span className={`text-xs font-medium ${getStatusColor()}`}>

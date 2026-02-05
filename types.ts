@@ -8,6 +8,8 @@ export type ImportType = 'csv' | 'json' | 'ai_pdf';
 
 export type ExamMode = 'BY_SUBJECT' | 'BY_YEAR';
 
+export type FeedbackMode = 'coach' | 'exam';
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -102,6 +104,9 @@ export interface ExamSession {
 
   // PDF tekstboekje URL (extracted from questions for the entire exam)
   pdfUrl?: string;
+
+  // Feedback mode: 'coach' = instant feedback after each question, 'exam' = all at the end
+  feedbackMode?: FeedbackMode;
 }
 
 
