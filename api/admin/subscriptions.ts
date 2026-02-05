@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from '../utils/cors';
+import { setCorsHeaders } from '../utils/cors.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Haal alle subscriptions op
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
-      .select('id, user_email, status, trial_start, trial_end, created_at')
+      .select('id, user_email, status, trial_started_at, trial_ends_at, created_at')
       .order('created_at', { ascending: false });
 
     if (subError) {

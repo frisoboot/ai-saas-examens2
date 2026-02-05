@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { setCorsHeaders } from '../utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from '../utils/rateLimiter.js';
 
 // Check of email een admin is
@@ -18,12 +19,8 @@ const isAdminEmail = (email: string | undefined): boolean => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers direct in de functie
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS headers via shared utility (whitelist-based)
+  setCorsHeaders(res, req.headers.origin, 'GET,POST,DELETE,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

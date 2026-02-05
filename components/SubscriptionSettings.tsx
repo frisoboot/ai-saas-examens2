@@ -354,8 +354,8 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
             <div className="text-center py-4">
               <p className="text-sm text-slate-500">
                 Vragen over je abonnement? Neem contact met ons op via{' '}
-                <a href="mailto:support@examengenie.nl" className="text-indigo-600 hover:underline">
-                  support@examengenie.nl
+                <a href="mailto:info@ai-examentrainer.nl" className="text-indigo-600 hover:underline">
+                  info@ai-examentrainer.nl
                 </a>
               </p>
             </div>
