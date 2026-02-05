@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { SEO } from './SEO';
-import { TopicAnalysis, AIStudyFeedback, StudentProgress } from '../types';
+import { TopicAnalysis, AIStudyFeedback } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { getStudentProgress, getOverallProgress, getTopicAnalysis } from '../services/progressService';
 import { generateStudyFeedback } from '../services/geminiService';
-import { dbResults } from '../services/supabaseService';
+import { dbFeedback } from '../services/supabaseService';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import {
   ArrowLeft,
@@ -19,7 +19,8 @@ import {
   Target,
   Award,
   AlertTriangle,
-  Calendar
+  Calendar,
+  RefreshCw
 } from 'lucide-react';
 
 interface FeedbackPageProps {
@@ -62,6 +63,7 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onBack }) => {
 
   // AI feedback state
   const [aiFeedback, setAiFeedback] = useState<AIStudyFeedback | null>(null);
+  const [hasNewData, setHasNewData] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
@@ -69,37 +71,34 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onBack }) => {
     loadData();
   }, [user?.id, profile]);
 
-  // Load cached AI feedback from localStorage
-  useEffect(() => {
-    if (!user?.id) return;
-    try {
-      const cached = localStorage.getItem(`ai-feedback-${user.id}`);
-      if (cached) {
-        const parsed: AIStudyFeedback = JSON.parse(cached);
-        // Check if cache is still valid (24 hours)
-        const cacheAge = Date.now() - new Date(parsed.generatedAt).getTime();
-        if (cacheAge < 24 * 60 * 60 * 1000) {
-          setAiFeedback(parsed);
-        }
-      }
-    } catch {
-      // Invalid cache, ignore
-    }
-  }, [user?.id]);
-
   const loadData = async () => {
     if (!user?.id || !profile) return;
 
     try {
       setLoading(true);
 
-      const [progress, overall, topicData] = await Promise.all([
+      const [progress, overall, topicData, savedFeedback] = await Promise.all([
         getStudentProgress(profile.name, user.id),
         getOverallProgress(profile.name, user.id),
-        getTopicAnalysis(user.id)
+        getTopicAnalysis(user.id),
+        dbFeedback.getByUser(user.id)
       ]);
 
       setOverallStats(overall);
+
+      // Set saved AI feedback from database
+      if (savedFeedback) {
+        setAiFeedback(savedFeedback);
+
+        // Check if there's new exam data since feedback was generated
+        if (overall.lastExamDate && savedFeedback.lastExamDateAtGeneration) {
+          const lastExam = new Date(overall.lastExamDate).getTime();
+          const feedbackExam = new Date(savedFeedback.lastExamDateAtGeneration).getTime();
+          setHasNewData(lastExam > feedbackExam);
+        } else if (overall.lastExamDate && !savedFeedback.lastExamDateAtGeneration) {
+          setHasNewData(true);
+        }
+      }
 
       // Group topics by subject and merge with progress data
       const topicsBySubject = new Map<string, TopicAnalysis[]>();
@@ -172,20 +171,15 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onBack }) => {
       );
 
       setAiFeedback(feedback);
+      setHasNewData(false);
 
-      // Cache in localStorage
-      localStorage.setItem(`ai-feedback-${user.id}`, JSON.stringify(feedback));
+      // Save to database
+      await dbFeedback.save(user.id, feedback, overallStats.lastExamDate);
     } catch (error: any) {
       setAiError(error.message || 'Er ging iets mis bij het genereren van advies.');
     } finally {
       setAiLoading(false);
     }
-  };
-
-  const formatDate = (dateStr?: string) => {
-    if (!dateStr) return 'Nog geen toetsen';
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   if (loading) {
@@ -395,6 +389,21 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onBack }) => {
               <div className="p-5 sm:p-6">
                 {aiFeedback ? (
                   <div className="space-y-5">
+                    {/* New data available banner */}
+                    {hasNewData && (
+                      <button
+                        onClick={handleGenerateAIFeedback}
+                        disabled={aiLoading}
+                        className="w-full flex items-center gap-3 p-3 bg-blue-50 border border-blue-200 rounded-xl text-left hover:bg-blue-100 transition-colors disabled:opacity-50"
+                      >
+                        <RefreshCw className={`w-5 h-5 text-blue-600 flex-shrink-0 ${aiLoading ? 'animate-spin' : ''}`} />
+                        <div className="flex-1">
+                          <div className="text-sm font-semibold text-blue-900">Nieuwe toetsresultaten beschikbaar</div>
+                          <div className="text-xs text-blue-700">Klik om je advies bij te werken op basis van je laatste resultaten</div>
+                        </div>
+                      </button>
+                    )}
+
                     {/* Personalized advice */}
                     <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
                       <p className="text-sm text-indigo-900 leading-relaxed">{aiFeedback.personalizedAdvice}</p>
@@ -428,18 +437,20 @@ export const FeedbackPage: React.FC<FeedbackPageProps> = ({ onBack }) => {
                     </div>
 
                     {/* Refresh button */}
-                    <button
-                      onClick={handleGenerateAIFeedback}
-                      disabled={aiLoading}
-                      className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
-                    >
-                      {aiLoading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      ) : (
-                        <Sparkles className="w-4 h-4" />
-                      )}
-                      Vernieuw advies
-                    </button>
+                    {!hasNewData && (
+                      <button
+                        onClick={handleGenerateAIFeedback}
+                        disabled={aiLoading}
+                        className="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                      >
+                        {aiLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-4 h-4" />
+                        )}
+                        Vernieuw advies
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-4">

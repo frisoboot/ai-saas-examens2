@@ -1,5 +1,5 @@
 import { createClient, User, Session } from '@supabase/supabase-js';
-import { Question, ExamResult, StudentProfile } from '../types';
+import { Question, ExamResult, StudentProfile, AIStudyFeedback } from '../types';
 
 /**
  * Supabase Client - Browser-side database access
@@ -464,6 +464,62 @@ export const dbStudents = {
 
     if (error) {
       console.error('Fout bij opslaan vakkenpakket:', error);
+      throw error;
+    }
+  }
+};
+
+// ============================================================================
+// AI STUDY FEEDBACK - Persoonlijk AI studieadvies per gebruiker
+// ============================================================================
+
+export const dbFeedback = {
+  async getByUser(userId: string): Promise<(AIStudyFeedback & { lastExamDateAtGeneration?: string }) | null> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const { data, error } = await supabase
+      .from('ai_study_feedback')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('Fout bij ophalen AI feedback:', error);
+      throw error;
+    }
+
+    if (!data) return null;
+
+    return {
+      personalizedAdvice: data.personalized_advice || '',
+      prioritySubjects: data.priority_subjects || [],
+      weeklyGoal: data.weekly_goal || '',
+      generatedAt: data.updated_at || data.created_at || new Date().toISOString(),
+      lastExamDateAtGeneration: data.last_exam_date_at_generation || undefined
+    };
+  },
+
+  async save(userId: string, feedback: AIStudyFeedback, lastExamDate?: string): Promise<void> {
+    if (!supabase) {
+      throw new Error('Supabase niet geconfigureerd');
+    }
+
+    const dbData = {
+      user_id: userId,
+      personalized_advice: feedback.personalizedAdvice,
+      priority_subjects: feedback.prioritySubjects,
+      weekly_goal: feedback.weeklyGoal,
+      last_exam_date_at_generation: lastExamDate || null
+    };
+
+    const { error } = await supabase
+      .from('ai_study_feedback')
+      .upsert(dbData, { onConflict: 'user_id' });
+
+    if (error) {
+      console.error('Fout bij opslaan AI feedback:', error);
       throw error;
     }
   }
