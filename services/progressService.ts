@@ -1,5 +1,6 @@
-import { StudentProgress, ExamResult } from '../types';
-import { supabase } from './supabaseService';
+import { StudentProgress, ExamResult, TopicAnalysis } from '../types';
+import { supabase, dbResults } from './supabaseService';
+import { getQuestions } from './storageService';
 
 // Database is VEREIST - geen fallbacks meer
 const requireDatabase = () => {
@@ -254,4 +255,61 @@ export const getStrongestSubjects = async (studentName: string, limit: number = 
     .filter(p => p.totalExamsTaken > 0)
     .sort((a, b) => b.averageScore - a.averageScore)
     .slice(0, limit);
+};
+
+// Get topic-level analysis by cross-referencing exam results with question sections
+export const getTopicAnalysis = async (userId: string): Promise<TopicAnalysis[]> => {
+  requireDatabase();
+
+  // Fetch exam results and questions in parallel
+  const [examResults, allQuestions] = await Promise.all([
+    dbResults.getByUser(userId),
+    getQuestions()
+  ]);
+
+  if (examResults.length === 0) return [];
+
+  // Build a lookup map: questionId -> question
+  const questionMap = new Map(allQuestions.map(q => [q.id, q]));
+
+  // Aggregate per subject+topic
+  const topicStats = new Map<string, { subject: string; topic: string; total: number; correct: number }>();
+
+  for (const result of examResults) {
+    for (const answer of result.answers) {
+      const question = questionMap.get(answer.questionId);
+      if (!question) continue;
+
+      const topic = question.section || 'Algemeen';
+      const key = `${question.subject}::${topic}`;
+
+      if (!topicStats.has(key)) {
+        topicStats.set(key, { subject: question.subject, topic, total: 0, correct: 0 });
+      }
+
+      const stats = topicStats.get(key)!;
+      stats.total++;
+
+      // Check correctness for MC questions
+      if (question.type === 'MULTIPLE_CHOICE' && typeof answer.value === 'number') {
+        if (answer.value === question.correctIndex) {
+          stats.correct++;
+        }
+      }
+      // For open questions we can't reliably determine correctness here,
+      // so they contribute to total but not to correct count unless we
+      // store grades. Skip them for now - they still show as topics.
+    }
+  }
+
+  return Array.from(topicStats.values())
+    .filter(s => s.total >= 2) // Only show topics with enough data
+    .map(s => ({
+      subject: s.subject,
+      topic: s.topic,
+      totalQuestions: s.total,
+      correctCount: s.correct,
+      scorePercent: s.total > 0 ? Math.round((s.correct / s.total) * 100) : 0
+    }))
+    .sort((a, b) => a.scorePercent - b.scorePercent); // Weakest first
 };

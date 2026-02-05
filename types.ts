@@ -125,6 +125,23 @@ export interface StudentProgress {
   recentScores?: number[]; // Last 5 exam scores for trend analysis
 }
 
+// Topic-level analysis for feedback page
+export interface TopicAnalysis {
+  subject: string;
+  topic: string;
+  totalQuestions: number;
+  correctCount: number;
+  scorePercent: number;
+}
+
+// AI-generated study feedback
+export interface AIStudyFeedback {
+  personalizedAdvice: string;
+  prioritySubjects: Array<{ subject: string; advice: string }>;
+  weeklyGoal: string;
+  generatedAt: string;
+}
+
 // Bulk import interfaces
 export interface BulkImportQuestion {
   subject: string;
