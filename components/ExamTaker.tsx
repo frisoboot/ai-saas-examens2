@@ -6,6 +6,7 @@ import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../servi
 import { Button } from './Button';
 import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { examMarkdownComponents } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
 import { PdfViewer } from './PdfViewer';
@@ -568,7 +569,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   {/* Section Introduction (only on first question of section) */}
                   {showSectionIntro && (
                     <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
-                      <ReactMarkdown>{currentQuestion.sectionIntro}</ReactMarkdown>
+                      <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.sectionIntro}</ReactMarkdown>
                     </div>
                   )}
 
@@ -579,7 +580,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                         <span>Bronmateriaal</span>
                       </div>
                       <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                        <ReactMarkdown>{currentQuestion.contextText}</ReactMarkdown>
+                        <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.contextText}</ReactMarkdown>
                       </div>
                     </>
                   )}
@@ -688,8 +689,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               );
             })()}
 
+            {/* Question number badge */}
+            <div className="flex items-center gap-3 mb-4">
+              <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold shadow-sm">
+                {activeQuestionIdx + 1}
+              </span>
+              <span className="text-sm font-medium text-slate-400">van {session.questions.length}</span>
+            </div>
+
             <div className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-900 mb-8">
-              <ReactMarkdown>{currentQuestion.text}</ReactMarkdown>
+              <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.text}</ReactMarkdown>
             </div>
 
             <div className="space-y-4 mb-8 flex-1">

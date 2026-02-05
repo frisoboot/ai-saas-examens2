@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Question } from '../../types';
 import { CheckCircle, XCircle, MinusCircle, ChevronDown, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { compactMarkdownComponents } from '../../utils/markdownComponents';
 
 export type OpenQuestionGrade = 'correct' | 'partial' | 'incorrect' | null;
 
@@ -130,9 +131,9 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
         onClick={() => setIsExpanded(!isExpanded)}
         className="w-full px-4 py-3 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left"
       >
-        {/* Question number */}
-        <span className="text-sm font-medium text-slate-400 w-6">
-          {questionIndex + 1}.
+        {/* Question number badge */}
+        <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 text-xs font-bold flex-shrink-0">
+          {questionIndex + 1}
         </span>
 
         {/* Status icon */}
@@ -157,8 +158,13 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
       {/* Expanded Content */}
       {isExpanded && (
         <div className="px-4 pb-4 border-t border-slate-100">
-          {/* Full question text */}
-          <p className="text-slate-900 font-medium mt-3 mb-4">{question.text}</p>
+          {/* Question number + full question text */}
+          <div className="flex items-start gap-3 mt-3 mb-4">
+            <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex-shrink-0 mt-0.5">
+              {questionIndex + 1}
+            </span>
+            <p className="text-slate-900 font-medium">{question.text}</p>
+          </div>
 
           {isSkipped ? (
             // Skipped question display
@@ -209,8 +215,8 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                 <Sparkles className="w-4 h-4 text-indigo-500" />
                 <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
               </div>
-              <div className="text-sm text-slate-700 prose prose-sm max-w-none prose-p:my-1">
-                <ReactMarkdown>{aiExplanation}</ReactMarkdown>
+              <div className="text-sm text-slate-700 prose prose-sm max-w-none">
+                <ReactMarkdown components={compactMarkdownComponents}>{aiExplanation}</ReactMarkdown>
               </div>
             </div>
           ) : (
