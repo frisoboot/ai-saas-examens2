@@ -688,9 +688,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               );
             })()}
 
-            <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-8 leading-tight">
-              {currentQuestion.text}
-            </h2>
+            <div className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-900 mb-8">
+              <ReactMarkdown>{currentQuestion.text}</ReactMarkdown>
+            </div>
 
             <div className="space-y-4 mb-8 flex-1">
               {currentQuestion.type === 'MULTIPLE_CHOICE' ? (
