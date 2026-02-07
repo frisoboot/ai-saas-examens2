@@ -6,20 +6,22 @@ interface PdfViewerProps {
   page?: number;
   className?: string;
   label?: string;
+  isActive?: boolean;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '', label = 'Tekstboekje' }) => {
+export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '', label = 'Tekstboekje', isActive = true }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPage, setCurrentPage] = useState(page || 1);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Update page when prop changes (question navigation)
+  // Update page when prop changes (question navigation), but only when active
+  // This prevents the iframe src from changing while hidden, which would reload the PDF
   useEffect(() => {
-    if (page && page !== currentPage) {
+    if (isActive && page && page !== currentPage) {
       setCurrentPage(page);
     }
-  }, [page]);
+  }, [page, isActive]);
 
   // Build PDF URL with page parameter
   const getPdfUrl = (pageNum: number) => {
