@@ -712,24 +712,28 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               </div>
             )}
 
-            {/* Opdrachten PDF Viewer */}
-            {showPdfPanel && examPdfUrl && (
-              <PdfViewer
-                url={examPdfUrl}
-                page={currentQuestion.pdfPage}
-                label="Opdrachten"
-                className="flex-1"
-              />
-            )}
-
-            {/* Bijlage PDF Viewer */}
-            {showBijlagePanel && examBijlageUrl && (
-              <PdfViewer
-                url={examBijlageUrl}
-                page={currentQuestion.bijlagePdfPage}
-                label="Bijlage"
-                className="flex-1"
-              />
+            {/* PDF Viewers container - both stay mounted with absolute positioning to preserve scroll */}
+            {(hasPdf || hasBijlage) && (leftPanelTab === 'opdrachten' || leftPanelTab === 'bijlage') && (
+              <div className="flex-1 relative">
+                {hasPdf && examPdfUrl && (
+                  <PdfViewer
+                    url={examPdfUrl}
+                    page={currentQuestion.pdfPage}
+                    label="Opdrachten"
+                    isActive={showPdfPanel}
+                    className={`absolute inset-0 ${showPdfPanel ? 'visible' : 'invisible'}`}
+                  />
+                )}
+                {hasBijlage && examBijlageUrl && (
+                  <PdfViewer
+                    url={examBijlageUrl}
+                    page={currentQuestion.bijlagePdfPage}
+                    label="Bijlage"
+                    isActive={showBijlagePanel}
+                    className={`absolute inset-0 ${showBijlagePanel ? 'visible' : 'invisible'}`}
+                  />
+                )}
+              </div>
             )}
 
             {/* Context Text */}
