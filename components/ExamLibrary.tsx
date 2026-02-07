@@ -13,7 +13,8 @@ import {
   Pencil,
   Search,
   RefreshCw,
-  BookOpen
+  BookOpen,
+  Paperclip
 } from 'lucide-react';
 import { SUBJECTS } from '../constants/subjects';
 
@@ -384,6 +385,35 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
                           {/* Expanded: delete buttons + questions */}
                           {isYearExpanded && (
                             <div className="bg-white border-t border-slate-100">
+                              {/* PDF status badges per level */}
+                              {yearGroup.year > 0 && (
+                                <div className="flex flex-wrap items-center gap-2 px-16 py-2 bg-indigo-50/50 border-b border-slate-100">
+                                  {(['VMBO-TL', 'HAVO', 'VWO'] as StudentLevel[]).map(lvl => {
+                                    const levelQuestions = yearGroup.byLevel[lvl];
+                                    if (levelQuestions.length === 0) return null;
+                                    const hasOpdrachtPdf = levelQuestions.some(q => q.examPdfUrl);
+                                    const hasBijlagePdf = levelQuestions.some(q => q.examBijlageUrl);
+                                    if (!hasOpdrachtPdf && !hasBijlagePdf) return null;
+                                    return (
+                                      <div key={lvl} className="flex items-center gap-1.5">
+                                        <span className="text-xs text-slate-500 font-medium">{lvl}:</span>
+                                        {hasOpdrachtPdf && (
+                                          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                                            <FileText className="w-3 h-3" />
+                                            Opdrachten
+                                          </span>
+                                        )}
+                                        {hasBijlagePdf && (
+                                          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
+                                            <Paperclip className="w-3 h-3" />
+                                            Bijlage
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
                               {/* Delete exam per level */}
                               {yearGroup.year > 0 && (
                                 <div className="flex items-center gap-2 px-16 py-2 bg-slate-50 border-b border-slate-100">

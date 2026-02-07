@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { examMarkdownComponents } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
@@ -56,8 +56,12 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Image zoom state
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
 
-  // PDF split-screen state
-  const [leftPanelTab, setLeftPanelTab] = useState<'pdf' | 'context'>('pdf');
+  // PDF split-screen state - default to first available tab
+  const [leftPanelTab, setLeftPanelTab] = useState<'opdrachten' | 'bijlage' | 'context'>(() => {
+    if (initialSession.pdfUrl) return 'opdrachten';
+    if (initialSession.bijlageUrl) return 'bijlage';
+    return 'context';
+  });
   // Mobile: toggle between PDF and questions
   const [showMobilePdf, setShowMobilePdf] = useState(false);
 
@@ -572,14 +576,21 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Has context includes section intro OR question-specific context
   const hasContext = !!currentQuestion.contextText || showSectionIntro;
 
-  // PDF support: check if exam has a PDF tekstboekje
+  // PDF support: check if exam has a PDF tekstboekje and/or bijlage
   const examPdfUrl = session.pdfUrl;
+  const examBijlageUrl = session.bijlageUrl;
   const hasPdf = !!examPdfUrl;
-  const hasLeftPanel = hasContext || hasPdf;
+  const hasBijlage = !!examBijlageUrl;
+  const hasLeftPanel = hasContext || hasPdf || hasBijlage;
 
   // Determine which content to show in left panel
-  const showPdfPanel = hasPdf && leftPanelTab === 'pdf';
-  const showContextPanel = hasContext && (!hasPdf || leftPanelTab === 'context');
+  const showPdfPanel = hasPdf && leftPanelTab === 'opdrachten';
+  const showBijlagePanel = hasBijlage && leftPanelTab === 'bijlage';
+  const showContextPanel = hasContext && leftPanelTab === 'context';
+
+  // Count available tabs for the left panel
+  const availableTabs = [hasPdf && 'opdrachten', hasBijlage && 'bijlage', hasContext && 'context'].filter(Boolean);
+  const hasMultipleTabs = availableTabs.length > 1;
 
   return (
     <div className="h-screen flex flex-col bg-[#f8fafc] overflow-hidden text-slate-900 font-sans">
@@ -618,7 +629,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           )}
 
           {/* Mobile PDF toggle button */}
-          {hasPdf && (
+          {(hasPdf || hasBijlage) && (
             <button
               onClick={() => setShowMobilePdf(!showMobilePdf)}
               className={`lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
@@ -653,42 +664,70 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
       {/* Main Content Split */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* LEFT COLUMN: PDF / Context / Tabs */}
+        {/* LEFT COLUMN: PDF / Bijlage / Context / Tabs */}
         {hasLeftPanel ? (
           <div className={`lg:w-1/2 flex flex-col overflow-hidden border-r border-slate-200 ${showMobilePdf ? '' : 'hidden lg:flex'}`}>
-            {/* Tab bar: show when both PDF and context are available */}
-            {hasPdf && hasContext && (
+            {/* Tab bar: show when multiple panel options are available */}
+            {hasMultipleTabs && (
               <div className="flex-shrink-0 flex border-b border-slate-200 bg-white">
-                <button
-                  onClick={() => setLeftPanelTab('pdf')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
-                    leftPanelTab === 'pdf'
-                      ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  Tekstboekje
-                </button>
-                <button
-                  onClick={() => setLeftPanelTab('context')}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
-                    leftPanelTab === 'context'
-                      ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
-                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Context
-                </button>
+                {hasPdf && (
+                  <button
+                    onClick={() => setLeftPanelTab('opdrachten')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                      leftPanelTab === 'opdrachten'
+                        ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <FileText className="w-4 h-4" />
+                    Opdrachten
+                  </button>
+                )}
+                {hasBijlage && (
+                  <button
+                    onClick={() => setLeftPanelTab('bijlage')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                      leftPanelTab === 'bijlage'
+                        ? 'text-amber-700 border-b-2 border-amber-600 bg-amber-50/50'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Paperclip className="w-4 h-4" />
+                    Bijlage
+                  </button>
+                )}
+                {hasContext && (
+                  <button
+                    onClick={() => setLeftPanelTab('context')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                      leftPanelTab === 'context'
+                        ? 'text-indigo-700 border-b-2 border-indigo-600 bg-indigo-50/50'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Context
+                  </button>
+                )}
               </div>
             )}
 
-            {/* PDF Viewer */}
+            {/* Opdrachten PDF Viewer */}
             {showPdfPanel && examPdfUrl && (
               <PdfViewer
                 url={examPdfUrl}
                 page={currentQuestion.pdfPage}
+                label="Opdrachten"
+                className="flex-1"
+              />
+            )}
+
+            {/* Bijlage PDF Viewer */}
+            {showBijlagePanel && examBijlageUrl && (
+              <PdfViewer
+                url={examBijlageUrl}
+                page={currentQuestion.bijlagePdfPage}
+                label="Bijlage"
                 className="flex-1"
               />
             )}
@@ -727,7 +766,6 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 </div>
               </div>
             )}
-
 
           </div>
         ) : (

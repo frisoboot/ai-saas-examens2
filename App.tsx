@@ -208,6 +208,8 @@ const AppContent: React.FC = () => {
 
       // Extract exam PDF URL from questions (shared across all questions in one exam)
       const examPdfUrl = sortedQuestions.find(q => q.examPdfUrl)?.examPdfUrl;
+      // Extract bijlage PDF URL from questions (shared across all questions in one exam)
+      const examBijlageUrl = sortedQuestions.find(q => q.examBijlageUrl)?.examBijlageUrl;
 
       setCurrentExamSession({
         studentName: currentProfile.name,
@@ -219,6 +221,7 @@ const AppContent: React.FC = () => {
         startTime: Date.now(),
         timeLimit, // Time limit in minutes (0 = no limit)
         pdfUrl: examPdfUrl,
+        bijlageUrl: examBijlageUrl,
         feedbackMode: feedbackMode || 'exam'
       });
       navigate('/exam');
