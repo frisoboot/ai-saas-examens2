@@ -12,6 +12,7 @@ interface ExamMetadata {
   tijdvak: number;
   level: StudentLevel;
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
+  examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
 }
 
 interface QuestionDraft extends Partial<Question> {
@@ -24,6 +25,7 @@ interface QuestionDraft extends Partial<Question> {
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
   pdfPage?: number;
+  bijlagePdfPage?: number;
 }
 
 interface ValidationErrors {
@@ -56,6 +58,7 @@ interface JsonQuestion {
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
   pdfPage?: number;    // Page number in the exam PDF tekstboekje
+  bijlagePdfPage?: number; // Page number in the bijlage PDF
 }
 
 interface JsonImportFormat {
@@ -64,6 +67,7 @@ interface JsonImportFormat {
   tijdvak?: number;
   level?: StudentLevel;
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
+  examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
   questions: JsonQuestion[];
 }
 
@@ -88,7 +92,8 @@ const generateJsonTemplate = (): string => {
         "year": "VERPLICHT - Examenjaar als getal, bijv. 2024",
         "tijdvak": "VERPLICHT - Tijdvak als getal: 1 (eerste tijdvak), 2 (tweede tijdvak), of 3 (herkansing)",
         "level": "VERPLICHT - Niveau: 'VMBO-TL', 'HAVO', of 'VWO' (hoofdlettergevoelig, exact deze waarden)",
-        "examPdfUrl": "OPTIONEEL - URL naar een PDF tekstboekje dat bij het hele examen hoort. Wordt als split-screen naast de vragen getoond. Gebruikt voor vakken als Nederlands, Engels, Geschiedenis waar leerlingen een tekstboekje krijgen.",
+        "examPdfUrl": "OPTIONEEL - URL naar een PDF met de opdrachten/tekstboekje dat bij het hele examen hoort. Wordt als split-screen naast de vragen getoond.",
+        "examBijlageUrl": "OPTIONEEL - URL naar een bijlage-PDF die bij het hele examen hoort (bijv. Binas, atlas, bronnenboekje). Wordt als tab naast de opdrachten-PDF getoond.",
         "questions": "VERPLICHT - Array van vraag-objecten (zie fieldExplanations_question)"
       },
       fieldExplanations_question: {
@@ -102,6 +107,7 @@ const generateJsonTemplate = (): string => {
         "imageUrl": "OPTIONEEL - Base64-encoded afbeelding of URL naar een afbeelding. Wordt boven de vraagtekst getoond. Tip: je kunt afbeeldingen ook later toevoegen via de preview modus in de ExamBuilder",
         "hasImage": "OPTIONEEL - true als deze vraag een afbeelding nodig heeft maar die nog niet is toegevoegd. De vraag wordt dan gemarkeerd zodat je later de afbeelding kunt uploaden",
         "pdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in het PDF tekstboekje (examPdfUrl). Als je dit invult springt de PDF viewer automatisch naar deze pagina wanneer de leerling bij deze vraag komt. Alleen zinvol als examPdfUrl is ingevuld",
+        "bijlagePdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in de bijlage-PDF (examBijlageUrl). Als je dit invult springt de bijlage-viewer naar deze pagina bij deze vraag. Alleen zinvol als examBijlageUrl is ingevuld",
         "worksheetUrl": "OPTIONEEL - URL naar een bijlage (PDF of afbeelding) die specifiek bij deze ene vraag hoort, bijv. een Binas-tabel of uitwerkpapier. Anders dan examPdfUrl (dat is voor het hele examen)",
         "worksheetLabel": "OPTIONEEL - Label voor de bijlage, bijv. 'Binas-tabel 45' of 'Uitwerkpapier'. Wordt getoond in de vraag-interface",
         "requiresWorksheet": "OPTIONEEL - true als de leerling de bijlage (worksheetUrl) nodig heeft om de vraag te beantwoorden. Als true kan de leerling de vraag overslaan als ze de bijlage niet hebben"
@@ -111,6 +117,7 @@ const generateJsonTemplate = (): string => {
         simple_open: "Simpele open vraag: type='OPEN', text, modelAnswer",
         with_context: "Vraag met brontekst: voeg contextText toe (wordt links van de vraag getoond)",
         with_pdf: "Examen met tekstboekje: voeg examPdfUrl toe op top-level, en optioneel pdfPage per vraag",
+        with_bijlage: "Examen met bijlage: voeg examBijlageUrl toe op top-level, en optioneel bijlagePdfPage per vraag",
         with_image: "Vraag met afbeelding: voeg imageUrl toe (base64 of URL), of zet hasImage=true om later toe te voegen"
       }
     },
@@ -120,6 +127,7 @@ const generateJsonTemplate = (): string => {
     tijdvak: 1,
     level: "HAVO",
     examPdfUrl: "",
+    examBijlageUrl: "",
 
     questions: [
       {
@@ -484,6 +492,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       if (data.examPdfUrl) {
         setExamMeta(prev => ({ ...prev, examPdfUrl: data.examPdfUrl }));
       }
+      // Import bijlage PDF URL if provided
+      if (data.examBijlageUrl) {
+        setExamMeta(prev => ({ ...prev, examBijlageUrl: data.examBijlageUrl }));
+      }
 
       // Convert JSON questions to QuestionDraft format
       const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
@@ -500,7 +512,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         worksheetUrl: q.worksheetUrl || '',
         worksheetLabel: q.worksheetLabel || '',
         requiresWorksheet: q.requiresWorksheet || false,
-        pdfPage: q.pdfPage
+        pdfPage: q.pdfPage,
+        bijlagePdfPage: q.bijlagePdfPage
       }));
 
       // Add to existing questions
@@ -655,6 +668,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           requiresWorksheet: draft.requiresWorksheet,
           examPdfUrl: examMeta.examPdfUrl,
           pdfPage: draft.pdfPage,
+          examBijlageUrl: examMeta.examBijlageUrl,
+          bijlagePdfPage: draft.bijlagePdfPage,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -902,7 +917,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   "year": 2024,
   "tijdvak": 1,
   "level": "HAVO",
-  "examPdfUrl": "(optioneel) URL naar tekstboekje PDF",
+  "examPdfUrl": "(optioneel) URL naar opdrachten PDF",
+  "examBijlageUrl": "(optioneel) URL naar bijlage PDF",
   "questions": [
     {
       "questionNumber": 1,
@@ -926,8 +942,9 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </pre>
                 <div className="text-xs text-blue-700 mt-2 space-y-1">
                   <p><strong>Tip:</strong> Download de template voor een volledig voorbeeld met uitleg van elk veld.</p>
-                  <p><strong>examPdfUrl:</strong> Voor vakken met een tekstboekje (Nederlands, Engels, Geschiedenis).</p>
-                  <p><strong>pdfPage:</strong> Pagina in de PDF die automatisch getoond wordt bij die vraag.</p>
+                  <p><strong>examPdfUrl:</strong> PDF met opdrachten (wordt links getoond in split-screen).</p>
+                  <p><strong>examBijlageUrl:</strong> Bijlage-PDF (bijv. Binas, atlas). Schakelen via tabs.</p>
+                  <p><strong>pdfPage / bijlagePdfPage:</strong> Pagina in de PDF die automatisch getoond wordt bij die vraag.</p>
                   <p><strong>hasImage:</strong> Zet op true om later een afbeelding toe te voegen via preview.</p>
                 </div>
               </div>
@@ -1064,17 +1081,17 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 <div className="pt-4 border-t">
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <FileText className="w-4 h-4 inline mr-1" />
-                    Tekstboekje PDF (optioneel)
+                    Opdrachten PDF (optioneel)
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    Upload een PDF tekstboekje dat bij het hele examen hoort (bijv. voor Nederlands, Engels, Geschiedenis)
+                    Upload de opdrachten-PDF die leerlingen links in split-screen te zien krijgen tijdens de toets
                   </p>
                   {examMeta.examPdfUrl ? (
                     <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <FileText className="w-5 h-5 text-indigo-600" />
-                          <span className="text-sm font-medium text-indigo-900">Tekstboekje geüpload</span>
+                          <span className="text-sm font-medium text-indigo-900">Opdrachten PDF geüpload</span>
                         </div>
                         <button
                           onClick={async () => {
@@ -1082,7 +1099,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                               await worksheetStorage.deleteWorksheet(examMeta.examPdfUrl);
                             }
                             setExamMeta({ ...examMeta, examPdfUrl: undefined });
-                            showNotification('info', 'Tekstboekje verwijderd');
+                            showNotification('info', 'Opdrachten PDF verwijderd');
                           }}
                           className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
                         >
@@ -1108,9 +1125,67 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                         try {
                           const url = await worksheetStorage.uploadWorksheet(file);
                           setExamMeta({ ...examMeta, examPdfUrl: url });
-                          showNotification('success', 'Tekstboekje geüpload');
+                          showNotification('success', 'Opdrachten PDF geüpload');
                         } catch (error) {
                           showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden PDF');
+                        }
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  )}
+                </div>
+
+                {/* Bijlage PDF Upload */}
+                <div className="pt-4 border-t">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileDown className="w-4 h-4 inline mr-1" />
+                    Bijlage PDF (optioneel)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload een bijlage-PDF voor het hele examen (bijv. Binas, atlas, bronnenboekje)
+                  </p>
+                  {examMeta.examBijlageUrl ? (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileDown className="w-5 h-5 text-amber-600" />
+                          <span className="text-sm font-medium text-amber-900">Bijlage geüpload</span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (examMeta.examBijlageUrl && examMeta.examBijlageUrl.includes('/storage/v1/object/public/')) {
+                              await worksheetStorage.deleteWorksheet(examMeta.examBijlageUrl);
+                            }
+                            setExamMeta({ ...examMeta, examBijlageUrl: undefined });
+                            showNotification('info', 'Bijlage verwijderd');
+                          }}
+                          className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <a
+                        href={examMeta.examBijlageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-amber-600 hover:underline mt-1 block truncate"
+                      >
+                        Bekijk bijlage
+                      </a>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await worksheetStorage.uploadWorksheet(file);
+                          setExamMeta({ ...examMeta, examBijlageUrl: url });
+                          showNotification('success', 'Bijlage geüpload');
+                        } catch (error) {
+                          showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage PDF');
                         }
                       }}
                       className="w-full p-2 border border-gray-300 rounded-lg text-sm"
@@ -1208,28 +1283,53 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                 </div>
               </div>
 
-              {/* PDF Page number - only shown when exam has a PDF */}
-              {examMeta.examPdfUrl && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <FileText className="w-4 h-4 inline mr-1" />
-                    PDF Pagina (optioneel)
-                  </label>
-                  <input
-                    type="number"
-                    value={currentQuestion.pdfPage || ''}
-                    onChange={(e) => {
-                      const num = parseInt(e.target.value);
-                      setCurrentQuestion({
-                        ...currentQuestion,
-                        pdfPage: isNaN(num) ? undefined : num
-                      });
-                    }}
-                    className="w-full p-2 border border-gray-300 rounded-lg"
-                    min="1"
-                    placeholder="Pagina in tekstboekje (auto-scroll)"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">De PDF scrollt automatisch naar deze pagina bij deze vraag</p>
+              {/* PDF Page numbers - only shown when exam has PDFs */}
+              {(examMeta.examPdfUrl || examMeta.examBijlageUrl) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {examMeta.examPdfUrl && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <FileText className="w-4 h-4 inline mr-1" />
+                        Opdrachten pagina
+                      </label>
+                      <input
+                        type="number"
+                        value={currentQuestion.pdfPage || ''}
+                        onChange={(e) => {
+                          const num = parseInt(e.target.value);
+                          setCurrentQuestion({
+                            ...currentQuestion,
+                            pdfPage: isNaN(num) ? undefined : num
+                          });
+                        }}
+                        className="w-full p-2 border border-gray-300 rounded-lg"
+                        min="1"
+                        placeholder="Pagina in opdrachten-PDF"
+                      />
+                    </div>
+                  )}
+                  {examMeta.examBijlageUrl && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <FileDown className="w-4 h-4 inline mr-1" />
+                        Bijlage pagina
+                      </label>
+                      <input
+                        type="number"
+                        value={currentQuestion.bijlagePdfPage || ''}
+                        onChange={(e) => {
+                          const num = parseInt(e.target.value);
+                          setCurrentQuestion({
+                            ...currentQuestion,
+                            bijlagePdfPage: isNaN(num) ? undefined : num
+                          });
+                        }}
+                        className="w-full p-2 border border-gray-300 rounded-lg"
+                        min="1"
+                        placeholder="Pagina in bijlage-PDF"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -1682,21 +1782,41 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                             )}
                           </div>
 
-                          {/* PDF Page number (only when exam has PDF) */}
-                          {examMeta.examPdfUrl && (
-                            <div>
-                              <label className="block text-xs font-bold text-gray-700 uppercase mb-1">PDF Pagina</label>
-                              <input
-                                type="number"
-                                value={editingQuestion.pdfPage || ''}
-                                onChange={(e) => {
-                                  const num = parseInt(e.target.value);
-                                  setEditingQuestion({ ...editingQuestion, pdfPage: isNaN(num) ? undefined : num });
-                                }}
-                                className="w-full p-2 border border-indigo-200 rounded-lg text-sm"
-                                min="1"
-                                placeholder="Pagina in tekstboekje"
-                              />
+                          {/* PDF Page numbers (only when exam has PDFs) */}
+                          {(examMeta.examPdfUrl || examMeta.examBijlageUrl) && (
+                            <div className="grid grid-cols-2 gap-2">
+                              {examMeta.examPdfUrl && (
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Opdrachten pagina</label>
+                                  <input
+                                    type="number"
+                                    value={editingQuestion.pdfPage || ''}
+                                    onChange={(e) => {
+                                      const num = parseInt(e.target.value);
+                                      setEditingQuestion({ ...editingQuestion, pdfPage: isNaN(num) ? undefined : num });
+                                    }}
+                                    className="w-full p-2 border border-indigo-200 rounded-lg text-sm"
+                                    min="1"
+                                    placeholder="Pagina in opdrachten"
+                                  />
+                                </div>
+                              )}
+                              {examMeta.examBijlageUrl && (
+                                <div>
+                                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Bijlage pagina</label>
+                                  <input
+                                    type="number"
+                                    value={editingQuestion.bijlagePdfPage || ''}
+                                    onChange={(e) => {
+                                      const num = parseInt(e.target.value);
+                                      setEditingQuestion({ ...editingQuestion, bijlagePdfPage: isNaN(num) ? undefined : num });
+                                    }}
+                                    className="w-full p-2 border border-indigo-200 rounded-lg text-sm"
+                                    min="1"
+                                    placeholder="Pagina in bijlage"
+                                  />
+                                </div>
+                              )}
                             </div>
                           )}
 

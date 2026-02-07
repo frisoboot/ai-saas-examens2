@@ -85,6 +85,9 @@ export const deleteExam = async (
     if (q.examPdfUrl && q.examPdfUrl.includes('/storage/v1/object/public/')) {
       worksheetsToDelete.add(q.examPdfUrl);
     }
+    if (q.examBijlageUrl && q.examBijlageUrl.includes('/storage/v1/object/public/')) {
+      worksheetsToDelete.add(q.examBijlageUrl);
+    }
   }
 
   // Delete storage files (non-blocking, collect errors)

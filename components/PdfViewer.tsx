@@ -5,9 +5,10 @@ interface PdfViewerProps {
   url: string;
   page?: number;
   className?: string;
+  label?: string;
 }
 
-export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '' }) => {
+export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '', label = 'Tekstboekje' }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [currentPage, setCurrentPage] = useState(page || 1);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -57,7 +58,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '' 
       {/* PDF Controls Bar */}
       <div className="flex items-center justify-between px-4 py-2 bg-slate-800 text-white flex-shrink-0">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-slate-300">Tekstboekje</span>
+          <span className="text-sm font-medium text-slate-300">{label}</span>
         </div>
 
         <div className="flex items-center gap-1">
@@ -106,7 +107,7 @@ export const PdfViewer: React.FC<PdfViewerProps> = ({ url, page, className = '' 
           ref={iframeRef}
           src={getPdfUrl(currentPage)}
           className="w-full h-full border-0"
-          title="Exam PDF Tekstboekje"
+          title={label}
         />
       </div>
     </div>

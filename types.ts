@@ -49,8 +49,12 @@ export interface Question {
   sectionIntro?: string;   // Intro text for the section (only needed on first question of section)
 
   // PDF tekstboekje (for exams like Nederlands, Engels, Geschiedenis)
-  examPdfUrl?: string;     // URL to exam PDF (tekstboekje) in Supabase Storage - shared across all questions in one exam
+  examPdfUrl?: string;     // URL to exam PDF (opdrachten/tekstboekje) in Supabase Storage - shared across all questions in one exam
   pdfPage?: number;        // Specific page number in the PDF to show for this question
+
+  // Bijlage PDF (for exams with separate attachment like Binas, atlas, source booklet)
+  examBijlageUrl?: string;   // URL to bijlage PDF in Supabase Storage - shared across all questions in one exam
+  bijlagePdfPage?: number;   // Specific page number in the bijlage PDF to show for this question
 }
 
 export interface Answer {
@@ -104,6 +108,9 @@ export interface ExamSession {
 
   // PDF tekstboekje URL (extracted from questions for the entire exam)
   pdfUrl?: string;
+
+  // Bijlage PDF URL (extracted from questions for the entire exam)
+  bijlageUrl?: string;
 
   // Feedback mode: 'coach' = instant feedback after each question, 'exam' = all at the end
   feedbackMode?: FeedbackMode;
