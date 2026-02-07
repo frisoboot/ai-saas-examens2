@@ -114,6 +114,11 @@ export interface ExamSession {
 
   // Feedback mode: 'coach' = instant feedback after each question, 'exam' = all at the end
   feedbackMode?: FeedbackMode;
+
+  // Streaming: true while AI is still generating questions
+  isStreaming?: boolean;
+  // Total expected question count (for progress display during streaming)
+  totalExpectedQuestions?: number;
 }
 
 

@@ -247,6 +247,80 @@ export const generateStudyFeedback = async (
   }
 };
 
+// Stream Look-alike Exam Questions via SSE for faster perceived generation
+const GEMINI_STREAM_ENDPOINT = '/api/gemini-stream';
+
+export const streamLookalikeExamQuestions = async (
+  subject: string,
+  level: StudentLevel,
+  count: number = 10,
+  topic?: string,
+  examStyle?: string,
+  onQuestion?: (question: Question) => void
+): Promise<Question[]> => {
+  const response = await fetch(GEMINI_STREAM_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ subject, level, count, topic, examStyle }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+    throw new Error(error.error || `Stream failed: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('Streaming niet ondersteund door de browser.');
+  }
+
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  const questions: Question[] = [];
+  let buffer = '';
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+
+      // Parse SSE events from the buffer
+      const lines = buffer.split('\n');
+      buffer = lines.pop()!; // Keep the last (potentially incomplete) line
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+
+        const data = line.slice(6).trim();
+        if (data === '[DONE]') continue;
+
+        let parsed: any;
+        try {
+          parsed = JSON.parse(data);
+        } catch {
+          continue; // Skip unparseable SSE lines
+        }
+
+        if (parsed.error) {
+          throw new Error(parsed.error);
+        }
+
+        questions.push(parsed as Question);
+        onQuestion?.(parsed as Question);
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  if (questions.length === 0) {
+    throw new Error('Kon geen look-alike examenvragen genereren. Probeer het opnieuw.');
+  }
+
+  return questions;
+};
+
 // Generate AI flashcards for a subject
 export const generateFlashcards = async (
   subject: string,

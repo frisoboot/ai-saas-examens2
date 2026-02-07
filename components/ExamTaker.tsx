@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip } from 'lucide-react';
+import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { examMarkdownComponents } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
@@ -76,10 +76,29 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const isFinishingRef = useRef(false);
 
   const currentQuestion = session.questions[activeQuestionIdx];
-  const isLastQuestion = activeQuestionIdx === session.questions.length - 1;
-  const progress = ((activeQuestionIdx + 1) / session.questions.length) * 100;
+  const totalDisplay = session.totalExpectedQuestions || session.questions.length;
+  const isLastQuestion = activeQuestionIdx === session.questions.length - 1 && !session.isStreaming;
+  const isWaitingForNextQuestion = activeQuestionIdx >= session.questions.length - 1 && !!session.isStreaming;
+  const progress = totalDisplay > 0 ? ((activeQuestionIdx + 1) / totalDisplay) * 100 : 0;
+
+  // Sync streaming questions from parent prop
+  useEffect(() => {
+    setSession(prev => {
+      if (
+        initialSession.questions.length === prev.questions.length &&
+        initialSession.isStreaming === prev.isStreaming
+      ) return prev;
+      return {
+        ...prev,
+        questions: initialSession.questions,
+        isStreaming: initialSession.isStreaming,
+        totalExpectedQuestions: initialSession.totalExpectedQuestions,
+      };
+    });
+  }, [initialSession.questions.length, initialSession.isStreaming]);
 
   useEffect(() => {
+    if (!currentQuestion) return;
     if (currentQuestion.type === 'OPEN') {
       const existingAns = session.answers[currentQuestion.id];
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
@@ -375,6 +394,32 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     setLoadingExplanation(null);
   };
 
+  // --- STREAMING LOADING SCREEN ---
+  if (!currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-blue-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 mx-auto mb-6">
+            <div className="w-full h-full border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Examenvragen genereren</h2>
+          <p className="text-slate-600 mb-4">
+            Even geduld, de AI maakt {totalDisplay} examenvragen voor je aan...
+          </p>
+          <div className="w-48 mx-auto bg-indigo-100 rounded-full h-2 overflow-hidden">
+            <div
+              className="bg-indigo-500 h-full rounded-full transition-all duration-700 ease-out"
+              style={{ width: `${Math.max(5, (session.questions.length / totalDisplay) * 100)}%` }}
+            />
+          </div>
+          <p className="text-sm text-indigo-500 mt-2 font-medium">
+            {session.questions.length} / {totalDisplay} vragen geladen
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // --- ERROR SCREEN ---
   if (submissionError) {
     return (
@@ -599,7 +644,13 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
         <div className="flex items-center gap-4">
           <span className="font-bold text-slate-700">{session.subject}</span>
           <span className="text-slate-300">|</span>
-          <span className="text-sm text-slate-500">Vraag {activeQuestionIdx + 1} / {session.questions.length}</span>
+          <span className="text-sm text-slate-500">Vraag {activeQuestionIdx + 1} / {totalDisplay}</span>
+          {session.isStreaming && (
+            <span className="flex items-center gap-1.5 text-xs text-indigo-500 font-medium">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span className="hidden sm:inline">{session.questions.length}/{totalDisplay} geladen</span>
+            </span>
+          )}
         </div>
 
         <div className="absolute left-1/2 transform -translate-x-1/2 w-1/3 max-w-xs hidden md:block">
@@ -872,7 +923,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold shadow-sm">
                 {activeQuestionIdx + 1}
               </span>
-              <span className="text-sm font-medium text-slate-400">van {session.questions.length}</span>
+              <span className="text-sm font-medium text-slate-400">van {totalDisplay}</span>
             </div>
 
             <div className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-900 mb-8">
@@ -1077,25 +1128,30 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 {showingCoachFeedback ? (
                   <Button
                     onClick={handleCoachNext}
-                    disabled={coachGradingOpen}
+                    disabled={coachGradingOpen || isWaitingForNextQuestion}
                     size="xl"
                     className="pl-8 pr-6 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transform hover:-translate-y-0.5"
                   >
-                    {isLastQuestion ? 'Afronden' : 'Volgende vraag'}
-                    <ChevronRight className="w-5 h-5 ml-2" />
+                    {isWaitingForNextQuestion ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Laden...</>
+                    ) : (
+                      <>{isLastQuestion ? 'Afronden' : 'Volgende vraag'}<ChevronRight className="w-5 h-5 ml-2" /></>
+                    )}
                   </Button>
                 ) : (
                   <Button
                     onClick={handleNext}
-                    disabled={currentQuestion.type === 'MULTIPLE_CHOICE' && session.answers[currentQuestion.id] === undefined}
+                    disabled={(currentQuestion.type === 'MULTIPLE_CHOICE' && session.answers[currentQuestion.id] === undefined) || isWaitingForNextQuestion}
                     size="xl"
                     className="pl-8 pr-6 shadow-lg shadow-indigo-200 hover:shadow-xl hover:shadow-indigo-300 transform hover:-translate-y-0.5"
                   >
-                    {isCoachMode
-                      ? (isLastQuestion ? 'Check & Afronden' : 'Check')
-                      : (isLastQuestion ? 'Afronden' : 'Volgende')
-                    }
-                    <ChevronRight className="w-5 h-5 ml-2" />
+                    {isWaitingForNextQuestion ? (
+                      <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Laden...</>
+                    ) : isCoachMode ? (
+                      <>{isLastQuestion ? 'Check & Afronden' : 'Check'}<ChevronRight className="w-5 h-5 ml-2" /></>
+                    ) : (
+                      <>{isLastQuestion ? 'Afronden' : 'Volgende'}<ChevronRight className="w-5 h-5 ml-2" /></>
+                    )}
                   </Button>
                 )}
               </div>
