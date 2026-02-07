@@ -712,64 +712,63 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               </div>
             )}
 
-            {/* PDF Viewers container - both stay mounted with absolute positioning to preserve scroll */}
-            {(hasPdf || hasBijlage) && (leftPanelTab === 'opdrachten' || leftPanelTab === 'bijlage') && (
-              <div className="flex-1 relative">
-                {hasPdf && examPdfUrl && (
-                  <PdfViewer
-                    url={examPdfUrl}
-                    page={currentQuestion.pdfPage}
-                    label="Opdrachten"
-                    isActive={showPdfPanel}
-                    className={`absolute inset-0 ${showPdfPanel ? 'visible' : 'invisible'}`}
-                  />
-                )}
-                {hasBijlage && examBijlageUrl && (
-                  <PdfViewer
-                    url={examBijlageUrl}
-                    page={currentQuestion.bijlagePdfPage}
-                    label="Bijlage"
-                    isActive={showBijlagePanel}
-                    className={`absolute inset-0 ${showBijlagePanel ? 'visible' : 'invisible'}`}
-                  />
-                )}
-              </div>
-            )}
+            {/* Content area - single relative container, z-index layered */}
+            <div className="flex-1 relative overflow-hidden">
+              {/* PDF Viewers - always mounted, z-index controls which is on top */}
+              {hasPdf && examPdfUrl && (
+                <PdfViewer
+                  url={examPdfUrl}
+                  page={currentQuestion.pdfPage}
+                  label="Opdrachten"
+                  isActive={showPdfPanel}
+                  className={`absolute inset-0 ${showPdfPanel ? 'z-20' : 'z-0 pointer-events-none'}`}
+                />
+              )}
+              {hasBijlage && examBijlageUrl && (
+                <PdfViewer
+                  url={examBijlageUrl}
+                  page={currentQuestion.bijlagePdfPage}
+                  label="Bijlage"
+                  isActive={showBijlagePanel}
+                  className={`absolute inset-0 ${showBijlagePanel ? 'z-20' : 'z-0 pointer-events-none'}`}
+                />
+              )}
 
-            {/* Context Text */}
-            {showContextPanel && (
-              <div className="flex-1 bg-[#fdfbf7] overflow-y-auto custom-scrollbar">
-                <div className="max-w-2xl mx-auto p-8 lg:p-12">
-                  {/* Section Header */}
-                  {isNewSection && (
-                    <div className="mb-6">
-                      <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
-                        {currentQuestion.section}
-                      </h2>
-                    </div>
-                  )}
-
-                  {/* Section Introduction (only on first question of section) */}
-                  {showSectionIntro && (
-                    <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
-                      <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.sectionIntro}</ReactMarkdown>
-                    </div>
-                  )}
-
-                  {/* Question-specific Context */}
-                  {currentQuestion.contextText && (
-                    <>
-                      <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
-                        <span>Bronmateriaal</span>
+              {/* Context Text - overlays on top when active */}
+              {hasContext && showContextPanel && (
+                <div className="absolute inset-0 z-30 bg-[#fdfbf7] overflow-y-auto custom-scrollbar">
+                  <div className="max-w-2xl mx-auto p-8 lg:p-12">
+                    {/* Section Header */}
+                    {isNewSection && (
+                      <div className="mb-6">
+                        <h2 className="text-xl font-bold text-slate-800 border-b-2 border-[#d4c4a8] pb-3">
+                          {currentQuestion.section}
+                        </h2>
                       </div>
-                      <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                        <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.contextText}</ReactMarkdown>
+                    )}
+
+                    {/* Section Introduction (only on first question of section) */}
+                    {showSectionIntro && (
+                      <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
+                        <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.sectionIntro}</ReactMarkdown>
                       </div>
-                    </>
-                  )}
+                    )}
+
+                    {/* Question-specific Context */}
+                    {currentQuestion.contextText && (
+                      <>
+                        <div className="flex items-center gap-2 text-[#8c857b] font-serif italic mb-6 border-b border-[#eaddcf] pb-2">
+                          <span>Bronmateriaal</span>
+                        </div>
+                        <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
+                          <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.contextText}</ReactMarkdown>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
           </div>
         ) : (
