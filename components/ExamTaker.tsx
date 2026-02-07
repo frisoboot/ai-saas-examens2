@@ -712,23 +712,23 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               </div>
             )}
 
-            {/* Opdrachten PDF Viewer */}
-            {showPdfPanel && examPdfUrl && (
+            {/* Opdrachten PDF Viewer - kept mounted to preserve scroll position */}
+            {hasPdf && examPdfUrl && (
               <PdfViewer
                 url={examPdfUrl}
                 page={currentQuestion.pdfPage}
                 label="Opdrachten"
-                className="flex-1"
+                className={`flex-1 ${showPdfPanel ? '' : 'hidden'}`}
               />
             )}
 
-            {/* Bijlage PDF Viewer */}
-            {showBijlagePanel && examBijlageUrl && (
+            {/* Bijlage PDF Viewer - kept mounted to preserve scroll position */}
+            {hasBijlage && examBijlageUrl && (
               <PdfViewer
                 url={examBijlageUrl}
                 page={currentQuestion.bijlagePdfPage}
                 label="Bijlage"
-                className="flex-1"
+                className={`flex-1 ${showBijlagePanel ? '' : 'hidden'}`}
               />
             )}
 
