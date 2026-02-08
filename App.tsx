@@ -3,7 +3,7 @@ import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-rou
 import { ExamSession, StudentProfile, FlashcardSession, FeedbackMode } from './types';
 import { getQuestions } from './services/storageService';
 import { sortExamQuestions } from './utils/sortExamQuestions';
-import { generateFlashcards, generateLookalikeExamQuestions } from './services/geminiService';
+import { generateFlashcards, streamLookalikeExamQuestions } from './services/geminiService';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { LoginPage } from './components/LoginPage';
 import { ForgotPasswordPage } from './components/ForgotPasswordPage';
@@ -288,45 +288,70 @@ const AppContent: React.FC = () => {
   ) => {
     console.log(`Genereren van ${count} look-alike examenvragen voor ${subject}${topic ? ` over "${topic}"` : ''}...`);
 
+    // Create session immediately with streaming flag and navigate to exam
+    const streamingSession: ExamSession = {
+      studentName: currentProfile.name,
+      subject,
+      questions: [],
+      currentQuestionIndex: 0,
+      answers: {},
+      examType: 'ai_practice',
+      startTime: Date.now(),
+      timeLimit,
+      isStreaming: true,
+      totalExpectedQuestions: count,
+    };
+
+    setCurrentExamSession(streamingSession);
+    navigate('/exam');
+
+    // Stream questions in the background
     try {
-      const examQuestions = await generateLookalikeExamQuestions(
+      await streamLookalikeExamQuestions(
         subject,
         currentProfile.level,
         count,
         topic,
-        examStyle as 'tijdvak1' | 'tijdvak2' | 'mixed' | undefined
+        examStyle,
+        (question) => {
+          setCurrentExamSession(prev => {
+            if (!prev) return null;
+            return {
+              ...prev,
+              questions: [...prev.questions, question],
+            };
+          });
+        }
       );
-
-      if (examQuestions.length === 0) {
-        alert(`Kon geen look-alike examenvragen genereren voor ${subject}. Probeer het opnieuw.`);
-        return;
-      }
-
-      setCurrentExamSession({
-        studentName: currentProfile.name,
-        subject,
-        questions: examQuestions,
-        currentQuestionIndex: 0,
-        answers: {},
-        examType: 'ai_practice',
-        startTime: Date.now(),
-        timeLimit // Time limit in minutes (0 = no limit)
-      });
-      navigate('/exam');
     } catch (error: any) {
       console.error('Fout bij genereren look-alike examenvragen:', error);
 
-      let errorMessage = 'Er ging iets mis bij het genereren van de look-alike examenvragen.\n\n';
-
-      if (error.message?.includes('API key')) {
-        errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld.';
-      } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
-        errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
-      } else {
-        errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
-      }
-
-      alert(errorMessage);
+      // Check if we got any questions before the error
+      setCurrentExamSession(prev => {
+        if (!prev) return null;
+        if (prev.questions.length === 0) {
+          // No questions at all - show error and go back
+          let errorMessage = 'Er ging iets mis bij het genereren van de look-alike examenvragen.\n\n';
+          if (error.message?.includes('API key')) {
+            errorMessage += 'Controleer of je een geldige Gemini API key hebt ingesteld.';
+          } else if (error.message?.includes('quota') || error.message?.includes('rate limit')) {
+            errorMessage += 'Je hebt de API rate limit bereikt. Probeer het over een paar minuten opnieuw.';
+          } else {
+            errorMessage += `Foutmelding: ${error.message || 'Onbekende fout'}`;
+          }
+          alert(errorMessage);
+          navigate('/dashboard');
+          return null;
+        }
+        // Got some questions - continue with what we have
+        return prev;
+      });
+    } finally {
+      // Mark streaming as done
+      setCurrentExamSession(prev => {
+        if (!prev) return null;
+        return { ...prev, isStreaming: false };
+      });
     }
   };
 
