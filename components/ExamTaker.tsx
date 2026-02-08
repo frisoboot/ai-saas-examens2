@@ -190,17 +190,23 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     setShowingCoachFeedback(true);
 
     // Grade open questions with AI
-    if (currentQuestion.type === 'OPEN' && openAnswerInput.trim()) {
-      setCoachGradingOpen(true);
-      try {
-        const result = await gradeOpenQuestion(currentQuestion, openAnswerInput);
-        setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: result.grade }));
-        setAiExplanations(prev => ({ ...prev, [currentQuestion.id]: result.feedback }));
-      } catch (error) {
-        console.error('Error grading question:', currentQuestion.id, error);
-        setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: null }));
-      } finally {
-        setCoachGradingOpen(false);
+    if (currentQuestion.type === 'OPEN') {
+      if (!openAnswerInput.trim()) {
+        // Empty answer is immediately incorrect
+        setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: 'incorrect' }));
+        setAiExplanations(prev => ({ ...prev, [currentQuestion.id]: 'Je hebt deze vraag niet ingevuld.' }));
+      } else {
+        setCoachGradingOpen(true);
+        try {
+          const result = await gradeOpenQuestion(currentQuestion, openAnswerInput);
+          setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: result.grade }));
+          setAiExplanations(prev => ({ ...prev, [currentQuestion.id]: result.feedback }));
+        } catch (error) {
+          console.error('Error grading question:', currentQuestion.id, error);
+          setOpenQuestionGrades(prev => ({ ...prev, [currentQuestion.id]: null }));
+        } finally {
+          setCoachGradingOpen(false);
+        }
       }
     }
   };
@@ -239,7 +245,13 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
     for (const question of openQuestions) {
       const answer = answers[question.id];
-      if (typeof answer !== 'string' || !answer.trim()) continue;
+
+      // Empty/blank answers are marked as incorrect immediately
+      if (typeof answer !== 'string' || !answer.trim()) {
+        setOpenQuestionGrades(prev => ({ ...prev, [question.id]: 'incorrect' }));
+        setAiExplanations(prev => ({ ...prev, [question.id]: 'Je hebt deze vraag niet ingevuld.' }));
+        continue;
+      }
 
       setGradingQuestions(prev => new Set(prev).add(question.id));
 
