@@ -70,6 +70,14 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setIsLoading(true);
     setStep('processing');
 
+    // Track Facebook Pixel InitiateCheckout event
+    if (typeof window !== 'undefined' && (window as any).fbq) {
+      (window as any).fbq('track', 'InitiateCheckout', {
+        value: 12.50,
+        currency: 'EUR'
+      });
+    }
+
     try {
       const result = await createCheckout(email, password, level);
 

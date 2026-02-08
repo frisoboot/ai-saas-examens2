@@ -133,13 +133,20 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     }
   }, [state, accountReady, checkCount]);
 
-  // Google Ads conversie tracking bij succesvolle betaling
+  // Google Ads + Facebook conversie tracking bij succesvolle betaling
   useEffect(() => {
     if (state === 'paid') {
       // Track Google Ads conversion
       if (typeof window !== 'undefined' && (window as any).gtag) {
         (window as any).gtag('event', 'conversion', {
           'send_to': 'AW-17872585813/GwTVCMSR0OobENWIqMpC'
+        });
+      }
+      // Track Facebook Pixel Purchase conversion
+      if (typeof window !== 'undefined' && (window as any).fbq) {
+        (window as any).fbq('track', 'Purchase', {
+          value: 1.00,
+          currency: 'EUR'
         });
       }
     }
