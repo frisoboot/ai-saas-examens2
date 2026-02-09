@@ -8,7 +8,6 @@ import {
   Target,
   BookOpen,
   MessageSquare,
-  CheckCircle2,
   Sparkles,
   Clock,
   TrendingUp,
@@ -17,11 +16,7 @@ import {
   Shield,
   Award,
   ArrowRight,
-  Check,
-  X,
-  BarChart3,
-  Wallet,
-  Smile
+  Check
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -283,10 +278,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       </section>
 
 
-      {/* Social Proof Numbers */}
-      <section className="py-16 px-6 lg:px-8 bg-white border-b border-slate-100">
-        <div className="max-w-5xl mx-auto">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center mb-12">
+      {/* Social Proof + Features */}
+      <section id="features" className="py-20 px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-6xl mx-auto">
+          {/* Stats row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-10 text-center mb-16">
             {[
               { value: '2.500+', label: 'Leerlingen actief', icon: Users },
               { value: '150.000+', label: 'Vragen geoefend', icon: BookOpen },
@@ -294,266 +290,101 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               { value: '4,7/5', label: 'Gemiddelde beoordeling', icon: Award }
             ].map((stat) => (
               <div key={stat.label} className="scroll-reveal">
-                <stat.icon className="w-6 h-6 text-orange-500 mx-auto mb-2" />
-                <div className="text-3xl sm:text-4xl font-bold text-slate-900 mb-1">{stat.value}</div>
-                <div className="text-sm text-slate-500 font-medium">{stat.label}</div>
+                <stat.icon className="w-5 h-5 text-orange-500 mx-auto mb-1.5" />
+                <div className="text-2xl sm:text-3xl font-bold text-slate-900 mb-0.5">{stat.value}</div>
+                <div className="text-xs text-slate-500 font-medium">{stat.label}</div>
               </div>
             ))}
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
-            {[
-              { icon: Shield, text: 'AVG Compliant', color: 'emerald' },
-              { icon: Award, text: 'CITO Examenstijl', color: 'indigo' },
-              { icon: Clock, text: '24/7 Beschikbaar', color: 'orange' }
-            ].map((badge) => (
-              <div key={badge.text} className="flex items-center gap-3">
-                <div className={`w-10 h-10 bg-${badge.color}-100 rounded-xl flex items-center justify-center`}>
-                  <badge.icon className={`w-5 h-5 text-${badge.color}-600`} />
-                </div>
-                <span className="font-semibold text-slate-700">{badge.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-32 px-6 lg:px-8 bg-slate-50 dot-pattern">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold mb-6">
-              Functies
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
-              Alles om te slagen
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Van slimme oefenvragen tot persoonlijke begeleiding — wij hebben alles wat je nodig hebt.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8 stagger-children">
+          {/* Features grid */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5 stagger-children">
             {[
               {
                 icon: Brain,
                 title: 'AI Oefenvragen',
-                description: 'Onbeperkt nieuwe vragen die zich aanpassen aan jouw niveau en leerstijl.',
+                description: 'Onbeperkt nieuwe vragen op jouw niveau.',
                 gradient: 'from-orange-500 to-amber-500',
                 shadowColor: 'shadow-orange-500/20'
               },
               {
                 icon: MessageSquare,
                 title: 'Persoonlijke Tutor',
-                description: 'Stel vragen en krijg uitleg in begrijpelijke taal, wanneer je maar wilt.',
+                description: 'Stel vragen en krijg uitleg in begrijpelijke taal.',
                 gradient: 'from-indigo-500 to-purple-600',
                 shadowColor: 'shadow-indigo-500/20'
               },
               {
                 icon: Target,
                 title: 'Echte Examens',
-                description: 'Oefen met officiële examens van voorgaande jaren van CITO.',
+                description: 'Oefen met officiële CITO-examens.',
                 gradient: 'from-emerald-500 to-teal-600',
                 shadowColor: 'shadow-emerald-500/20'
               },
               {
                 icon: Zap,
                 title: 'Slimme Flashcards',
-                description: 'Leer begrippen en definities snel met AI-gegenereerde flashcards.',
+                description: 'Leer begrippen snel met AI-flashcards.',
                 gradient: 'from-pink-500 to-rose-600',
                 shadowColor: 'shadow-pink-500/20'
               },
               {
                 icon: TrendingUp,
                 title: 'Voortgang Inzicht',
-                description: 'Zie precies waar je staat en welke onderwerpen extra aandacht nodig hebben.',
+                description: 'Zie precies waar je staat per vak.',
                 gradient: 'from-cyan-500 to-blue-600',
                 shadowColor: 'shadow-cyan-500/20'
               },
               {
                 icon: Clock,
                 title: 'Tijdsoefeningen',
-                description: 'Train je snelheid en ervaar hoe het is om onder tijdsdruk te werken.',
+                description: 'Train je snelheid onder tijdsdruk.',
                 gradient: 'from-amber-500 to-orange-600',
                 shadowColor: 'shadow-amber-500/20'
               }
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="feature-card bg-white rounded-3xl p-8 border border-slate-100 scroll-reveal"
+                className="feature-card bg-white rounded-2xl p-6 border border-slate-100 scroll-reveal"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-6 shadow-lg ${feature.shadowColor}`}>
-                  <feature.icon className="w-7 h-7 text-white" />
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg ${feature.shadowColor}`}>
+                  <feature.icon className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="font-bold text-xl text-slate-900 mb-3">{feature.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{feature.description}</p>
+                <h3 className="font-bold text-lg text-slate-900 mb-1.5">{feature.title}</h3>
+                <p className="text-slate-600 text-sm leading-relaxed">{feature.description}</p>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Comparison Section - For Parents */}
-      <section className="py-32 px-6 lg:px-8 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-16 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold mb-6">
-              Waarom AI Examentrainer?
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
-              Effectiever dan traditioneel
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Ontdek het verschil tussen traditioneel studeren en leren met AI.
-            </p>
-          </div>
-
-          <div className="scroll-reveal">
-            <div className="bg-slate-50 rounded-3xl overflow-hidden border border-slate-200">
-              <div className="grid grid-cols-3 bg-slate-100 border-b border-slate-200">
-                <div className="p-6"></div>
-                <div className="p-6 text-center border-x border-slate-200">
-                  <span className="text-slate-500 font-medium">Traditioneel</span>
-                </div>
-                <div className="p-6 text-center bg-gradient-to-r from-orange-500 to-amber-500">
-                  <span className="text-white font-bold">AI Examentrainer</span>
-                </div>
-              </div>
-
-              {[
-                { feature: 'Directe feedback', traditional: false, ai: true },
-                { feature: '24/7 beschikbaar', traditional: false, ai: true },
-                { feature: 'Persoonlijke uitleg', traditional: true, ai: true },
-                { feature: 'Onbeperkt oefenen', traditional: false, ai: true },
-                { feature: 'Voortgang bijhouden', traditional: false, ai: true },
-                { feature: 'Aanpassen aan niveau', traditional: true, ai: true },
-                { feature: 'Examenstijl vragen', traditional: true, ai: true },
-                { feature: 'Geen wachttijd', traditional: false, ai: true }
-              ].map((row, index, arr) => (
-                <div key={row.feature} className={`grid grid-cols-3 ${index !== arr.length - 1 ? 'border-b border-slate-200' : ''}`}>
-                  <div className="p-5 font-medium text-slate-700">{row.feature}</div>
-                  <div className="p-5 flex items-center justify-center border-x border-slate-200">
-                    {row.traditional ? (
-                      <Check className="w-6 h-6 text-emerald-500" />
-                    ) : (
-                      <X className="w-6 h-6 text-slate-300" />
-                    )}
-                  </div>
-                  <div className="p-5 flex items-center justify-center bg-orange-50">
-                    <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center shadow-md shadow-orange-500/30">
-                      <Check className="w-5 h-5 text-white" />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* CTA after comparison */}
-          <div className="text-center mt-12 scroll-reveal">
-            <StyledButton onClick={() => handleStartTrial()} variant="primary">
-              <span className="flex items-center gap-2">
-                Bekijk de pakketten
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </StyledButton>
-          </div>
-        </div>
-      </section>
-
-      {/* How it works */}
-      <section id="how-it-works" className="py-32 px-6 lg:px-8 bg-slate-900 relative overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-orange-500/20 to-amber-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 rounded-full blur-3xl"></div>
-
-        <div className="max-w-6xl mx-auto relative z-10">
-          <div className="text-center mb-20 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-white/10 text-white/80 rounded-full text-sm font-semibold mb-6 backdrop-blur-sm">
-              Hoe het werkt
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-              Begin in 3 stappen
-            </h2>
-            <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-              Binnen een minuut klaar om te oefenen voor je examen.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 md:gap-12">
-            {[
-              {
-                step: '01',
-                title: 'Maak een account',
-                description: 'Meld je aan met je e-mail en kies je niveau en vakken.',
-                icon: Users
-              },
-              {
-                step: '02',
-                title: 'Start met oefenen',
-                description: 'Kies een vak en begin direct met AI-gegenereerde oefenvragen.',
-                icon: BookOpen
-              },
-              {
-                step: '03',
-                title: 'Verbeter jezelf',
-                description: 'Krijg feedback, bekijk je voortgang en werk aan je zwakke punten.',
-                icon: TrendingUp
-              }
-            ].map((item, index) => (
-              <div key={item.step} className="scroll-reveal text-center md:text-left">
-                <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 mb-8 shadow-xl shadow-orange-500/30 float">
-                  <span className="text-3xl font-bold text-white">{item.step}</span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
-                <p className="text-slate-400 text-lg leading-relaxed">{item.description}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA after how it works */}
-          <div className="text-center mt-16 scroll-reveal">
-            <StyledButton onClick={() => handleStartTrial()} variant="primary" className="shadow-lg shadow-orange-500/40">
-              <span className="flex items-center gap-2">
-                Begin nu
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </StyledButton>
-            <p className="text-slate-500 text-sm mt-4">Klaar binnen 1 minuut</p>
           </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-32 px-6 lg:px-8 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
-              Ervaringen
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
-              Leerlingen over AI Examentrainer
+      <section className="py-16 px-6 lg:px-8 bg-white">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10 scroll-reveal">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
+              Wat leerlingen zeggen
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 stagger-children">
+          <div className="grid md:grid-cols-3 gap-5 stagger-children">
             {[
               {
-                quote: 'Ik was echt bang voor mijn wiskunde-examen. Na 2 weken oefenen ging mijn cijfer van een 5 naar een 7. De AI legt het zo uit dat ik het echt snap.',
+                quote: 'Na 2 weken oefenen ging mijn cijfer van een 5 naar een 7. De AI legt het zo uit dat ik het echt snap.',
                 name: 'Sophie V.',
                 level: 'HAVO',
                 subject: 'Wiskunde A',
                 gradient: 'from-orange-500 to-amber-500'
               },
               {
-                quote: 'Veel beter dan alleen maar samenvatten uit je boek. Je krijgt meteen feedback op je antwoord en weet precies wat je fout deed.',
+                quote: 'Veel beter dan samenvatten uit je boek. Je krijgt meteen feedback en weet precies wat je fout deed.',
                 name: 'Daan M.',
                 level: 'VWO',
                 subject: 'Biologie',
                 gradient: 'from-indigo-500 to-purple-500'
               },
               {
-                quote: 'De flashcards zijn echt top voor scheikunde. Ik gebruik het elke dag in de trein en merk dat ik veel meer onthoud.',
+                quote: 'De flashcards zijn top voor scheikunde. Ik gebruik het elke dag in de trein en onthoud veel meer.',
                 name: 'Fatima B.',
                 level: 'HAVO',
                 subject: 'Scheikunde',
@@ -562,100 +393,35 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             ].map((testimonial) => (
               <div
                 key={testimonial.name}
-                className="bg-slate-50 rounded-3xl p-8 border border-slate-100 scroll-reveal hover:shadow-lg transition-shadow"
+                className="bg-slate-50 rounded-2xl p-5 border border-slate-100 scroll-reveal"
               >
-                <div className="flex items-center gap-1 mb-4">
+                <div className="flex items-center gap-0.5 mb-3">
                   {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-amber-400 fill-current" viewBox="0 0 20 20">
+                    <svg key={i} className="w-4 h-4 text-amber-400 fill-current" viewBox="0 0 20 20">
                       <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                     </svg>
                   ))}
                 </div>
-                <p className="text-slate-700 leading-relaxed mb-6 italic">"{testimonial.quote}"</p>
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center`}>
-                    <span className="text-white font-bold text-sm">{testimonial.name.charAt(0)}</span>
+                <p className="text-slate-700 text-sm leading-relaxed mb-4 italic">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center`}>
+                    <span className="text-white font-bold text-xs">{testimonial.name.charAt(0)}</span>
                   </div>
                   <div>
-                    <p className="font-semibold text-slate-900 text-sm">{testimonial.name}</p>
-                    <p className="text-slate-500 text-xs">{testimonial.level} · {testimonial.subject}</p>
+                    <p className="font-semibold text-slate-900 text-xs">{testimonial.name}</p>
+                    <p className="text-slate-500 text-[11px]">{testimonial.level} · {testimonial.subject}</p>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Voor Ouders Section */}
-      <section className="py-32 px-6 lg:px-8 bg-slate-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-amber-100 text-amber-700 rounded-full text-sm font-semibold mb-6">
-              Voor Ouders
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
-              Investeer in het succes van je kind
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              AI Examentrainer helpt niet alleen leerlingen, maar geeft ouders ook rust en overzicht.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 stagger-children">
-            {[
-              {
-                icon: BarChart3,
-                title: 'Voortgangsrapport',
-                description: 'Zie precies wat je kind leert en waar ze aan werken. Volg de ontwikkeling zonder over de schouder mee te hoeven kijken.',
-                gradient: 'from-indigo-500 to-purple-500',
-                shadowColor: 'shadow-indigo-500/20'
-              },
-              {
-                icon: Wallet,
-                title: 'Goedkoper dan bijles',
-                description: 'Voor minder dan €0,50 per dag krijgt je kind onbeperkt toegang. Eén uurtje bijles kost al snel €30-50.',
-                gradient: 'from-emerald-500 to-teal-500',
-                shadowColor: 'shadow-emerald-500/20'
-              },
-              {
-                icon: Smile,
-                title: 'Minder stress',
-                description: 'Je kind oefent zelfstandig op eigen tempo. Geen gedoe meer over huiswerk of discussies over leren.',
-                gradient: 'from-amber-500 to-orange-500',
-                shadowColor: 'shadow-amber-500/20'
-              }
-            ].map((benefit) => (
-              <div
-                key={benefit.title}
-                className="bg-white rounded-3xl p-8 border border-slate-100 scroll-reveal hover:shadow-lg transition-shadow"
-              >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${benefit.gradient} flex items-center justify-center mb-6 shadow-lg ${benefit.shadowColor}`}>
-                  <benefit.icon className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="font-bold text-xl text-slate-900 mb-3">{benefit.title}</h3>
-                <p className="text-slate-600 leading-relaxed">{benefit.description}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* CTA for parents */}
-          <div className="text-center mt-12 scroll-reveal">
-            <StyledButton onClick={() => handleStartTrial()} variant="primary">
-              <span className="flex items-center gap-2">
-                Laat je kind starten
-                <ArrowRight className="w-5 h-5" />
-              </span>
-            </StyledButton>
-            <p className="text-sm text-slate-500 mt-3">Vanaf €39 totaal · Geen abonnement nodig</p>
           </div>
         </div>
       </section>
 
       {/* Pricing */}
-      <section id="pricing" className="py-32 px-6 lg:px-8 bg-slate-50">
+      <section id="pricing" className="py-20 px-6 lg:px-8 bg-slate-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-20 scroll-reveal">
+          <div className="text-center mb-14 scroll-reveal">
             <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold mb-6">
               Prijzen
             </span>
@@ -826,9 +592,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="py-32 px-6 lg:px-8 bg-white">
+      <section id="faq" className="py-20 px-6 lg:px-8 bg-white">
         <div className="max-w-3xl mx-auto">
-          <div className="text-center mb-16 scroll-reveal">
+          <div className="text-center mb-10 scroll-reveal">
             <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold mb-6">
               FAQ
             </span>
@@ -854,18 +620,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               {
                 question: 'Werkt het op mijn telefoon?',
                 answer: 'Ja, AI Examentrainer werkt perfect op alle apparaten: laptop, tablet en smartphone. Je kunt overal oefenen waar je internet hebt.'
-              },
-              {
-                question: 'Hoe betrouwbaar zijn de AI-vragen?',
-                answer: 'Onze AI is getraind op duizenden echte examenvragen en volgt de exameneisen van het CITO. De vragen zijn qua stijl, moeilijkheid en format vergelijkbaar met echte eindexamens.'
-              },
-              {
-                question: 'Is dit hetzelfde als ChatGPT?',
-                answer: 'Nee, AI Examentrainer is specifiek ontwikkeld voor Nederlandse eindexamens. Onze AI genereert vragen in CITO-stijl, kent de exameneisen per vak en niveau, en geeft feedback die aansluit bij hoe examens worden beoordeeld. ChatGPT is een algemene chatbot zonder deze specialisatie.'
-              },
-              {
-                question: 'Wat als mijn kind het niet gebruikt?',
-                answer: 'We sturen automatisch herinneringen om te blijven oefenen. Als ouder kun je de voortgang volgen en zien wanneer je kind voor het laatst heeft geoefend. Bij het maandelijks abonnement kun je op elk moment opzeggen. Bij het examenpakket en jaarpakket loopt de toegang vanzelf af.'
               }
             ].map((faq, index) => (
               <details key={index} className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
