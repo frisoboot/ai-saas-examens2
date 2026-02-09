@@ -54,13 +54,13 @@ const PLAN_INFO: Record<PlanType, {
   exam_package: {
     label: 'Examenpakket',
     price: '€39',
-    priceDetail: ' eenmalig',
+    priceDetail: ' totaal',
     badge: 'POPULAIR',
     badgeColor: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
     header: 'Koop je examenpakket',
     subtitle: '4 maanden volledige toegang voor €39',
     buttonText: 'Afrekenen (€39,00)',
-    disclaimer: 'Eenmalige betaling. Geen automatische verlenging.',
+    disclaimer: 'Geen abonnement. Stopt automatisch na 4 maanden.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
@@ -70,13 +70,13 @@ const PLAN_INFO: Record<PlanType, {
   yearly: {
     label: 'Jaarpakket',
     price: '€99',
-    priceDetail: ' eenmalig',
+    priceDetail: ' totaal',
     badge: 'BESTE DEAL',
     badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
     header: 'Koop je jaarpakket',
     subtitle: '12 maanden volledige toegang voor €99',
     buttonText: 'Afrekenen (€99,00)',
-    disclaimer: 'Eenmalige betaling. Geen automatische verlenging.',
+    disclaimer: 'Geen abonnement. Stopt automatisch na 12 maanden.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
