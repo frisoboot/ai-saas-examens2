@@ -216,7 +216,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                         <p className="text-sm text-amber-700 mt-1">
                           {subscription?.message === 'Database fout'
                             ? 'Probeer de pagina te vernieuwen. Als het probleem aanhoudt, neem contact op met support.'
-                            : 'Start een proefperiode om toegang te krijgen tot alle functies.'}
+                            : 'Neem een abonnement om toegang te krijgen tot alle functies.'}
                         </p>
                       </div>
                     </div>

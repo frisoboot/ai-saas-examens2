@@ -204,7 +204,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
               <StyledButton onClick={handleStartTrial} variant="primary">
                 <span className="flex items-center gap-2">
-                  Start gratis
+                  Start nu
                   <ArrowRight className="w-5 h-5" />
                 </span>
               </StyledButton>
@@ -681,11 +681,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
-                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-4 py-3 mb-6 border border-blue-100">
-                  <p className="text-blue-700 font-semibold flex items-center gap-2 text-sm">
-                    <Clock className="w-4 h-4" />
-                    Eerste 3 dagen gratis
-                  </p>
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className="inline-flex items-center px-3 py-1.5 bg-blue-100 rounded-full text-xs font-medium text-blue-700">
+                    Maandelijks opzegbaar
+                  </span>
                 </div>
 
                 <ul className="space-y-3 mb-8 flex-grow">
@@ -706,7 +705,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </ul>
 
                 <StyledButton onClick={() => handleStartTrial('monthly')} variant="secondary" className="w-full justify-center">
-                  Start gratis proefperiode
+                  Kies maandelijks
                 </StyledButton>
               </div>
             </div>
@@ -846,11 +845,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               },
               {
                 question: 'Wat is het verschil tussen de pakketten?',
-                answer: 'Het maandelijks abonnement (€14,95/maand) is flexibel opzegbaar en begint met 3 dagen gratis. Het examenpakket (€39 eenmalig) geeft je 4 maanden volledige toegang — perfect voor de examenperiode. Het jaarpakket (€99 eenmalig) geeft je 12 maanden toegang, ideaal als je vroeg wilt beginnen. Alle pakketten geven toegang tot dezelfde functies.'
-              },
-              {
-                question: 'Hoe werkt de gratis proefperiode?',
-                answer: 'De gratis proefperiode geldt alleen bij het maandelijks abonnement. Je krijgt 3 dagen volledige toegang tot alle functies. Bij aanmelding betaal je eenmalig €1,00 voor betaalverificatie. Na de proefperiode start je abonnement van €14,95/maand automatisch, maar je kunt op elk moment opzeggen. Bij het examenpakket en jaarpakket is er geen proefperiode — je krijgt direct volledige toegang.'
+                answer: 'Het maandelijks abonnement (€14,95/maand) is flexibel en maandelijks opzegbaar. Het examenpakket (€39 eenmalig) geeft je 4 maanden volledige toegang — perfect voor de examenperiode. Het jaarpakket (€99 eenmalig) geeft je 12 maanden toegang, ideaal als je vroeg wilt beginnen. Alle pakketten geven toegang tot dezelfde functies.'
               },
               {
                 question: 'Kan ik maandelijks opzeggen?',

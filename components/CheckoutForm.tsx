@@ -12,8 +12,7 @@ import {
   CheckCircle2,
   Loader2,
   Eye,
-  EyeOff,
-  Clock
+  EyeOff
 } from 'lucide-react';
 import { createCheckout } from '../services/subscriptionService';
 
@@ -42,11 +41,10 @@ const PLAN_INFO: Record<PlanType, {
     label: 'Maandelijks',
     price: '€14,95',
     priceDetail: '/maand',
-    header: 'Start je gratis proefperiode',
-    subtitle: '3 dagen gratis proberen, daarna €14,95/maand',
-    subtitleDetail: 'Eenmalig €1,00 voor betaalverificatie',
-    buttonText: 'Ga naar betalen (€1,00)',
-    disclaimer: 'Na je proefperiode wordt €14,95/maand automatisch afgeschreven.',
+    header: 'Start je abonnement',
+    subtitle: '€14,95/maand, maandelijks opzegbaar',
+    buttonText: 'Ga naar betalen (€14,95)',
+    disclaimer: 'Er wordt €14,95/maand automatisch afgeschreven. Maandelijks opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
@@ -250,12 +248,6 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               <div className={`text-[11px] ${plan === key ? 'text-blue-500' : 'text-gray-400'}`}>
                 {info.priceDetail}
               </div>
-              {key === 'monthly' && (
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  <Clock className="w-3 h-3 text-blue-500" />
-                  <span className="text-[10px] text-blue-500 font-medium">3 dagen gratis</span>
-                </div>
-              )}
             </button>
           ))}
         </div>

@@ -4,10 +4,10 @@
  * Flow:
  * 1. Valideer input en check of email beschikbaar is
  * 2. Maak Mollie customer aan
- * 3. Maak €1.00 verificatiebetaling aan (creëert mandaat voor toekomstige incasso's)
+ * 3. Maak betaling aan (€14.95 voor maandelijks met mandaat, of eenmalig bedrag)
  * 4. Sla pending registratie op in database
  * 5. Redirect gebruiker naar Mollie checkout
- * 6. Na succesvolle betaling: webhook activeert account en start trial
+ * 6. Na succesvolle betaling: webhook activeert account en start abonnement
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -43,8 +43,8 @@ interface CheckoutRequest {
 
 const PLAN_CONFIG = {
   monthly: {
-    amount: '1.00',
-    description: 'AI Examentrainer - Verificatie voor proefperiode',
+    amount: '14.95',
+    description: 'AI Examentrainer - Maandelijks abonnement',
     useMandate: true,
     metadataType: 'verification',
   },
@@ -162,7 +162,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres met een actieve proefperiode. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
           });
         }
       }
