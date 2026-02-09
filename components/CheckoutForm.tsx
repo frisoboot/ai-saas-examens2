@@ -167,7 +167,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
         }
         window.location.href = result.checkoutUrl;
       } else {
-        // Trial direct geactiveerd (geen betaling nodig voor trial start)
+        // Direct geactiveerd (bestaande subscription gevonden)
         onSuccess();
       }
     } catch (err) {

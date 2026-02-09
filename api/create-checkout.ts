@@ -272,7 +272,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Maak betaling aan - type afhankelijk van gekozen plan
-    // Monthly: €1 verificatiebetaling met mandaat voor recurring
+    // Monthly: €14.95 eerste betaling met mandaat voor recurring
     // Exam/Year: eenmalige betaling zonder mandaat
     const paymentParams: Parameters<typeof mollie.payments.create>[0] = {
       amount: {
