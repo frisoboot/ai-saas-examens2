@@ -68,6 +68,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Geen abonnement gevonden' });
     }
 
+    // Eenmalige pakketten kunnen niet opgezegd worden
+    if (subscription.plan_type === 'exam_package' || subscription.plan_type === 'yearly') {
+      return res.status(400).json({
+        error: 'Dit pakket kan niet opgezegd worden. Je hebt een eenmalig pakket dat automatisch afloopt.'
+      });
+    }
+
     // Cancel Mollie subscription indien aanwezig
     if (subscription.mollie_subscription_id && subscription.mollie_customer_id) {
       try {

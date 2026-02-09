@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { SEO } from './SEO';
 import { Button } from './Button';
 import {
@@ -11,7 +12,8 @@ import {
   CheckCircle2,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  Clock
 } from 'lucide-react';
 import { createCheckout } from '../services/subscriptionService';
 
@@ -21,15 +23,85 @@ interface CheckoutFormProps {
 }
 
 type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
+type PlanType = 'monthly' | 'exam_package' | 'yearly';
+
+const PLAN_INFO: Record<PlanType, {
+  label: string;
+  price: string;
+  priceDetail: string;
+  badge?: string;
+  badgeColor?: string;
+  header: string;
+  subtitle: string;
+  subtitleDetail?: string;
+  buttonText: string;
+  disclaimer: string;
+  benefits: string[];
+}> = {
+  monthly: {
+    label: 'Maandelijks',
+    price: '€14,95',
+    priceDetail: '/maand',
+    header: 'Start je gratis proefperiode',
+    subtitle: '3 dagen gratis proberen, daarna €14,95/maand',
+    subtitleDetail: 'Eenmalig €1,00 voor betaalverificatie',
+    buttonText: 'Ga naar betalen (€1,00)',
+    disclaimer: 'Na je proefperiode wordt €14,95/maand automatisch afgeschreven.',
+    benefits: [
+      'Onbeperkt AI-oefenvragen',
+      'Alle 16 vakken beschikbaar',
+      'Maandelijks opzegbaar',
+    ],
+  },
+  exam_package: {
+    label: 'Examenpakket',
+    price: '€39',
+    priceDetail: ' eenmalig',
+    badge: 'POPULAIR',
+    badgeColor: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
+    header: 'Koop je examenpakket',
+    subtitle: '4 maanden volledige toegang voor €39',
+    buttonText: 'Afrekenen (€39,00)',
+    disclaimer: 'Eenmalige betaling. Geen automatische verlenging.',
+    benefits: [
+      'Onbeperkt AI-oefenvragen',
+      'Alle 16 vakken beschikbaar',
+      'Geen abonnement nodig',
+    ],
+  },
+  yearly: {
+    label: 'Jaarpakket',
+    price: '€99',
+    priceDetail: ' eenmalig',
+    badge: 'BESTE DEAL',
+    badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
+    header: 'Koop je jaarpakket',
+    subtitle: '12 maanden volledige toegang voor €99',
+    buttonText: 'Afrekenen (€99,00)',
+    disclaimer: 'Eenmalige betaling. Geen automatische verlenging.',
+    benefits: [
+      'Onbeperkt AI-oefenvragen',
+      'Alle 16 vakken beschikbaar',
+      'Geen abonnement nodig',
+    ],
+  },
+};
 
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess }) => {
+  const [searchParams] = useSearchParams();
+  const initialPlan = (searchParams.get('plan') as PlanType) || 'exam_package';
+  const validPlan = PLAN_INFO[initialPlan] ? initialPlan : 'exam_package';
+
   const [step, setStep] = useState<'form' | 'processing' | 'redirect'>('form');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [level, setLevel] = useState<StudentLevel>('HAVO');
+  const [plan, setPlan] = useState<PlanType>(validPlan);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const currentPlan = PLAN_INFO[plan];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +143,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setStep('processing');
 
     try {
-      const result = await createCheckout(email, password, level);
+      const result = await createCheckout(email, password, level, plan);
 
       console.log('Checkout result status:', result.success);
 
@@ -111,8 +183,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
       <SEO
-        title="Registreren | Start je gratis proefperiode"
-        description="Start vandaag nog je gratis 7-dagen proefperiode van AI Examentrainer. Toegang tot alle AI-gegenereerde oefenvragen en flashcards voor VMBO, HAVO en VWO."
+        title="Registreren | AI Examentrainer"
+        description="Maak een account aan en krijg toegang tot alle AI-gegenereerde oefenvragen en flashcards voor VMBO, HAVO en VWO."
         canonical="https://ai-examentrainer.nl/checkout"
       />
       {/* Back Button */}
@@ -130,23 +202,62 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
       </div>
 
-      <div className="w-full max-w-[480px] relative z-10">
+      <div className="w-full max-w-[560px] relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <div className="flex justify-center mb-6">
             <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-xl shadow-blue-600/20 flex items-center justify-center">
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
           </div>
           <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
-            Start je gratis proefperiode
+            {currentPlan.header}
           </h2>
           <p className="text-gray-500 mt-3 text-lg">
-            3 dagen gratis proberen, daarna €12,50/maand
+            {currentPlan.subtitle}
           </p>
-          <p className="text-gray-400 mt-1 text-sm">
-            Eenmalig €1,00 voor betaalverificatie
-          </p>
+          {currentPlan.subtitleDetail && (
+            <p className="text-gray-400 mt-1 text-sm">
+              {currentPlan.subtitleDetail}
+            </p>
+          )}
+        </div>
+
+        {/* Plan Selector */}
+        <div className="grid grid-cols-3 gap-2 mb-6">
+          {(Object.entries(PLAN_INFO) as [PlanType, typeof PLAN_INFO[PlanType]][]).map(([key, info]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setPlan(key)}
+              className={`relative rounded-xl p-3 text-center transition-all border-2 ${
+                plan === key
+                  ? 'border-blue-600 bg-blue-50 shadow-md'
+                  : 'border-gray-200 bg-white hover:border-gray-300'
+              }`}
+            >
+              {info.badge && (
+                <span className={`absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${info.badgeColor}`}>
+                  {info.badge}
+                </span>
+              )}
+              <div className={`text-xs font-medium mb-1 ${plan === key ? 'text-blue-600' : 'text-gray-500'}`}>
+                {info.label}
+              </div>
+              <div className={`text-lg font-bold ${plan === key ? 'text-blue-700' : 'text-gray-900'}`}>
+                {info.price}
+              </div>
+              <div className={`text-[11px] ${plan === key ? 'text-blue-500' : 'text-gray-400'}`}>
+                {info.priceDetail}
+              </div>
+              {key === 'monthly' && (
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  <Clock className="w-3 h-3 text-blue-500" />
+                  <span className="text-[10px] text-blue-500 font-medium">3 dagen gratis</span>
+                </div>
+              )}
+            </button>
+          ))}
         </div>
 
         {/* Benefits */}
@@ -156,18 +267,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
             Dit krijg je:
           </div>
           <ul className="space-y-1 text-sm text-green-700">
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Onbeperkt AI-oefenvragen
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Alle 16 vakken beschikbaar
-            </li>
-            <li className="flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" />
-              Maandelijks opzegbaar
-            </li>
+            {currentPlan.benefits.map((benefit) => (
+              <li key={benefit} className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4" />
+                {benefit}
+              </li>
+            ))}
           </ul>
         </div>
 
@@ -255,7 +360,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <>
-                    Ga naar betalen (€1,00)
+                    {currentPlan.buttonText}
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </>
                 )}
@@ -267,7 +372,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                 {' '}en{' '}
                 <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:underline">privacybeleid</a>.
                 <br />
-                Na je proefperiode wordt €12,50/maand automatisch afgeschreven.
+                {currentPlan.disclaimer}
               </p>
             </form>
           )}

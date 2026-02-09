@@ -128,9 +128,23 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
     });
   };
 
+  const planType = subscription?.planType;
+  const isOneTimePlan = planType === 'exam_package' || planType === 'yearly';
+
+  const getPlanLabel = () => {
+    switch (planType) {
+      case 'exam_package': return 'Examenpakket';
+      case 'yearly': return 'Jaarpakket';
+      case 'monthly':
+      case 'individual':
+      default: return 'Maandelijks';
+    }
+  };
+
   const canCancel = subscription &&
     (subscription.status === 'trial' || subscription.status === 'active') &&
-    subscription.hasAccess;
+    subscription.hasAccess &&
+    !isOneTimePlan;
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
@@ -217,6 +231,14 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                   </div>
                 )}
 
+                {/* Plan Type */}
+                {subscription && subscription.status !== 'none' && (
+                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
+                    <span className="text-slate-500">Pakket</span>
+                    <span className="font-medium text-slate-900">{getPlanLabel()}</span>
+                  </div>
+                )}
+
                 {/* Days Left */}
                 {subscription?.daysLeft !== undefined && subscription.status === 'trial' && (
                   <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
@@ -229,7 +251,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                           Nog {subscription.daysLeft} {subscription.daysLeft === 1 ? 'dag' : 'dagen'} proefperiode
                         </p>
                         <p className="text-sm text-blue-600">
-                          Daarna €12,50 per maand
+                          Daarna €14,95 per maand
                         </p>
                       </div>
                     </div>
@@ -240,13 +262,15 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                 {subscription?.status === 'active' && subscription.periodEnd && (
                   <>
                     <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                      <span className="text-slate-500">Volgende factuurdatum</span>
+                      <span className="text-slate-500">{isOneTimePlan ? 'Toegang tot' : 'Volgende factuurdatum'}</span>
                       <span className="font-medium text-slate-900">{formatDate(subscription.periodEnd)}</span>
                     </div>
-                    <div className="flex items-center justify-between py-3">
-                      <span className="text-slate-500">Bedrag</span>
-                      <span className="font-medium text-slate-900">€12,50 / maand</span>
-                    </div>
+                    {!isOneTimePlan && (
+                      <div className="flex items-center justify-between py-3">
+                        <span className="text-slate-500">Bedrag</span>
+                        <span className="font-medium text-slate-900">€14,95 / maand</span>
+                      </div>
+                    )}
                   </>
                 )}
               </div>

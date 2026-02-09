@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { SEO } from './SEO';
 import {
   GraduationCap,
@@ -18,7 +19,6 @@ import {
   ArrowRight,
   Check,
   X,
-  Heart,
   BarChart3,
   Wallet,
   Smile
@@ -95,6 +95,7 @@ const StyledButton: React.FC<{
 
 export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout }) => {
   const [isNavScrolled, setIsNavScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useScrollReveal();
 
@@ -107,20 +108,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleStartTrial = () => {
-    if (onCheckout) {
-      onCheckout();
-    } else {
-      onLogin();
-    }
+  const handleStartTrial = (plan?: string) => {
+    navigate(`/checkout${plan ? `?plan=${plan}` : '?plan=exam_package'}`);
   };
 
   const scrollToSection = (id: string) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // Countdown to exam date (12 mei 2025)
-  const examDate = useMemo(() => new Date('2025-05-12'), []);
+  // Countdown to exam date (11 mei 2026)
+  const examDate = useMemo(() => new Date('2026-05-11'), []);
   const daysUntilExam = useCountdown(examDate);
 
   return (
@@ -193,14 +190,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
             {/* Main Headline */}
             <h1 className="text-reveal text-reveal-delay-2 text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-[1.1] mb-8 tracking-tight">
-              Leer slim,<br />
-              <span className="gradient-text">scoor hoog</span>
+              Slaag met<br />
+              <span className="gradient-text">vertrouwen</span>
             </h1>
 
             {/* Subheadline */}
             <p className="text-reveal text-reveal-delay-3 text-xl text-slate-600 mb-12 leading-relaxed max-w-2xl mx-auto">
-              De slimste manier om je voor te bereiden op je eindexamen.
-              Persoonlijke AI-feedback, onbeperkt oefenen, en precies weten waar je staat.
+              Geen stress meer voor je eindexamen. Oefen onbeperkt met AI-vragen op jouw niveau,
+              krijg directe feedback en weet precies waar je staat.
             </p>
 
             {/* CTA Buttons */}
@@ -217,10 +214,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             <p className="text-reveal text-reveal-delay-5 text-sm text-slate-500 flex items-center justify-center gap-4">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-emerald-500" />
-                Geen creditcard nodig
+                Geen abonnement nodig
               </span>
               <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-              <span>3 dagen gratis</span>
+              <span>Vanaf €39 eenmalig</span>
             </p>
           </div>
 
@@ -286,9 +283,24 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       </section>
 
 
-      {/* Trust Badges */}
-      <section className="py-12 px-6 lg:px-8 bg-white border-b border-slate-100">
-        <div className="max-w-4xl mx-auto">
+      {/* Social Proof Numbers */}
+      <section className="py-16 px-6 lg:px-8 bg-white border-b border-slate-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12 text-center mb-12">
+            {[
+              { value: '2.500+', label: 'Leerlingen actief', icon: Users },
+              { value: '150.000+', label: 'Vragen geoefend', icon: BookOpen },
+              { value: '16', label: 'Examenvakken', icon: Target },
+              { value: '4,7/5', label: 'Gemiddelde beoordeling', icon: Award }
+            ].map((stat) => (
+              <div key={stat.label} className="scroll-reveal">
+                <stat.icon className="w-6 h-6 text-orange-500 mx-auto mb-2" />
+                <div className="text-3xl sm:text-4xl font-bold text-slate-900 mb-1">{stat.value}</div>
+                <div className="text-sm text-slate-500 font-medium">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+
           <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12">
             {[
               { icon: Shield, text: 'AVG Compliant', color: 'emerald' },
@@ -411,12 +423,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               {[
                 { feature: 'Directe feedback', traditional: false, ai: true },
                 { feature: '24/7 beschikbaar', traditional: false, ai: true },
-                { feature: 'Persoonlijke uitleg', traditional: false, ai: true },
+                { feature: 'Persoonlijke uitleg', traditional: true, ai: true },
                 { feature: 'Onbeperkt oefenen', traditional: false, ai: true },
                 { feature: 'Voortgang bijhouden', traditional: false, ai: true },
-                { feature: 'Aanpassen aan niveau', traditional: false, ai: true }
-              ].map((row, index) => (
-                <div key={row.feature} className={`grid grid-cols-3 ${index !== 5 ? 'border-b border-slate-200' : ''}`}>
+                { feature: 'Aanpassen aan niveau', traditional: true, ai: true },
+                { feature: 'Examenstijl vragen', traditional: true, ai: true },
+                { feature: 'Geen wachttijd', traditional: false, ai: true }
+              ].map((row, index, arr) => (
+                <div key={row.feature} className={`grid grid-cols-3 ${index !== arr.length - 1 ? 'border-b border-slate-200' : ''}`}>
                   <div className="p-5 font-medium text-slate-700">{row.feature}</div>
                   <div className="p-5 flex items-center justify-center border-x border-slate-200">
                     {row.traditional ? (
@@ -433,6 +447,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* CTA after comparison */}
+          <div className="text-center mt-12 scroll-reveal">
+            <StyledButton onClick={() => handleStartTrial()} variant="primary">
+              <span className="flex items-center gap-2">
+                Bekijk de pakketten
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </StyledButton>
           </div>
         </div>
       </section>
@@ -483,6 +507,80 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
                 <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
                 <p className="text-slate-400 text-lg leading-relaxed">{item.description}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA after how it works */}
+          <div className="text-center mt-16 scroll-reveal">
+            <StyledButton onClick={() => handleStartTrial()} variant="primary" className="shadow-lg shadow-orange-500/40">
+              <span className="flex items-center gap-2">
+                Begin nu
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </StyledButton>
+            <p className="text-slate-500 text-sm mt-4">Klaar binnen 1 minuut</p>
+          </div>
+        </div>
+      </section>
+
+      {/* Testimonials */}
+      <section className="py-32 px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16 scroll-reveal">
+            <span className="inline-block px-4 py-2 bg-emerald-100 text-emerald-700 rounded-full text-sm font-semibold mb-6">
+              Ervaringen
+            </span>
+            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
+              Leerlingen over AI Examentrainer
+            </h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 stagger-children">
+            {[
+              {
+                quote: 'Ik was echt bang voor mijn wiskunde-examen. Na 2 weken oefenen ging mijn cijfer van een 5 naar een 7. De AI legt het zo uit dat ik het echt snap.',
+                name: 'Sophie V.',
+                level: 'HAVO',
+                subject: 'Wiskunde A',
+                gradient: 'from-orange-500 to-amber-500'
+              },
+              {
+                quote: 'Veel beter dan alleen maar samenvatten uit je boek. Je krijgt meteen feedback op je antwoord en weet precies wat je fout deed.',
+                name: 'Daan M.',
+                level: 'VWO',
+                subject: 'Biologie',
+                gradient: 'from-indigo-500 to-purple-500'
+              },
+              {
+                quote: 'De flashcards zijn echt top voor scheikunde. Ik gebruik het elke dag in de trein en merk dat ik veel meer onthoud.',
+                name: 'Fatima B.',
+                level: 'HAVO',
+                subject: 'Scheikunde',
+                gradient: 'from-emerald-500 to-teal-500'
+              }
+            ].map((testimonial) => (
+              <div
+                key={testimonial.name}
+                className="bg-slate-50 rounded-3xl p-8 border border-slate-100 scroll-reveal hover:shadow-lg transition-shadow"
+              >
+                <div className="flex items-center gap-1 mb-4">
+                  {[...Array(5)].map((_, i) => (
+                    <svg key={i} className="w-5 h-5 text-amber-400 fill-current" viewBox="0 0 20 20">
+                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                    </svg>
+                  ))}
+                </div>
+                <p className="text-slate-700 leading-relaxed mb-6 italic">"{testimonial.quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${testimonial.gradient} flex items-center justify-center`}>
+                    <span className="text-white font-bold text-sm">{testimonial.name.charAt(0)}</span>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-slate-900 text-sm">{testimonial.name}</p>
+                    <p className="text-slate-500 text-xs">{testimonial.level} · {testimonial.subject}</p>
+                  </div>
+                </div>
               </div>
             ))}
           </div>
@@ -540,6 +638,17 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               </div>
             ))}
           </div>
+
+          {/* CTA for parents */}
+          <div className="text-center mt-12 scroll-reveal">
+            <StyledButton onClick={() => handleStartTrial()} variant="primary">
+              <span className="flex items-center gap-2">
+                Laat je kind starten
+                <ArrowRight className="w-5 h-5" />
+              </span>
+            </StyledButton>
+            <p className="text-sm text-slate-500 mt-3">Vanaf €39 eenmalig · Geen abonnement nodig</p>
+          </div>
         </div>
       </section>
 
@@ -554,112 +663,164 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               Eenvoudig en transparant
             </h2>
             <p className="text-xl text-slate-600">
-              Geen verborgen kosten. Maandelijks opzegbaar.
+              Geen verborgen kosten. Kies het pakket dat bij je past.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Individual */}
-            <div className="scroll-reveal-left scroll-reveal relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-[2rem] blur opacity-30"></div>
-              <div className="relative bg-white rounded-3xl p-10 border border-orange-100 shine-effect h-full">
-                <div className="absolute top-6 right-6 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                  POPULAIR
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-12">
+            {/* Maandelijks */}
+            <div className="scroll-reveal">
+              <div className="bg-white rounded-3xl p-8 border border-slate-200 h-full flex flex-col">
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Maandelijks</h3>
+                  <p className="text-slate-500 text-sm">Flexibel en opzegbaar</p>
                 </div>
 
-                <div className="mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Individueel</h3>
-                  <p className="text-slate-500">Perfect voor leerlingen</p>
+                <div className="mb-2">
+                  <span className="text-4xl font-bold text-slate-900">€14,95</span>
+                  <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
-                <div className="mb-4">
-                  <span className="text-5xl font-bold text-slate-900">€12,50</span>
-                  <span className="text-slate-500 ml-2">/ maand</span>
-                </div>
-
-                {/* Mental Accounting - Price Framing */}
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <span className="inline-flex items-center px-3 py-1.5 bg-slate-100 rounded-full text-sm font-medium text-slate-600">
-                    = €0,42 per dag
-                  </span>
-                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-sm font-medium text-emerald-700">
-                    Goedkoper dan 1 uur bijles
-                  </span>
-                </div>
-
-                <div className="bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl px-5 py-4 mb-8 border border-orange-100">
-                  <p className="text-orange-700 font-semibold flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    Eerste 3 dagen gratis!
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl px-4 py-3 mb-6 border border-blue-100">
+                  <p className="text-blue-700 font-semibold flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4" />
+                    Eerste 3 dagen gratis
                   </p>
                 </div>
 
-                <ul className="space-y-4 mb-10">
+                <ul className="space-y-3 mb-8 flex-grow">
                   {[
                     'Onbeperkt AI-oefenvragen',
                     'Alle 16 vakken',
                     'Persoonlijke AI-tutor',
                     'Flashcards & echte examens',
-                    'Voortgang bijhouden'
+                    'Maandelijks opzegbaar'
                   ].map((feature) => (
-                    <li key={feature} className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-white" />
+                    <li key={feature} className="flex items-center gap-3 text-sm">
+                      <div className="w-5 h-5 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-slate-600" />
                       </div>
                       <span className="text-slate-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <StyledButton onClick={handleStartTrial} className="w-full justify-center">
+                <StyledButton onClick={() => handleStartTrial('monthly')} variant="secondary" className="w-full justify-center">
                   Start gratis proefperiode
                 </StyledButton>
               </div>
             </div>
 
-            {/* School */}
-            <div className="scroll-reveal-right scroll-reveal">
-              <div className="bg-white rounded-3xl p-10 border border-slate-200 h-full flex flex-col">
-                <div className="mb-8">
-                  <h3 className="text-2xl font-bold text-slate-900 mb-2">Schoollicentie</h3>
-                  <p className="text-slate-500">Voor scholen en docenten</p>
+            {/* Examenpakket - Highlighted */}
+            <div className="scroll-reveal relative">
+              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-[2rem] blur opacity-30"></div>
+              <div className="relative bg-white rounded-3xl p-8 border border-orange-100 shine-effect h-full flex flex-col">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                  POPULAIR
                 </div>
 
-                <div className="mb-8">
-                  <span className="text-5xl font-bold text-slate-900">Op maat</span>
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Examenpakket</h3>
+                  <p className="text-slate-500 text-sm">4 maanden toegang</p>
                 </div>
 
-                <div className="bg-slate-50 rounded-xl px-5 py-4 mb-8 border border-slate-100">
-                  <p className="text-slate-600">
-                    Prijs afhankelijk van aantal leerlingen
-                  </p>
+                <div className="mb-2">
+                  <span className="text-4xl font-bold text-slate-900">€39</span>
+                  <span className="text-slate-500 ml-1">eenmalig</span>
                 </div>
 
-                <ul className="space-y-4 mb-10 flex-grow">
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
+                    = €9,75 per maand
+                  </span>
+                </div>
+
+                <ul className="space-y-3 mb-8 flex-grow">
                   {[
-                    'Alles van Individueel',
-                    'Onbeperkt leerlingen',
-                    'Voortgangsrapportages',
-                    'Eigen vragen toevoegen',
-                    'Prioriteit support'
+                    'Onbeperkt AI-oefenvragen',
+                    'Alle 16 vakken',
+                    'Persoonlijke AI-tutor',
+                    'Flashcards & echte examens',
+                    'Geen abonnement nodig'
                   ].map((feature) => (
-                    <li key={feature} className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-slate-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Check className="w-4 h-4 text-slate-600" />
+                    <li key={feature} className="flex items-center gap-3 text-sm">
+                      <div className="w-5 h-5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-slate-700">{feature}</span>
                     </li>
                   ))}
                 </ul>
 
-                <StyledButton
-                  onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'}
-                  variant="secondary"
-                  className="w-full justify-center"
-                >
-                  Neem contact op
+                <StyledButton onClick={() => handleStartTrial('exam_package')} className="w-full justify-center">
+                  Koop examenpakket
                 </StyledButton>
               </div>
+            </div>
+
+            {/* Jaarpakket */}
+            <div className="scroll-reveal relative">
+              <div className="bg-white rounded-3xl p-8 border border-emerald-200 h-full flex flex-col">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                  BESTE DEAL
+                </div>
+
+                <div className="mb-6">
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Jaarpakket</h3>
+                  <p className="text-slate-500 text-sm">12 maanden toegang</p>
+                </div>
+
+                <div className="mb-2">
+                  <span className="text-4xl font-bold text-slate-900">€99</span>
+                  <span className="text-slate-500 ml-1">eenmalig</span>
+                </div>
+
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
+                    = €8,25 per maand
+                  </span>
+                </div>
+
+                <ul className="space-y-3 mb-8 flex-grow">
+                  {[
+                    'Onbeperkt AI-oefenvragen',
+                    'Alle 16 vakken',
+                    'Persoonlijke AI-tutor',
+                    'Flashcards & echte examens',
+                    'Geen abonnement nodig'
+                  ].map((feature) => (
+                    <li key={feature} className="flex items-center gap-3 text-sm">
+                      <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-slate-700">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <StyledButton onClick={() => handleStartTrial('yearly')} variant="secondary" className="w-full justify-center border-emerald-300 hover:border-emerald-400">
+                  Koop jaarpakket
+                </StyledButton>
+              </div>
+            </div>
+          </div>
+
+          {/* Schoollicentie */}
+          <div className="max-w-2xl mx-auto scroll-reveal">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 flex flex-col sm:flex-row items-center gap-6">
+              <div className="flex-grow text-center sm:text-left">
+                <h3 className="text-lg font-bold text-slate-900 mb-1">Schoollicentie</h3>
+                <p className="text-slate-500 text-sm">
+                  Voor scholen en docenten — prijs op maat, onbeperkt leerlingen, voortgangsrapportages.
+                </p>
+              </div>
+              <StyledButton
+                onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'}
+                variant="secondary"
+                className="flex-shrink-0 whitespace-nowrap"
+              >
+                Neem contact op
+              </StyledButton>
             </div>
           </div>
         </div>
@@ -684,12 +845,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 answer: 'Je kunt oefenen voor 16 vakken, waaronder Wiskunde A/B/C, Nederlands, Engels, Duits, Frans, Biologie, Scheikunde, Natuurkunde, Geschiedenis, Aardrijkskunde, Economie en meer.'
               },
               {
+                question: 'Wat is het verschil tussen de pakketten?',
+                answer: 'Het maandelijks abonnement (€14,95/maand) is flexibel opzegbaar en begint met 3 dagen gratis. Het examenpakket (€39 eenmalig) geeft je 4 maanden volledige toegang — perfect voor de examenperiode. Het jaarpakket (€99 eenmalig) geeft je 12 maanden toegang, ideaal als je vroeg wilt beginnen. Alle pakketten geven toegang tot dezelfde functies.'
+              },
+              {
                 question: 'Hoe werkt de gratis proefperiode?',
-                answer: 'Je krijgt 3 dagen volledige toegang tot alle functies. Je hoeft geen betaalgegevens in te vullen. Na de proefperiode kun je kiezen om door te gaan met een abonnement.'
+                answer: 'De gratis proefperiode geldt alleen bij het maandelijks abonnement. Je krijgt 3 dagen volledige toegang tot alle functies. Bij aanmelding betaal je eenmalig €1,00 voor betaalverificatie. Na de proefperiode start je abonnement van €14,95/maand automatisch, maar je kunt op elk moment opzeggen. Bij het examenpakket en jaarpakket is er geen proefperiode — je krijgt direct volledige toegang.'
               },
               {
                 question: 'Kan ik maandelijks opzeggen?',
-                answer: 'Ja, je kunt je abonnement op elk moment opzeggen. Er zijn geen langetermijnverplichtingen of opzegkosten.'
+                answer: 'Het maandelijks abonnement kun je op elk moment opzeggen, zonder opzegkosten. Het examenpakket en jaarpakket zijn eenmalige betalingen — die hoef je niet op te zeggen. De toegang loopt automatisch af na respectievelijk 4 of 12 maanden.'
               },
               {
                 question: 'Werkt het op mijn telefoon?',
@@ -705,7 +870,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               },
               {
                 question: 'Wat als mijn kind het niet gebruikt?',
-                answer: 'We sturen automatisch herinneringen om te blijven oefenen. Als ouder kun je de voortgang volgen en zien wanneer je kind voor het laatst heeft geoefend. Zo kun je tijdig bijsturen als het even niet lekker loopt.'
+                answer: 'We sturen automatisch herinneringen om te blijven oefenen. Als ouder kun je de voortgang volgen en zien wanneer je kind voor het laatst heeft geoefend. Bij het maandelijks abonnement kun je op elk moment opzeggen. Bij een eenmalig pakket loopt de toegang vanzelf af.'
               }
             ].map((faq, index) => (
               <details key={index} className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
