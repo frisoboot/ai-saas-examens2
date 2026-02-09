@@ -2,7 +2,7 @@
  * Vercel Serverless Function - Mollie Webhook
  *
  * Ontvangt betalingsnotificaties van Mollie en:
- * 1. Bij verificatiebetaling (€1.00): activeert account en start trial
+ * 1. Bij eerste betaling (€14.95): activeert account en start abonnement
  * 2. Bij recurring payment: verlengt subscription
  * 3. Bij failed payment: markeert subscription als expired
  */
@@ -200,10 +200,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // VERIFICATIE BETALING (€1.00) - Account activatie + trial
+    // EERSTE BETALING (€14.95) - Account activatie + direct actief abonnement
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
-      console.log('Processing verification payment for:', metadata.email);
+      console.log('Processing first payment for:', metadata.email);
 
       const { data: pending } = await supabase
         .from('pending_registrations')
@@ -221,10 +221,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const email = accountResult.email;
 
-      // Bereken trial periode (3 dagen)
-      const trialStarted = new Date();
-      const trialEnds = new Date(trialStarted);
-      trialEnds.setDate(trialEnds.getDate() + 3);
+      // Direct actief abonnement - geen trial
+      const now = new Date();
+      const periodEnd = new Date(now);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
 
       const customerId = payment.customerId;
 
@@ -242,14 +242,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const { data: updatedSub, error: updateError } = await supabase
           .from('subscriptions')
           .update({
-            status: 'trial',
+            status: 'active',
             plan_type: 'monthly',
             price_cents: 1495,
-            trial_started_at: trialStarted.toISOString(),
-            trial_ends_at: trialEnds.toISOString(),
+            trial_started_at: null,
+            trial_ends_at: null,
             mollie_customer_id: customerId,
-            current_period_start: null,
-            current_period_end: null
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString()
           })
           .eq('id', existingSub.id)
           .select()
@@ -266,11 +266,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .insert({
             user_email: email,
             user_name: email,
-            status: 'trial',
+            status: 'active',
             plan_type: 'monthly',
             price_cents: 1495,
-            trial_started_at: trialStarted.toISOString(),
-            trial_ends_at: trialEnds.toISOString(),
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
             mollie_customer_id: customerId
           })
           .select()
@@ -283,21 +283,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Log verificatie payment
+      // Log eerste betaling
       await supabase
         .from('payments')
         .insert({
           subscription_id: subscription?.id,
           mollie_payment_id: paymentId,
-          amount_cents: 100,
+          amount_cents: 1495,
           currency: 'EUR',
           status: 'paid',
-          description: 'Verificatiebetaling - Proefperiode',
+          description: 'Eerste betaling - Maandelijks abonnement',
           payment_method: payment.method || null,
           paid_at: payment.paidAt || new Date().toISOString()
         });
 
-      // Maak Mollie subscription aan die start na de trial (€14,95/maand)
+      // Maak Mollie subscription aan die start na 1 maand (€14,95/maand recurring)
       if (customerId) {
         try {
           const mandates = await mollie.customerMandates.page({ customerId: customerId });
@@ -308,7 +308,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             console.log('Available mandates:', mandates.map(m => ({ id: m.id, status: m.status, method: m.method })));
           } else {
             console.log('Found valid mandate:', validMandate.id, 'method:', validMandate.method, 'status:', validMandate.status);
-            const startDate = trialEnds.toISOString().split('T')[0];
+            const startDate = periodEnd.toISOString().split('T')[0];
 
             const mollieSubscription = await mollie.customerSubscriptions.create({
               customerId: customerId,

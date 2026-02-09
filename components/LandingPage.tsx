@@ -93,7 +93,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                 onClick={handleStartTrial}
                 className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-2xl shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 transition-all hover:-translate-y-0.5"
               >
-                Probeer gratis
+                Start nu
               </button>
               <button
                 onClick={() => scrollToSection('how-it-works')}
@@ -105,7 +105,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
             </div>
 
             <p className="text-sm text-gray-500">
-              3 dagen gratis proberen · Geen betaalgegevens nodig
+              Maandelijks opzegbaar · Direct toegang
             </p>
           </div>
 
@@ -305,7 +305,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
               <div className="bg-white/60 rounded-xl px-4 py-3 mb-6">
                 <p className="text-amber-700 font-medium text-sm flex items-center gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Eerste 3 dagen gratis
+                  Maandelijks opzegbaar
                 </p>
               </div>
 
@@ -328,7 +328,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                 onClick={handleStartTrial}
                 className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl shadow-lg shadow-amber-200 hover:shadow-xl transition-all"
               >
-                Start gratis proefperiode
+                Kies maandelijks
               </button>
             </div>
 
@@ -391,10 +391,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
                 answer: 'Je kunt oefenen voor 16 vakken, waaronder Wiskunde, Nederlands, Engels, Biologie, Scheikunde, Natuurkunde, Geschiedenis, Aardrijkskunde, Economie en meer.'
               },
               {
-                question: 'Hoe werkt de gratis proefperiode?',
-                answer: 'Je krijgt 3 dagen volledige toegang tot alle functies. Je hoeft geen betaalgegevens in te vullen. Na de proefperiode kun je kiezen om door te gaan.'
-              },
-              {
                 question: 'Kan ik maandelijks opzeggen?',
                 answer: 'Ja, je kunt je abonnement op elk moment opzeggen. Er zijn geen langetermijnverplichtingen.'
               },
@@ -436,7 +432,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
               onClick={handleStartTrial}
               className="px-8 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium rounded-2xl shadow-lg shadow-amber-200 hover:shadow-xl hover:shadow-amber-300 transition-all hover:-translate-y-0.5"
             >
-              Probeer 3 dagen gratis
+              Start nu
             </button>
           </div>
         </div>
