@@ -201,14 +201,14 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
                 </div>
               ) : (
                 <>
-                  {/* Trial Info */}
+                  {/* Account Info */}
                   <div className="flex items-center justify-center gap-3 mb-6">
                     <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-blue-600" />
+                      <CheckCircle2 className="w-6 h-6 text-blue-600" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">3 dagen gratis</p>
-                      <p className="text-sm text-gray-500">Je proefperiode is gestart</p>
+                      <p className="font-semibold text-gray-900">Je account is klaar!</p>
+                      <p className="text-sm text-gray-500">Je hebt nu volledige toegang</p>
                     </div>
                   </div>
 
