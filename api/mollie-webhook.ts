@@ -89,6 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       type?: string;
       email?: string;
       level?: string;
+      plan?: string;
     } | null;
 
     if (!metadata) {
@@ -97,25 +98,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // VERIFICATIE BETALING (€1.00) - Account activatie
+    // HELPER: Create or find account (used by both verification and one-time purchase)
     // ========================================================================
-    if (metadata.type === 'verification' && payment.status === 'paid') {
-      console.log('Processing verification payment for:', metadata.email);
-
-      // Haal pending registration op
-      const { data: pending } = await supabase
-        .from('pending_registrations')
-        .select('*')
-        .eq('mollie_payment_id', paymentId)
-        .maybeSingle();
-
-      // Gebruik data uit pending registration of fallback naar metadata
-      const email = pending?.email || metadata.email;
-      const level = pending?.level || metadata.level;
+    async function createOrFindAccount(
+      pendingData: { email: string; level: string; password_hash?: string; id?: string } | null,
+      metadataEmail?: string,
+      metadataLevel?: string
+    ): Promise<{ success: boolean; email: string; authUserId?: string; error?: string }> {
+      const email = pendingData?.email || metadataEmail;
+      const level = pendingData?.level || metadataLevel;
 
       if (!email || !level) {
-        console.error('Missing registration data');
-        return res.status(200).json({ received: true, error: 'Missing registration data' });
+        return { success: false, email: '', error: 'Missing registration data' };
       }
 
       // Check of account al VOLLEDIG bestaat (profile + auth user)
@@ -127,77 +121,54 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (existingProfile && existingProfile.auth_user_id) {
         console.log('Account already fully exists, skipping creation');
-        // Verwijder pending registration
-        if (pending) {
-          await supabase
-            .from('pending_registrations')
-            .delete()
-            .eq('id', pending.id);
+        if (pendingData?.id) {
+          await supabase.from('pending_registrations').delete().eq('id', pendingData.id);
         }
-        return res.status(200).json({ received: true, message: 'Account already exists' });
+        return { success: true, email, authUserId: existingProfile.auth_user_id };
       }
 
-      // Decrypt het wachtwoord dat de gebruiker bij registratie heeft gekozen
+      // Decrypt het wachtwoord
       const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
       let userPassword: string | null = null;
 
-      if (pending?.password_hash) {
-        userPassword = decryptPassword(pending.password_hash, encryptionKey);
+      if (pendingData?.password_hash) {
+        userPassword = decryptPassword(pendingData.password_hash, encryptionKey);
         if (!userPassword) {
-          // Probeer ook met alleen de mollieApiKey als fallback
-          userPassword = decryptPassword(pending.password_hash, mollieApiKey);
+          userPassword = decryptPassword(pendingData.password_hash, mollieApiKey);
         }
       }
 
       if (!userPassword) {
         console.error('CRITICAL: Could not retrieve user password for:', email);
-        console.error('pending_registration has password_hash:', !!pending?.password_hash);
-        // Geen tijdelijk wachtwoord genereren - gebruiker zou dan niet kunnen inloggen
-        // Mollie zal de webhook opnieuw proberen
-        return res.status(500).json({ received: false, error: 'Password decryption failed' });
+        return { success: false, email, error: 'Password decryption failed' };
       }
 
-      // Maak Supabase Auth user aan, of haal bestaande op als die al bestaat
+      // Maak Supabase Auth user aan, of haal bestaande op
       let authUserId: string | undefined;
 
       const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
         email: email,
         password: userPassword,
         email_confirm: true,
-        user_metadata: {
-          role: 'student',
-          level: level
-        }
+        user_metadata: { role: 'student', level: level }
       });
 
       if (authError) {
-        // Check of de user al bestaat (bijv. van een eerdere mislukte poging)
         if (authError.message?.includes('already') || authError.message?.includes('exists') ||
             authError.message?.includes('duplicate') || authError.status === 422) {
-          console.log('Auth user already exists for:', email, '- looking up existing user');
-
-          // Zoek de bestaande user op
+          console.log('Auth user already exists for:', email);
           const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
           const users = (!listError && userList?.users ? userList.users : []) as User[];
           const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
           if (existingUser) {
             authUserId = existingUser.id;
-            console.log('Found existing auth user:', authUserId);
-
-            // Update het wachtwoord naar het door de gebruiker gekozen wachtwoord
-            await supabase.auth.admin.updateUserById(authUserId, {
-              password: userPassword,
-              email_confirm: true
-            });
-            console.log('Updated password for existing auth user');
+            await supabase.auth.admin.updateUserById(authUserId, { password: userPassword, email_confirm: true });
           } else {
-            console.error('Auth user exists but could not be found in user list for:', email);
-            return res.status(200).json({ received: true, error: 'Could not find existing auth user' });
+            return { success: false, email, error: 'Could not find existing auth user' };
           }
         } else {
-          console.error('Auth error:', authError);
-          return res.status(200).json({ received: true, error: authError.message });
+          return { success: false, email, error: authError.message };
         }
       } else {
         authUserId = authUser.user?.id;
@@ -206,59 +177,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       // Maak student profile aan als dat nog niet bestaat
       if (!existingProfile && authUserId) {
-        const { error: profileError } = await supabase
-          .from('student_profiles')
-          .insert({
-            email: email,
-            name: email,
-            level: level,
-            struggle_points: '',
-            is_active: true,
-            auth_user_id: authUserId
-          });
-
+        const { error: profileError } = await supabase.from('student_profiles').insert({
+          email, name: email, level, struggle_points: '', is_active: true, auth_user_id: authUserId
+        });
         if (profileError) {
-          console.error('Profile error:', profileError);
-          // Probeer upsert als fallback (bijv. bij race condition)
-          const { error: upsertError } = await supabase
-            .from('student_profiles')
-            .upsert({
-              email: email,
-              name: email,
-              level: level,
-              struggle_points: '',
-              is_active: true,
-              auth_user_id: authUserId
-            }, { onConflict: 'email' });
-
+          const { error: upsertError } = await supabase.from('student_profiles').upsert({
+            email, name: email, level, struggle_points: '', is_active: true, auth_user_id: authUserId
+          }, { onConflict: 'email' });
           if (upsertError) {
-            console.error('Profile upsert also failed:', upsertError);
-            return res.status(200).json({ received: true, error: upsertError.message });
+            return { success: false, email, error: upsertError.message };
           }
         }
       } else if (existingProfile && !existingProfile.auth_user_id && authUserId) {
-        // Profile bestaat maar zonder auth_user_id - update het
-        await supabase
-          .from('student_profiles')
-          .update({ auth_user_id: authUserId, is_active: true })
-          .eq('email', email);
+        await supabase.from('student_profiles').update({ auth_user_id: authUserId, is_active: true }).eq('email', email);
       } else if (existingProfile && existingProfile.auth_user_id) {
-        // Profile bestaat met auth_user_id - reactiveer (her-abonneren na verlopen subscription)
-        await supabase
-          .from('student_profiles')
-          .update({ is_active: true })
-          .eq('email', email);
+        await supabase.from('student_profiles').update({ is_active: true }).eq('email', email);
         console.log('Reactivated existing profile for re-subscription:', email);
       }
 
       console.log('Student profile ready for:', email);
+      return { success: true, email, authUserId };
+    }
+
+    // ========================================================================
+    // VERIFICATIE BETALING (€1.00) - Account activatie + trial
+    // ========================================================================
+    if (metadata.type === 'verification' && payment.status === 'paid') {
+      console.log('Processing verification payment for:', metadata.email);
+
+      const { data: pending } = await supabase
+        .from('pending_registrations')
+        .select('*')
+        .eq('mollie_payment_id', paymentId)
+        .maybeSingle();
+
+      const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
+      if (!accountResult.success) {
+        if (accountResult.error === 'Password decryption failed') {
+          return res.status(500).json({ received: false, error: accountResult.error });
+        }
+        return res.status(200).json({ received: true, error: accountResult.error });
+      }
+
+      const email = accountResult.email;
 
       // Bereken trial periode (3 dagen)
       const trialStarted = new Date();
       const trialEnds = new Date(trialStarted);
       trialEnds.setDate(trialEnds.getDate() + 3);
 
-      // Haal Mollie customer ID op
       const customerId = payment.customerId;
 
       // Check of er al een subscription record bestaat (her-abonneren)
@@ -271,14 +238,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let subscription: { id: string } | null = null;
 
       if (existingSub) {
-        // Her-abonneren: update bestaand record
         console.log('Re-subscription: updating existing subscription record for:', email);
         const { data: updatedSub, error: updateError } = await supabase
           .from('subscriptions')
           .update({
             status: 'trial',
-            plan_type: 'individual',
-            price_cents: 1250,
+            plan_type: 'monthly',
+            price_cents: 1495,
             trial_started_at: trialStarted.toISOString(),
             trial_ends_at: trialEnds.toISOString(),
             mollie_customer_id: customerId,
@@ -293,18 +259,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.error('Subscription update error:', updateError);
         } else {
           subscription = updatedSub;
-          console.log('Updated subscription:', subscription?.id);
         }
       } else {
-        // Nieuwe subscription
         const { data: newSub, error: subscriptionError } = await supabase
           .from('subscriptions')
           .insert({
             user_email: email,
             user_name: email,
             status: 'trial',
-            plan_type: 'individual',
-            price_cents: 1250,
+            plan_type: 'monthly',
+            price_cents: 1495,
             trial_started_at: trialStarted.toISOString(),
             trial_ends_at: trialEnds.toISOString(),
             mollie_customer_id: customerId
@@ -316,7 +280,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           console.error('Subscription insert error:', subscriptionError);
         } else {
           subscription = newSub;
-          console.log('Created subscription:', subscription?.id);
         }
       }
 
@@ -334,64 +297,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paid_at: payment.paidAt || new Date().toISOString()
         });
 
-      // Maak Mollie subscription aan die start na de trial (€12.50/maand)
-      // BELANGRIJK: Check eerst of er een geldig mandaat is aangemaakt door de eerste betaling
+      // Maak Mollie subscription aan die start na de trial (€14,95/maand)
       if (customerId) {
         try {
-          // Haal mandaten op voor deze klant
           const mandates = await mollie.customerMandates.page({ customerId: customerId });
           const validMandate = mandates.find(m => m.status === 'valid' || m.status === 'pending');
 
           if (!validMandate) {
             console.error('No valid mandate found for customer:', customerId);
             console.log('Available mandates:', mandates.map(m => ({ id: m.id, status: m.status, method: m.method })));
-            // Geen mandaat = geen recurring subscription mogelijk
-            // De gebruiker krijgt wel trial, maar subscription kan niet automatisch worden verlengd
-            // Dit kan gebeuren als de betaalmethode geen mandaten ondersteunt
           } else {
             console.log('Found valid mandate:', validMandate.id, 'method:', validMandate.method, 'status:', validMandate.status);
-
-            const startDate = trialEnds.toISOString().split('T')[0]; // YYYY-MM-DD format
+            const startDate = trialEnds.toISOString().split('T')[0];
 
             const mollieSubscription = await mollie.customerSubscriptions.create({
               customerId: customerId,
-              amount: {
-                value: '12.50',
-                currency: 'EUR'
-              },
+              amount: { value: '14.95', currency: 'EUR' },
               interval: '1 month',
               description: 'AI Examentrainer - Maandelijks abonnement',
               startDate: startDate,
               webhookUrl: `${appUrl}/api/mollie-webhook`,
-              metadata: {
-                type: 'subscription_payment',
-                email: email
-              }
+              metadata: { type: 'subscription_payment', email: email }
             });
 
             console.log('Created Mollie subscription:', mollieSubscription.id, 'starts:', startDate);
-
-            // Update subscription met Mollie subscription ID
             await supabase
               .from('subscriptions')
-              .update({
-                mollie_subscription_id: mollieSubscription.id
-              })
+              .update({ mollie_subscription_id: mollieSubscription.id })
               .eq('user_email', email);
           }
-
         } catch (subError) {
           console.error('Error creating Mollie subscription:', subError);
-          // Trial is actief, subscription kan later handmatig worden aangemaakt
         }
       }
 
       // Verwijder pending registration
       if (pending) {
-        await supabase
-          .from('pending_registrations')
-          .delete()
-          .eq('id', pending.id);
+        await supabase.from('pending_registrations').delete().eq('id', pending.id);
         console.log('Deleted pending registration');
       }
 
@@ -399,11 +341,124 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // VERIFICATIE BETALING - Failed/Cancelled
+    // ONE-TIME PURCHASE (exam_package / yearly) - Account activatie + direct actief
     // ========================================================================
-    if (metadata.type === 'verification' &&
+    if (metadata.type === 'one_time_purchase' && payment.status === 'paid') {
+      const plan = metadata.plan || 'exam_package';
+      console.log('Processing one-time purchase for:', metadata.email, 'plan:', plan);
+
+      const { data: pending } = await supabase
+        .from('pending_registrations')
+        .select('*')
+        .eq('mollie_payment_id', paymentId)
+        .maybeSingle();
+
+      const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
+      if (!accountResult.success) {
+        if (accountResult.error === 'Password decryption failed') {
+          return res.status(500).json({ received: false, error: accountResult.error });
+        }
+        return res.status(200).json({ received: true, error: accountResult.error });
+      }
+
+      const email = accountResult.email;
+
+      // Bereken periode - direct actief, geen trial
+      const now = new Date();
+      const periodEnd = new Date(now);
+      const durationMonths = plan === 'yearly' ? 12 : 4;
+      periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
+
+      const priceCents = plan === 'yearly' ? 9900 : 3900;
+      const customerId = payment.customerId;
+
+      // Check of er al een subscription record bestaat (her-abonneren)
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_email', email)
+        .maybeSingle();
+
+      let subscription: { id: string } | null = null;
+
+      if (existingSub) {
+        console.log('Re-subscription (one-time): updating existing record for:', email);
+        const { data: updatedSub, error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'active',
+            plan_type: plan,
+            price_cents: priceCents,
+            trial_started_at: null,
+            trial_ends_at: null,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            mollie_customer_id: customerId,
+            mollie_subscription_id: null,
+          })
+          .eq('id', existingSub.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Subscription update error:', updateError);
+        } else {
+          subscription = updatedSub;
+        }
+      } else {
+        const { data: newSub, error: subscriptionError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_email: email,
+            user_name: email,
+            status: 'active',
+            plan_type: plan,
+            price_cents: priceCents,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            mollie_customer_id: customerId,
+          })
+          .select()
+          .single();
+
+        if (subscriptionError) {
+          console.error('Subscription insert error:', subscriptionError);
+        } else {
+          subscription = newSub;
+        }
+      }
+
+      // Log payment
+      await supabase
+        .from('payments')
+        .insert({
+          subscription_id: subscription?.id,
+          mollie_payment_id: paymentId,
+          amount_cents: priceCents,
+          currency: 'EUR',
+          status: 'paid',
+          description: plan === 'yearly' ? 'Jaarpakket (12 maanden)' : 'Examenpakket (4 maanden)',
+          payment_method: payment.method || null,
+          paid_at: payment.paidAt || new Date().toISOString()
+        });
+
+      // Geen Mollie recurring subscription aanmaken - dit is een eenmalige betaling
+
+      // Verwijder pending registration
+      if (pending) {
+        await supabase.from('pending_registrations').delete().eq('id', pending.id);
+        console.log('Deleted pending registration');
+      }
+
+      console.log('One-time purchase activation complete for:', email, 'plan:', plan, 'active until:', periodEnd.toISOString());
+    }
+
+    // ========================================================================
+    // VERIFICATIE / ONE-TIME PURCHASE - Failed/Cancelled
+    // ========================================================================
+    if ((metadata.type === 'verification' || metadata.type === 'one_time_purchase') &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
-      console.log('Verification payment failed for:', metadata.email);
+      console.log('Payment failed for:', metadata.email, 'type:', metadata.type);
 
       // Verwijder pending registration
       await supabase
@@ -443,13 +498,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           })
           .eq('id', subscription.id);
 
-        // Log payment
+        // Log payment (bedrag uit subscription record)
         await supabase
           .from('payments')
           .insert({
             subscription_id: subscription.id,
             mollie_payment_id: paymentId,
-            amount_cents: 1250,
+            amount_cents: subscription.price_cents || 1495,
             currency: 'EUR',
             status: 'paid',
             description: 'Maandelijks abonnement',
@@ -529,7 +584,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .insert({
           subscription_id: subscription?.id,
           mollie_payment_id: paymentId,
-          amount_cents: 1250,
+          amount_cents: 1495,
           currency: 'EUR',
           status: 'paid',
           description: 'Maandelijks abonnement',

@@ -13,6 +13,7 @@ export interface SubscriptionStatus {
   trialEndsAt?: string;
   periodEnd?: string;
   daysLeft?: number;
+  planType?: string;
 }
 
 export interface CheckoutResponse {
@@ -71,7 +72,8 @@ export async function checkSubscription(email: string): Promise<SubscriptionStat
 export async function createCheckout(
   email: string,
   password: string,
-  level: 'VMBO-TL' | 'HAVO' | 'VWO'
+  level: 'VMBO-TL' | 'HAVO' | 'VWO',
+  plan: 'monthly' | 'exam_package' | 'yearly' = 'monthly'
 ): Promise<CheckoutResponse> {
   try {
     const response = await fetch(`${API_BASE}/api/create-checkout`, {
@@ -79,7 +81,7 @@ export async function createCheckout(
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ email, password, level })
+      body: JSON.stringify({ email, password, level, plan })
     });
 
     const data = await response.json();

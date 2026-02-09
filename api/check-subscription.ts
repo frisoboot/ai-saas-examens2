@@ -65,9 +65,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         hasAccess: false,
         status: 'none',
-        message: 'Geen abonnement gevonden'
+        message: 'Geen abonnement gevonden',
+        planType: null
       });
     }
+
+    // Normalize plan type: treat 'individual' as 'monthly'
+    const planType = subscription.plan_type === 'individual' ? 'monthly' : subscription.plan_type;
 
     const now = new Date();
 
@@ -83,14 +87,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           status: 'trial',
           trialEndsAt: subscription.trial_ends_at,
           daysLeft: daysLeft,
-          message: `Proefperiode actief - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'}`
+          message: `Proefperiode actief - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'}`,
+          planType
         });
       } else {
         // Trial verlopen
         return res.status(200).json({
           hasAccess: false,
           status: 'trial_expired',
-          message: 'Proefperiode verlopen'
+          message: 'Proefperiode verlopen',
+          planType
         });
       }
     }
@@ -104,14 +110,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           hasAccess: true,
           status: 'active',
           periodEnd: subscription.current_period_end,
-          message: 'Abonnement actief'
+          message: 'Abonnement actief',
+          planType
         });
       } else {
         // Subscription verlopen (payment failed?)
         return res.status(200).json({
           hasAccess: false,
           status: 'expired',
-          message: 'Abonnement verlopen'
+          message: 'Abonnement verlopen',
+          planType
         });
       }
     }
@@ -121,7 +129,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({
         hasAccess: false,
         status: 'pending',
-        message: 'Betaling wordt verwerkt'
+        message: 'Betaling wordt verwerkt',
+        planType
       });
     }
 
@@ -137,7 +146,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'cancelled',
             trialEndsAt: subscription.trial_ends_at,
             daysLeft: daysLeft,
-            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`
+            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`,
+            planType
           });
         }
       }
@@ -151,7 +161,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             status: 'cancelled',
             periodEnd: subscription.current_period_end,
             daysLeft: daysLeft,
-            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`
+            message: `Opgezegd - nog ${daysLeft} ${daysLeft === 1 ? 'dag' : 'dagen'} toegang`,
+            planType
           });
         }
       }
@@ -161,7 +172,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({
       hasAccess: false,
       status: subscription.status,
-      message: 'Abonnement niet actief'
+      message: 'Abonnement niet actief',
+      planType
     });
 
   } catch (error) {

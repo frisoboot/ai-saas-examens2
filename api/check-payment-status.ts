@@ -98,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Extra security check: als payment niet in onze DB staat,
     // controleer dat de metadata aangeeft dat het van ons systeem komt
-    if (!isKnownInDb && metadata?.type !== 'verification') {
+    if (!isKnownInDb && metadata?.type !== 'verification' && metadata?.type !== 'one_time_purchase') {
       console.log('Unknown payment ID without verification metadata:', paymentId);
       return res.status(404).json({
         success: false,

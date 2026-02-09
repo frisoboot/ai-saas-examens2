@@ -38,7 +38,29 @@ interface CheckoutRequest {
   email: string;
   password: string;
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
+  plan?: 'monthly' | 'exam_package' | 'yearly';
 }
+
+const PLAN_CONFIG = {
+  monthly: {
+    amount: '1.00',
+    description: 'AI Examentrainer - Verificatie voor proefperiode',
+    useMandate: true,
+    metadataType: 'verification',
+  },
+  exam_package: {
+    amount: '39.00',
+    description: 'AI Examentrainer - Examenpakket (4 maanden)',
+    useMandate: false,
+    metadataType: 'one_time_purchase',
+  },
+  yearly: {
+    amount: '99.00',
+    description: 'AI Examentrainer - Jaarpakket (12 maanden)',
+    useMandate: false,
+    metadataType: 'one_time_purchase',
+  },
+} as const;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
@@ -83,12 +105,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Parse request body
     const body: CheckoutRequest = req.body;
-    const { email, password, level } = body;
+    const { email, password, level, plan = 'monthly' } = body;
 
     // Validatie
     if (!email || !password || !level) {
       return res.status(400).json({ error: 'Alle velden zijn verplicht' });
     }
+
+    // Validate plan
+    if (!PLAN_CONFIG[plan]) {
+      return res.status(400).json({ error: 'Ongeldig pakket geselecteerd' });
+    }
+
+    const planConfig = PLAN_CONFIG[plan];
 
     // Email validatie
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -211,6 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         level: level,
         mollie_customer_id: customer.id,
         mollie_payment_id: 'pending', // Wordt geüpdatet na Mollie payment creatie
+        plan_type: plan,
         status: 'pending',
         created_at: new Date().toISOString(),
         expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 uur geldig
@@ -227,6 +257,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           level: level,
           mollie_customer_id: customer.id,
           mollie_payment_id: 'pending',
+          plan_type: plan,
           status: 'pending',
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString()
@@ -240,24 +271,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Maak €1.00 verificatiebetaling aan (first payment voor mandaat)
-    // Payment ID wordt meegegeven in de redirect URL als fallback voor localStorage
-    const payment = (await mollie.payments.create({
+    // Maak betaling aan - type afhankelijk van gekozen plan
+    // Monthly: €1 verificatiebetaling met mandaat voor recurring
+    // Exam/Year: eenmalige betaling zonder mandaat
+    const paymentParams: Parameters<typeof mollie.payments.create>[0] = {
       amount: {
         currency: 'EUR',
-        value: '1.00'
+        value: planConfig.amount,
       },
       customerId: customer.id,
-      sequenceType: SequenceType.first, // Dit creëert een mandaat voor recurring payments
-      description: 'AI Examentrainer - Verificatie voor proefperiode',
+      description: planConfig.description,
       redirectUrl: `${appUrl}?payment_callback=true&pid=${customer.id}`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
       metadata: {
-        type: 'verification',
+        type: planConfig.metadataType,
+        plan: plan,
         email: email.toLowerCase(),
-        level: level
-      }
-    })) as Payment;
+        level: level,
+      },
+    };
+
+    // Alleen voor monthly: sequenceType voor mandaat
+    if (planConfig.useMandate) {
+      paymentParams.sequenceType = SequenceType.first;
+    }
+
+    const payment = (await mollie.payments.create(paymentParams)) as Payment;
 
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
