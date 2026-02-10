@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ExamSession, StudentProfile, FlashcardSession, FeedbackMode } from './types';
 import { getQuestions } from './services/storageService';
 import { sortExamQuestions } from './utils/sortExamQuestions';
@@ -143,6 +143,7 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
 const AppContent: React.FC = () => {
   const { isAuthenticated, isAdmin, isLoading, user, profile, signIn, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const [paymentUsername, setPaymentUsername] = useState<string | null>(null);
   // Payment ID uit Mollie redirect URL (fallback voor localStorage)
@@ -152,6 +153,13 @@ const AppContent: React.FC = () => {
   const [currentExamSession, setCurrentExamSession] = useState<ExamSession | null>(null);
   const [currentFlashcardSession, setCurrentFlashcardSession] = useState<FlashcardSession | null>(null);
   const [chatSubject, setChatSubject] = useState<string | null>(null);
+
+  // Facebook Pixel: track pageviews on SPA route changes
+  useEffect(() => {
+    if (typeof fbq === 'function') {
+      fbq('track', 'PageView');
+    }
+  }, [location.pathname]);
 
   // Check voor payment callback van Mollie
   useEffect(() => {
