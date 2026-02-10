@@ -159,15 +159,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (authError.message?.includes('already') || authError.message?.includes('exists') ||
             authError.message?.includes('duplicate') || authError.status === 422) {
           console.log('Auth user already exists for:', email);
-          const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
-          const users = (!listError && userList?.users ? userList.users : []) as User[];
-          const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+          // Gebruik gerichte lookup in plaats van listUsers() (die alle users ophaalt)
+          const { data: userList, error: listError } = await supabase.auth.admin.listUsers({
+            page: 1,
+            perPage: 1,
+          });
 
-          if (existingUser) {
-            authUserId = existingUser.id;
+          // Zoek specifiek op email via de auth schema tabel als fallback
+          let existingUser: User | undefined;
+
+          // Probeer eerst via RPC of directe query op auth.users
+          const { data: authUsers } = await supabase
+            .from('student_profiles')
+            .select('auth_user_id')
+            .eq('email', email.toLowerCase())
+            .maybeSingle();
+
+          if (authUsers?.auth_user_id) {
+            // We hebben de user ID al, gebruik die direct
+            authUserId = authUsers.auth_user_id;
             await supabase.auth.admin.updateUserById(authUserId, { password: userPassword, email_confirm: true });
           } else {
-            return { success: false, email, error: 'Could not find existing auth user' };
+            // Fallback: listUsers met filter (Supabase admin API)
+            // Let op: listUsers haalt standaard page 1 op, loop door pages als nodig
+            let found = false;
+            let page = 1;
+            while (!found && page <= 10) {
+              const { data: pageData, error: pageError } = await supabase.auth.admin.listUsers({
+                page,
+                perPage: 50,
+              });
+              if (pageError || !pageData?.users?.length) break;
+              existingUser = (pageData.users as User[]).find(u => u.email?.toLowerCase() === email.toLowerCase());
+              if (existingUser) {
+                found = true;
+                authUserId = existingUser.id;
+                await supabase.auth.admin.updateUserById(authUserId, { password: userPassword, email_confirm: true });
+              }
+              page++;
+            }
+            if (!found) {
+              return { success: false, email, error: 'Could not find existing auth user' };
+            }
           }
         } else {
           return { success: false, email, error: authError.message };
@@ -459,7 +492,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // RESUBSCRIPTION - Bestaande gebruiker heractiveert abonnement (ingelogd)
     // ========================================================================
     if (metadata.type === 'resubscription' && payment.status === 'paid') {
-      const email = metadata.email!;
+      const email = metadata.email;
+      if (!email) {
+        console.error('CRITICAL: No email in resubscription metadata for payment:', paymentId);
+        return res.status(200).json({ received: true, error: 'Missing email in metadata' });
+      }
       const plan = metadata.plan || 'monthly';
       console.log('Processing resubscription for:', email, 'plan:', plan);
 

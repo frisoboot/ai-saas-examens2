@@ -8,7 +8,7 @@ const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export interface SubscriptionStatus {
   hasAccess: boolean;
-  status: 'none' | 'trial' | 'trial_expired' | 'active' | 'pending' | 'cancelled' | 'expired';
+  status: 'none' | 'trial' | 'trial_expired' | 'active' | 'pending' | 'cancelled' | 'expired' | 'payment_failed';
   message: string;
   trialEndsAt?: string;
   periodEnd?: string;
@@ -40,10 +40,19 @@ export interface PaymentStatusResponse {
 
 /**
  * Check subscription status voor een email
+ * @param email - Email adres om te controleren
+ * @param token - Optioneel Bearer token voor authenticatie (aanbevolen)
  */
-export async function checkSubscription(email: string): Promise<SubscriptionStatus> {
+export async function checkSubscription(email: string, token?: string): Promise<SubscriptionStatus> {
   try {
-    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`);
+    const headers: Record<string, string> = {};
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`, {
+      headers
+    });
     const data = await response.json();
 
     if (!response.ok) {

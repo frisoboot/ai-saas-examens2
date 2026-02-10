@@ -72,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Haal alle subscriptions op
     const { data: subscriptions, error: subError } = await supabase
       .from('subscriptions')
-      .select('id, user_email, status, trial_start, trial_end, created_at')
+      .select('id, user_email, status, plan_type, trial_started_at, trial_ends_at, current_period_start, current_period_end, created_at')
       .order('created_at', { ascending: false });
 
     if (subError) {

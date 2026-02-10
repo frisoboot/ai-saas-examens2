@@ -232,6 +232,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Sla pending registration op VOOR de Mollie betaling
     // Dit moet slagen, anders kan check-payment-status de betaling niet traceren
+    // Gebruik een uniek tijdelijk ID om UNIQUE constraint conflicts te voorkomen
+    // bij gelijktijdige registraties (mollie_payment_id is UNIQUE in de DB)
+    const tempPaymentId = `pending_${crypto.randomUUID()}`;
     const { error: pendingError } = await supabase
       .from('pending_registrations')
       .insert({
@@ -239,7 +242,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
         level: level,
         mollie_customer_id: customer.id,
-        mollie_payment_id: 'pending', // Wordt geüpdatet na Mollie payment creatie
+        mollie_payment_id: tempPaymentId, // Wordt geüpdatet na Mollie payment creatie
         plan_type: plan,
         status: 'pending',
         created_at: new Date().toISOString(),
@@ -248,7 +251,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (pendingError) {
       console.error('Pending registration insert failed:', pendingError);
-      // Retry eenmaal
+      // Retry eenmaal met nieuw uniek ID
+      const retryTempId = `pending_${crypto.randomUUID()}`;
       const { error: retryError } = await supabase
         .from('pending_registrations')
         .insert({
@@ -256,7 +260,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           password_hash: encryptedPassword,
           level: level,
           mollie_customer_id: customer.id,
-          mollie_payment_id: 'pending',
+          mollie_payment_id: retryTempId,
           plan_type: plan,
           status: 'pending',
           created_at: new Date().toISOString(),
@@ -305,7 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .from('pending_registrations')
       .update({ mollie_payment_id: payment.id })
       .eq('email', email.toLowerCase())
-      .eq('mollie_payment_id', 'pending');
+      .like('mollie_payment_id', 'pending_%');
 
     // Update redirect URL met payment ID (fallback voor als localStorage niet werkt)
     try {
