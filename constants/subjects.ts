@@ -23,6 +23,30 @@ export const SUBJECTS = [
 
 export type Subject = typeof SUBJECTS[number];
 
+export interface SubjectCategory {
+  label: string;
+  subjects: readonly Subject[];
+}
+
+export const SUBJECT_CATEGORIES: SubjectCategory[] = [
+  {
+    label: 'Talen',
+    subjects: ['Nederlands', 'Engels', 'Duits', 'Frans'],
+  },
+  {
+    label: 'Exacte vakken',
+    subjects: ['Wiskunde A', 'Wiskunde B', 'Wiskunde C', 'Natuurkunde', 'Scheikunde', 'Biologie'],
+  },
+  {
+    label: 'Maatschappijvakken',
+    subjects: ['Aardrijkskunde', 'Geschiedenis', 'Economie', 'Bedrijfseconomie', 'Maatschappijwetenschappen'],
+  },
+  {
+    label: 'Kunst & Cultuur',
+    subjects: ['Kunst Algemeen'],
+  },
+];
+
 /**
  * Type guard to check if a string is a valid Subject
  * This provides proper type narrowing for TypeScript
