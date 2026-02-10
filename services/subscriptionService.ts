@@ -140,6 +140,42 @@ export async function cancelSubscription(token: string): Promise<{
 }
 
 /**
+ * Renew subscription voor ingelogde gebruiker met verlopen abonnement
+ */
+export async function renewSubscription(
+  token: string,
+  plan: 'monthly' | 'exam_package' | 'yearly' = 'monthly'
+): Promise<CheckoutResponse> {
+  try {
+    const response = await fetch(`${API_BASE}/api/renew-subscription`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ plan })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.error || `Server error: ${response.status}`
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Renew subscription error:', error);
+    return {
+      success: false,
+      message: `Netwerk fout: ${error instanceof Error ? error.message : 'Onbekende fout'}`
+    };
+  }
+}
+
+/**
  * Check betaalstatus bij Mollie
  */
 export async function checkPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {

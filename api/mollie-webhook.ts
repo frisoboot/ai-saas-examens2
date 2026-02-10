@@ -119,6 +119,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('email', email)
         .maybeSingle();
 
+      // Renewal flow: account exists and no password in pending data → skip account creation entirely
+      const isRenewal = !pendingData?.password_hash;
+
       if (existingProfile && existingProfile.auth_user_id) {
         console.log('Account already fully exists, skipping creation');
         if (pendingData?.id) {
@@ -127,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { success: true, email, authUserId: existingProfile.auth_user_id };
       }
 
-      // Decrypt het wachtwoord
+      // Decrypt het wachtwoord (only needed for new registrations, not renewals)
       const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
       let userPassword: string | null = null;
 
@@ -138,7 +141,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      if (!userPassword) {
+      if (!userPassword && !isRenewal) {
         console.error('CRITICAL: Could not retrieve user password for:', email);
         return { success: false, email, error: 'Password decryption failed' };
       }
@@ -146,33 +149,49 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Maak Supabase Auth user aan, of haal bestaande op
       let authUserId: string | undefined;
 
-      const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
-        email: email,
-        password: userPassword,
-        email_confirm: true,
-        user_metadata: { role: 'student', level: level }
-      });
+      if (isRenewal) {
+        // Renewal: find existing auth user without changing password
+        console.log('Renewal flow: finding existing auth user for:', email);
+        const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
+        const users = (!listError && userList?.users ? userList.users : []) as User[];
+        const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
 
-      if (authError) {
-        if (authError.message?.includes('already') || authError.message?.includes('exists') ||
-            authError.message?.includes('duplicate') || authError.status === 422) {
-          console.log('Auth user already exists for:', email);
-          const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
-          const users = (!listError && userList?.users ? userList.users : []) as User[];
-          const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-
-          if (existingUser) {
-            authUserId = existingUser.id;
-            await supabase.auth.admin.updateUserById(authUserId, { password: userPassword, email_confirm: true });
-          } else {
-            return { success: false, email, error: 'Could not find existing auth user' };
-          }
+        if (existingUser) {
+          authUserId = existingUser.id;
+          console.log('Found existing auth user for renewal:', authUserId);
         } else {
-          return { success: false, email, error: authError.message };
+          return { success: false, email, error: 'Could not find existing auth user for renewal' };
         }
       } else {
-        authUserId = authUser.user?.id;
-        console.log('Created auth user:', authUserId);
+        // New registration: create auth user with password
+        const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+          email: email,
+          password: userPassword!,
+          email_confirm: true,
+          user_metadata: { role: 'student', level: level }
+        });
+
+        if (authError) {
+          if (authError.message?.includes('already') || authError.message?.includes('exists') ||
+              authError.message?.includes('duplicate') || authError.status === 422) {
+            console.log('Auth user already exists for:', email);
+            const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
+            const users = (!listError && userList?.users ? userList.users : []) as User[];
+            const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+            if (existingUser) {
+              authUserId = existingUser.id;
+              await supabase.auth.admin.updateUserById(authUserId, { password: userPassword!, email_confirm: true });
+            } else {
+              return { success: false, email, error: 'Could not find existing auth user' };
+            }
+          } else {
+            return { success: false, email, error: authError.message };
+          }
+        } else {
+          authUserId = authUser.user?.id;
+          console.log('Created auth user:', authUserId);
+        }
       }
 
       // Maak student profile aan als dat nog niet bestaat

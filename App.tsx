@@ -18,6 +18,7 @@ import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
+import { RenewSubscription } from './components/RenewSubscription';
 import { FeedbackPage } from './components/FeedbackPage';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
@@ -105,7 +106,7 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
           <p className="text-slate-600 mb-6">{statusMessage}</p>
           <div className="space-y-3">
             <button
-              onClick={() => navigate('/checkout')}
+              onClick={() => navigate('/renew')}
               className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               Opnieuw abonneren
@@ -507,6 +508,14 @@ const AppContent: React.FC = () => {
             <SubscriptionSettings
               userEmail={user?.email || ''}
               onBack={() => navigate('/dashboard')}
+            />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/renew" element={
+          <ProtectedRoute>
+            <RenewSubscription
+              onBack={() => navigate('/settings')}
             />
           </ProtectedRoute>
         } />
