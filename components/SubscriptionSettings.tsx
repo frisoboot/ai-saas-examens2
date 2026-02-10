@@ -32,7 +32,8 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   const loadSubscription = async () => {
     setLoading(true);
     try {
-      const status = await checkSubscription(userEmail);
+      const { session } = await auth.getSession();
+      const status = await checkSubscription(userEmail, session?.access_token);
       setSubscription(status);
     } catch (error) {
       console.error('Error loading subscription:', error);
@@ -103,6 +104,11 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
         text: 'Proefperiode verlopen',
         icon: <XCircle className="w-4 h-4" />
       },
+      payment_failed: {
+        color: 'bg-red-100 text-red-700 border-red-200',
+        text: 'Betaling mislukt',
+        icon: <XCircle className="w-4 h-4" />
+      },
       pending: {
         color: 'bg-yellow-100 text-yellow-700 border-yellow-200',
         text: 'In behandeling',
@@ -154,7 +160,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
 
   // Toon "opnieuw abonneren" als abonnement verlopen/opgezegd is
   const canResubscribe = subscription &&
-    ((!subscription.hasAccess && ['expired', 'cancelled', 'trial_expired'].includes(subscription.status)) ||
+    ((!subscription.hasAccess && ['expired', 'cancelled', 'trial_expired', 'payment_failed'].includes(subscription.status)) ||
      (subscription.status === 'cancelled' && subscription.hasAccess));
 
   const handleResubscribe = async () => {
@@ -493,8 +499,8 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
             <div className="text-center py-4">
               <p className="text-sm text-slate-500">
                 Vragen over je abonnement? Neem contact met ons op via{' '}
-                <a href="mailto:support@examengenie.nl" className="text-indigo-600 hover:underline">
-                  support@examengenie.nl
+                <a href="mailto:info@ai-examentrainer.nl" className="text-indigo-600 hover:underline">
+                  info@ai-examentrainer.nl
                 </a>
               </p>
             </div>

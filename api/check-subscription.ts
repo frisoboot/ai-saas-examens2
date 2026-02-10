@@ -31,15 +31,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
-    // Haal email uit query params (GET) of body (POST)
-    const email = req.method === 'GET'
-      ? (req.query.email as string)
-      : req.body?.email;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is verplicht' });
-    }
-
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -47,6 +38,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         persistSession: false
       }
     });
+
+    // Authenticatie: gebruiker mag alleen eigen subscription opvragen
+    const authHeader = req.headers.authorization;
+    let email: string | undefined;
+
+    if (authHeader?.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+
+      if (authError || !user || !user.email) {
+        return res.status(401).json({ error: 'Ongeldige sessie' });
+      }
+
+      email = user.email.toLowerCase();
+    } else {
+      // Fallback: email uit query params (voor backward compatibility)
+      // maar alleen als er geen auth header is
+      email = req.method === 'GET'
+        ? (req.query.email as string)
+        : req.body?.email;
+    }
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email is verplicht' });
+    }
 
     // Haal subscription op
     const { data: subscription, error } = await supabase
