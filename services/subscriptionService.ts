@@ -140,42 +140,6 @@ export async function cancelSubscription(token: string): Promise<{
 }
 
 /**
- * Opnieuw abonneren voor ingelogde gebruikers met verlopen abonnement
- */
-export async function resubscribe(
-  token: string,
-  plan: 'monthly' | 'exam_package' | 'yearly' = 'monthly'
-): Promise<{ success: boolean; checkoutUrl?: string; message?: string }> {
-  try {
-    const response = await fetch(`${API_BASE}/api/resubscribe`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({ plan })
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      return {
-        success: false,
-        message: data.error || 'Opnieuw abonneren mislukt'
-      };
-    }
-
-    return data;
-  } catch (error) {
-    console.error('Resubscribe error:', error);
-    return {
-      success: false,
-      message: 'Netwerk fout bij opnieuw abonneren'
-    };
-  }
-}
-
-/**
  * Check betaalstatus bij Mollie
  */
 export async function checkPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
