@@ -94,6 +94,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
   useScrollReveal();
 
+  // Facebook Pixel: track landing page view
+  useEffect(() => {
+    if (typeof fbq === 'function') {
+      fbq('track', 'ViewContent', { content_name: 'Landing Page' });
+    }
+  }, []);
+
   // Navbar scroll effect
   useEffect(() => {
     const handleScroll = () => {

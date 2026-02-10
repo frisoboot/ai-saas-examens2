@@ -65,6 +65,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               if (typeof fbq === 'function') {
                 fbq('track', 'Purchase', { currency: 'EUR', value: 0 });
                 fbq('track', 'CompleteRegistration');
+                fbq('track', 'Subscribe', { currency: 'EUR', value: 0 });
               }
               // Verwijder payment ID uit localStorage (ref blijft beschikbaar)
               localStorage.removeItem('pending_payment_id');

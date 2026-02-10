@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SEO } from './SEO';
 import { Button } from './Button';
@@ -100,6 +100,13 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
   const [isLoading, setIsLoading] = useState(false);
 
   const currentPlan = PLAN_INFO[plan];
+
+  // Facebook Pixel: track checkout page as Lead
+  useEffect(() => {
+    if (typeof fbq === 'function') {
+      fbq('track', 'Lead', { content_name: 'Checkout Page' });
+    }
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
