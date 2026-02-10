@@ -7,6 +7,7 @@ import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
 import { getVisibleSubjects } from '../services/subjectPreferencesService';
+import { SUBJECT_CATEGORIES } from '../constants/subjects';
 import { StudentDifficultyOverview } from './StudentDifficultyOverview';
 
 interface StudentDashboardProps {
@@ -63,6 +64,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       });
     return map;
   }, [questions, student.level]);
+
+  // Group visible subjects by category
+  const groupedSubjects = useMemo(() => {
+    const visibleSet = new Set(visibleSubjects);
+    return SUBJECT_CATEGORIES
+      .map(category => ({
+        label: category.label,
+        subjects: category.subjects.filter(s => visibleSet.has(s)),
+      }))
+      .filter(group => group.subjects.length > 0);
+  }, [visibleSubjects]);
 
   // If a subject is selected, show the options screen
   if (selectedSubject) {
@@ -198,51 +210,61 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <p className="text-slate-500 text-lg">Kies een vak om te starten met leren, oefenen of chatten met de AI-docent.</p>
               </header>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {visibleSubjects.map((subject) => {
-                  const examCount = examCounts.get(subject) || 0;
-                  const Icon = getSubjectIcon(subject);
-                  const colorClass = getSubjectColor(subject);
-                  
-                  return (
-                    <div
-                      key={subject}
-                      onClick={() => setSelectedSubject(subject)}
-                      className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 flex flex-col cursor-pointer"
-                    >
-                      <div className="flex justify-between items-start mb-6">
-                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-opacity-100 transition-all duration-300 shadow-sm ${colorClass} bg-opacity-100`}>
-                          <Icon className="w-7 h-7" />
-                        </div>
-                        {examCount > 0 && (
-                          <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
-                            {examCount} {examCount === 1 ? 'Examen' : 'Examens'}
-                          </span>
-                        )}
-                      </div>
+              <div className="space-y-10">
+                {groupedSubjects.map((group) => (
+                  <section key={group.label}>
+                    <h2 className="text-lg font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                      {group.label}
+                      <span className="text-xs font-normal text-slate-400">({group.subjects.length} {group.subjects.length === 1 ? 'vak' : 'vakken'})</span>
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                      {group.subjects.map((subject) => {
+                        const examCount = examCounts.get(subject) || 0;
+                        const Icon = getSubjectIcon(subject);
+                        const colorClass = getSubjectColor(subject);
 
-                      <div className="flex-1 mb-6">
-                        <h3 className="text-xl font-bold text-slate-900 mb-1">{subject}</h3>
-                        <p className="text-slate-400 text-sm">{student.level} niveau</p>
-                      </div>
+                        return (
+                          <div
+                            key={subject}
+                            onClick={() => setSelectedSubject(subject)}
+                            className="group bg-white rounded-2xl p-6 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] border border-slate-200/60 hover:border-indigo-500/30 transition-all duration-300 flex flex-col cursor-pointer"
+                          >
+                            <div className="flex justify-between items-start mb-6">
+                              <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-opacity-100 transition-all duration-300 shadow-sm ${colorClass} bg-opacity-100`}>
+                                <Icon className="w-7 h-7" />
+                              </div>
+                              {examCount > 0 && (
+                                <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
+                                  {examCount} {examCount === 1 ? 'Examen' : 'Examens'}
+                                </span>
+                              )}
+                            </div>
 
-                      <div className="flex items-center gap-2 text-sm text-slate-500">
-                        <MessageCircle className="w-4 h-4" />
-                        <span>Chat</span>
-                        <span className="text-slate-300">•</span>
-                        <Sparkles className="w-4 h-4" />
-                        <span>AI Toetsen</span>
-                        {examCount > 0 && (
-                          <>
-                            <span className="text-slate-300">•</span>
-                            <BookOpen className="w-4 h-4" />
-                            <span>Examens</span>
-                          </>
-                        )}
-                      </div>
+                            <div className="flex-1 mb-6">
+                              <h3 className="text-xl font-bold text-slate-900 mb-1">{subject}</h3>
+                              <p className="text-slate-400 text-sm">{student.level} niveau</p>
+                            </div>
+
+                            <div className="flex items-center gap-2 text-sm text-slate-500">
+                              <MessageCircle className="w-4 h-4" />
+                              <span>Chat</span>
+                              <span className="text-slate-300">•</span>
+                              <Sparkles className="w-4 h-4" />
+                              <span>AI Toetsen</span>
+                              {examCount > 0 && (
+                                <>
+                                  <span className="text-slate-300">•</span>
+                                  <BookOpen className="w-4 h-4" />
+                                  <span>Examens</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  );
-                })}
+                  </section>
+                ))}
               </div>
            </div>
         </div>
