@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
-import { checkSubscription, cancelSubscription, SubscriptionStatus } from '../services/subscriptionService';
+import { checkSubscription, cancelSubscription, resubscribe, SubscriptionStatus } from '../services/subscriptionService';
 import { auth } from '../services/supabaseService';
 import { SubjectPackageSettings } from './SubjectPackageSettings';
 
@@ -14,12 +14,16 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   userEmail,
   onBack
 }) => {
-  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string; accessUntil?: string } | null>(null);
+  const [resubscribePlan, setResubscribePlan] = useState<'monthly' | 'exam_package' | 'yearly'>('exam_package');
+  const [resubscribing, setResubscribing] = useState(false);
+  const [resubscribeResult, setResubscribeResult] = useState<{ success: boolean; message: string } | null>(null);
+  const justResubscribed = searchParams.get('resubscribed') === 'true';
 
   useEffect(() => {
     loadSubscription();
@@ -148,16 +152,32 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
     subscription.hasAccess &&
     !isOneTimePlan;
 
-  // Toon "opnieuw abonneren" knop als abonnement verlopen/opgezegd is zonder toegang
-  const canResubscribe = subscription && !subscription.hasAccess &&
-    ['expired', 'cancelled', 'trial_expired', 'none'].includes(subscription.status);
+  // Toon "opnieuw abonneren" als abonnement verlopen/opgezegd is
+  const canResubscribe = subscription &&
+    ((!subscription.hasAccess && ['expired', 'cancelled', 'trial_expired'].includes(subscription.status)) ||
+     (subscription.status === 'cancelled' && subscription.hasAccess));
 
-  const handleResubscribe = () => {
-    const params = new URLSearchParams({
-      returning: 'true',
-      email: userEmail,
-    });
-    navigate(`/checkout?${params.toString()}`);
+  const handleResubscribe = async () => {
+    setResubscribing(true);
+    setResubscribeResult(null);
+    try {
+      const { session } = await auth.getSession();
+      if (!session?.access_token) {
+        setResubscribeResult({ success: false, message: 'Geen geldige sessie. Log opnieuw in.' });
+        return;
+      }
+      const result = await resubscribe(session.access_token, resubscribePlan);
+      if (result.success && result.checkoutUrl) {
+        window.location.href = result.checkoutUrl;
+      } else {
+        setResubscribeResult({ success: false, message: result.message || 'Er ging iets mis' });
+      }
+    } catch (error) {
+      console.error('Resubscribe error:', error);
+      setResubscribeResult({ success: false, message: 'Er ging iets mis. Probeer het later opnieuw.' });
+    } finally {
+      setResubscribing(false);
+    }
   };
 
   return (
@@ -237,25 +257,17 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                   </div>
                 )}
 
-                {/* Expired/cancelled subscription - resubscribe prompt */}
-                {canResubscribe && subscription?.status !== 'none' && (
-                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                {/* Resubscribed success message */}
+                {justResubscribed && (
+                  <div className="bg-green-50 rounded-xl p-4 border border-green-200">
                     <div className="flex items-start gap-3">
-                      <RefreshCw className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <div className="flex-1">
-                        <p className="font-medium text-blue-900">
-                          Je abonnement is verlopen
+                      <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-medium text-green-900">Betaling ontvangen!</p>
+                        <p className="text-sm text-green-700 mt-1">
+                          Je abonnement wordt geactiveerd. Dit kan een paar minuten duren.
+                          Vernieuw deze pagina als je status nog niet is bijgewerkt.
                         </p>
-                        <p className="text-sm text-blue-700 mt-1">
-                          Je kunt opnieuw abonneren zonder een nieuw account aan te maken.
-                        </p>
-                        <button
-                          onClick={handleResubscribe}
-                          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
-                        >
-                          <RefreshCw className="w-4 h-4" />
-                          Opnieuw abonneren
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -399,28 +411,67 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
               </div>
             )}
 
-            {/* Resubscribe Section - for cancelled users who still have access */}
-            {subscription?.status === 'cancelled' && subscription?.hasAccess && (
+            {/* Resubscribe Section */}
+            {canResubscribe && (
               <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
                 <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-lg font-bold text-slate-900">Abonnement heractiveren</h2>
+                  <h2 className="text-lg font-bold text-slate-900">Opnieuw abonneren</h2>
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium text-slate-900">Toch doorgaan?</p>
-                      <p className="text-sm text-slate-500">
-                        Start een nieuw abonnement. Je hoeft geen nieuw account aan te maken.
-                      </p>
-                    </div>
-                    <button
-                      onClick={handleResubscribe}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
-                    >
-                      <RefreshCw className="w-4 h-4" />
-                      Opnieuw abonneren
-                    </button>
+                <div className="p-6 space-y-4">
+                  <p className="text-sm text-slate-600">
+                    Kies een pakket om je abonnement te heractiveren.
+                  </p>
+
+                  {/* Plan selector */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {([
+                      { key: 'monthly' as const, label: 'Maandelijks', price: '€14,95/mnd' },
+                      { key: 'exam_package' as const, label: 'Examenpakket', price: '€39 (4 mnd)' },
+                      { key: 'yearly' as const, label: 'Jaarpakket', price: '€99 (12 mnd)' },
+                    ]).map(({ key, label, price }) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() => setResubscribePlan(key)}
+                        className={`rounded-xl p-3 text-center transition-all border-2 ${
+                          resubscribePlan === key
+                            ? 'border-blue-600 bg-blue-50'
+                            : 'border-slate-200 bg-white hover:border-slate-300'
+                        }`}
+                      >
+                        <div className={`text-xs font-medium mb-1 ${resubscribePlan === key ? 'text-blue-600' : 'text-slate-500'}`}>
+                          {label}
+                        </div>
+                        <div className={`text-sm font-bold ${resubscribePlan === key ? 'text-blue-700' : 'text-slate-900'}`}>
+                          {price}
+                        </div>
+                      </button>
+                    ))}
                   </div>
+
+                  {resubscribeResult && !resubscribeResult.success && (
+                    <div className="bg-red-50 rounded-xl p-3 border border-red-200">
+                      <p className="text-sm text-red-700">{resubscribeResult.message}</p>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleResubscribe}
+                    disabled={resubscribing}
+                    className="w-full px-4 py-3 bg-blue-600 text-white rounded-xl font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {resubscribing ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Bezig...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="w-4 h-4" />
+                        Ga naar betalen
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
             )}

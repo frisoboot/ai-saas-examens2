@@ -129,52 +129,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { success: true, email, authUserId: existingProfile.auth_user_id };
       }
 
-      // Bij her-abonneren zonder wachtwoord: account zou al moeten bestaan
-      // Als we hier komen is er een edge case (profiel zonder auth_user_id)
-      const isResubscriptionWithoutPassword =
-        pendingData?.password_hash === 'RESUBSCRIPTION_NO_PASSWORD';
-
       // Decrypt het wachtwoord
       const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
       let userPassword: string | null = null;
 
-      if (!isResubscriptionWithoutPassword && pendingData?.password_hash) {
+      if (pendingData?.password_hash) {
         userPassword = decryptPassword(pendingData.password_hash, encryptionKey);
         if (!userPassword) {
           userPassword = decryptPassword(pendingData.password_hash, mollieApiKey);
         }
       }
 
-      if (!userPassword && !isResubscriptionWithoutPassword) {
+      if (!userPassword) {
         console.error('CRITICAL: Could not retrieve user password for:', email);
         return { success: false, email, error: 'Password decryption failed' };
-      }
-
-      // Bij her-abonneren zonder wachtwoord: zoek bestaande auth user
-      if (isResubscriptionWithoutPassword) {
-        console.log('Re-subscription without password, looking up existing auth user for:', email);
-        const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
-        const users = (!listError && userList?.users ? userList.users : []) as User[];
-        const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-
-        if (existingUser) {
-          const authUserId = existingUser.id;
-          // Update of maak profiel aan
-          if (existingProfile) {
-            await supabase.from('student_profiles').update({ auth_user_id: authUserId, is_active: true }).eq('email', email);
-          } else {
-            await supabase.from('student_profiles').upsert({
-              email, name: email, level, struggle_points: '', is_active: true, auth_user_id: authUserId
-            }, { onConflict: 'email' });
-          }
-          if (pendingData?.id) {
-            await supabase.from('pending_registrations').delete().eq('id', pendingData.id);
-          }
-          return { success: true, email, authUserId };
-        } else {
-          console.error('Re-subscription but no auth user found for:', email);
-          return { success: false, email, error: 'No existing account found for re-subscription' };
-        }
       }
 
       // Maak Supabase Auth user aan, of haal bestaande op
@@ -485,6 +453,130 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       console.log('One-time purchase activation complete for:', email, 'plan:', plan, 'active until:', periodEnd.toISOString());
+    }
+
+    // ========================================================================
+    // RESUBSCRIPTION - Bestaande gebruiker heractiveert abonnement (ingelogd)
+    // ========================================================================
+    if (metadata.type === 'resubscription' && payment.status === 'paid') {
+      const email = metadata.email!;
+      const plan = metadata.plan || 'monthly';
+      console.log('Processing resubscription for:', email, 'plan:', plan);
+
+      const now = new Date();
+      const periodEnd = new Date(now);
+      const durationMonths = plan === 'yearly' ? 12 : plan === 'exam_package' ? 4 : 1;
+      periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
+
+      const priceCents = plan === 'yearly' ? 9900 : plan === 'exam_package' ? 3900 : 1495;
+      const customerId = payment.customerId;
+
+      // Update bestaande subscription of maak nieuwe aan
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_email', email)
+        .maybeSingle();
+
+      let subscription: { id: string } | null = null;
+
+      if (existingSub) {
+        const { data: updatedSub, error: updateError } = await supabase
+          .from('subscriptions')
+          .update({
+            status: 'active',
+            plan_type: plan,
+            price_cents: priceCents,
+            trial_started_at: null,
+            trial_ends_at: null,
+            mollie_customer_id: customerId,
+            mollie_subscription_id: null,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString()
+          })
+          .eq('id', existingSub.id)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error('Resubscription update error:', updateError);
+        } else {
+          subscription = updatedSub;
+        }
+      } else {
+        const { data: newSub, error: insertError } = await supabase
+          .from('subscriptions')
+          .insert({
+            user_email: email,
+            user_name: email,
+            status: 'active',
+            plan_type: plan,
+            price_cents: priceCents,
+            current_period_start: now.toISOString(),
+            current_period_end: periodEnd.toISOString(),
+            mollie_customer_id: customerId,
+          })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Resubscription insert error:', insertError);
+        } else {
+          subscription = newSub;
+        }
+      }
+
+      // Reactiveer student profiel
+      await supabase
+        .from('student_profiles')
+        .update({ is_active: true })
+        .eq('email', email);
+
+      // Log betaling
+      await supabase
+        .from('payments')
+        .insert({
+          subscription_id: subscription?.id,
+          mollie_payment_id: paymentId,
+          amount_cents: priceCents,
+          currency: 'EUR',
+          status: 'paid',
+          description: `Herabonnering - ${plan === 'yearly' ? 'Jaarpakket' : plan === 'exam_package' ? 'Examenpakket' : 'Maandelijks'}`,
+          payment_method: payment.method || null,
+          paid_at: payment.paidAt || new Date().toISOString()
+        });
+
+      // Voor monthly: maak Mollie recurring subscription aan
+      if (plan === 'monthly' && customerId) {
+        try {
+          const mandates = await mollie.customerMandates.page({ customerId: customerId });
+          const validMandate = mandates.find(m => m.status === 'valid' || m.status === 'pending');
+
+          if (validMandate) {
+            const startDate = periodEnd.toISOString().split('T')[0];
+            const mollieSubscription = await mollie.customerSubscriptions.create({
+              customerId: customerId,
+              amount: { value: '14.95', currency: 'EUR' },
+              interval: '1 month',
+              description: 'AI Examentrainer - Maandelijks abonnement',
+              startDate: startDate,
+              webhookUrl: `${appUrl}/api/mollie-webhook`,
+              metadata: { type: 'subscription_payment', email: email }
+            });
+
+            await supabase
+              .from('subscriptions')
+              .update({ mollie_subscription_id: mollieSubscription.id })
+              .eq('user_email', email);
+
+            console.log('Created recurring subscription:', mollieSubscription.id);
+          }
+        } catch (subError) {
+          console.error('Error creating recurring subscription:', subError);
+        }
+      }
+
+      console.log('Resubscription complete for:', email, 'plan:', plan);
     }
 
     // ========================================================================
