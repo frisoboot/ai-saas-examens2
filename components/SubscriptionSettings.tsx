@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, ArrowRight, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
 import { checkSubscription, cancelSubscription, SubscriptionStatus } from '../services/subscriptionService';
 import { auth } from '../services/supabaseService';
 import { SubjectPackageSettings } from './SubjectPackageSettings';
@@ -13,6 +14,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   userEmail,
   onBack
 }) => {
+  const navigate = useNavigate();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -275,6 +277,32 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Renew Subscription Section - shown for expired/cancelled/trial_expired */}
+            {subscription && !subscription.hasAccess &&
+              (subscription.status === 'expired' || subscription.status === 'trial_expired' || subscription.status === 'cancelled') && (
+              <div className="bg-white rounded-2xl border border-indigo-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-indigo-100 bg-indigo-50">
+                  <h2 className="text-lg font-bold text-indigo-900">Abonnement verlopen</h2>
+                  <p className="text-sm text-indigo-700 mt-1">
+                    {subscription.status === 'trial_expired'
+                      ? 'Je proefperiode is verlopen. Neem een abonnement om verder te oefenen.'
+                      : subscription.status === 'cancelled'
+                      ? 'Je abonnement is opgezegd en de toegangsperiode is verlopen.'
+                      : 'Je abonnement is verlopen. Verleng je abonnement om verder te oefenen.'}
+                  </p>
+                </div>
+                <div className="p-6">
+                  <button
+                    onClick={() => navigate('/renew')}
+                    className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
+                  >
+                    Opnieuw abonneren
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Cancel Result Message */}
             {cancelResult && (
