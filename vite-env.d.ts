@@ -9,3 +9,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv
 }
+
+// Facebook Pixel
+declare function fbq(...args: unknown[]): void
