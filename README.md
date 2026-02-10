@@ -94,8 +94,9 @@ ai-saas-examen/
 ├── components/                   # React components
 ├── database/                     # SQL migraties en schema
 │   ├── supabase-schema.sql
-│   ├── supabase-migrations.sql
-│   └── supabase-auth-rls-migration.sql
+│   ├── subscriptions-schema.sql
+│   ├── migration-secure-rls-v3-FINAL.sql
+│   └── NUCLEAR-RESET-AND-INSTALL.sql
 ├── docs/                        # Documentatie
 ├── scripts/                     # Helper scripts
 │   └── create-admin-user.ts
