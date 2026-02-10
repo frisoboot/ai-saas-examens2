@@ -12,7 +12,8 @@ import {
   CheckCircle2,
   Loader2,
   Eye,
-  EyeOff
+  EyeOff,
+  UserCheck
 } from 'lucide-react';
 import { createCheckout } from '../services/subscriptionService';
 
@@ -89,15 +90,18 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
   const [searchParams] = useSearchParams();
   const initialPlan = (searchParams.get('plan') as PlanType) || 'exam_package';
   const validPlan = PLAN_INFO[initialPlan] ? initialPlan : 'exam_package';
+  const initialEmail = searchParams.get('email') || '';
+  const initialReturning = searchParams.get('returning') === 'true';
 
   const [step, setStep] = useState<'form' | 'processing' | 'redirect'>('form');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [level, setLevel] = useState<StudentLevel>('HAVO');
   const [plan, setPlan] = useState<PlanType>(validPlan);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isReturningUser, setIsReturningUser] = useState(initialReturning);
 
   const currentPlan = PLAN_INFO[plan];
 
@@ -106,8 +110,8 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setError('');
 
     // Validatie
-    if (!email || !password) {
-      setError('Vul alle velden in');
+    if (!email) {
+      setError('Vul je e-mailadres in');
       return;
     }
 
@@ -117,31 +121,39 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
       return;
     }
 
-    if (password.length < 8) {
-      setError('Wachtwoord moet minimaal 8 tekens zijn');
-      return;
-    }
+    // Wachtwoord alleen verplicht voor nieuwe gebruikers
+    if (!isReturningUser) {
+      if (!password) {
+        setError('Vul je wachtwoord in');
+        return;
+      }
 
-    if (!/[A-Z]/.test(password)) {
-      setError('Wachtwoord moet minimaal 1 hoofdletter bevatten');
-      return;
-    }
+      if (password.length < 8) {
+        setError('Wachtwoord moet minimaal 8 tekens zijn');
+        return;
+      }
 
-    if (!/[a-z]/.test(password)) {
-      setError('Wachtwoord moet minimaal 1 kleine letter bevatten');
-      return;
-    }
+      if (!/[A-Z]/.test(password)) {
+        setError('Wachtwoord moet minimaal 1 hoofdletter bevatten');
+        return;
+      }
 
-    if (!/[0-9]/.test(password)) {
-      setError('Wachtwoord moet minimaal 1 cijfer bevatten');
-      return;
+      if (!/[a-z]/.test(password)) {
+        setError('Wachtwoord moet minimaal 1 kleine letter bevatten');
+        return;
+      }
+
+      if (!/[0-9]/.test(password)) {
+        setError('Wachtwoord moet minimaal 1 cijfer bevatten');
+        return;
+      }
     }
 
     setIsLoading(true);
     setStep('processing');
 
     try {
-      const result = await createCheckout(email, password, level, plan);
+      const result = await createCheckout(email, isReturningUser ? '' : password, level, plan);
 
       console.log('Checkout result status:', result.success);
 
@@ -289,29 +301,59 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
-                  Wachtwoord
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    required
-                    className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-12 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
-                    placeholder="Minimaal 8 tekens, met hoofdletter en cijfer"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                  >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-                  </button>
+              {/* Returning user toggle */}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsReturningUser(!isReturningUser);
+                  setPassword('');
+                  setError('');
+                }}
+                className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${
+                  isReturningUser
+                    ? 'border-green-500 bg-green-50'
+                    : 'border-gray-200 bg-gray-50 hover:border-gray-300'
+                }`}
+              >
+                <UserCheck className={`w-5 h-5 flex-shrink-0 ${isReturningUser ? 'text-green-600' : 'text-gray-400'}`} />
+                <div>
+                  <span className={`text-sm font-medium ${isReturningUser ? 'text-green-700' : 'text-gray-700'}`}>
+                    Ik heb al een account
+                  </span>
+                  {isReturningUser && (
+                    <p className="text-xs text-green-600 mt-0.5">
+                      Je abonnement wordt opnieuw geactiveerd na betaling. Log daarna in met je bestaande wachtwoord.
+                    </p>
+                  )}
                 </div>
-              </div>
+              </button>
+
+              {/* Password field - alleen voor nieuwe gebruikers */}
+              {!isReturningUser && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
+                    Wachtwoord
+                  </label>
+                  <div className="relative">
+                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      required
+                      className="block w-full rounded-xl border-gray-200 bg-gray-50 pl-12 pr-12 py-3.5 text-gray-900 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 sm:text-sm transition-all outline-none border hover:bg-gray-50/80"
+                      placeholder="Minimaal 8 tekens, met hoofdletter en cijfer"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-semibold text-gray-900 mb-2 ml-1">
@@ -372,7 +414,9 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
           {step === 'processing' && (
             <div className="text-center py-8">
               <Loader2 className="w-12 h-12 text-blue-600 animate-spin mx-auto mb-4" />
-              <p className="text-gray-600">Account wordt aangemaakt...</p>
+              <p className="text-gray-600">
+                {isReturningUser ? 'Abonnement wordt heractiveerd...' : 'Account wordt aangemaakt...'}
+              </p>
             </div>
           )}
 

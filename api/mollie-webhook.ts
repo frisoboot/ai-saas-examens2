@@ -124,23 +124,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (pendingData?.id) {
           await supabase.from('pending_registrations').delete().eq('id', pendingData.id);
         }
+        // Reactiveer profiel bij her-abonneren
+        await supabase.from('student_profiles').update({ is_active: true }).eq('email', email);
         return { success: true, email, authUserId: existingProfile.auth_user_id };
       }
+
+      // Bij her-abonneren zonder wachtwoord: account zou al moeten bestaan
+      // Als we hier komen is er een edge case (profiel zonder auth_user_id)
+      const isResubscriptionWithoutPassword =
+        pendingData?.password_hash === 'RESUBSCRIPTION_NO_PASSWORD';
 
       // Decrypt het wachtwoord
       const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
       let userPassword: string | null = null;
 
-      if (pendingData?.password_hash) {
+      if (!isResubscriptionWithoutPassword && pendingData?.password_hash) {
         userPassword = decryptPassword(pendingData.password_hash, encryptionKey);
         if (!userPassword) {
           userPassword = decryptPassword(pendingData.password_hash, mollieApiKey);
         }
       }
 
-      if (!userPassword) {
+      if (!userPassword && !isResubscriptionWithoutPassword) {
         console.error('CRITICAL: Could not retrieve user password for:', email);
         return { success: false, email, error: 'Password decryption failed' };
+      }
+
+      // Bij her-abonneren zonder wachtwoord: zoek bestaande auth user
+      if (isResubscriptionWithoutPassword) {
+        console.log('Re-subscription without password, looking up existing auth user for:', email);
+        const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
+        const users = (!listError && userList?.users ? userList.users : []) as User[];
+        const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+
+        if (existingUser) {
+          const authUserId = existingUser.id;
+          // Update of maak profiel aan
+          if (existingProfile) {
+            await supabase.from('student_profiles').update({ auth_user_id: authUserId, is_active: true }).eq('email', email);
+          } else {
+            await supabase.from('student_profiles').upsert({
+              email, name: email, level, struggle_points: '', is_active: true, auth_user_id: authUserId
+            }, { onConflict: 'email' });
+          }
+          if (pendingData?.id) {
+            await supabase.from('pending_registrations').delete().eq('id', pendingData.id);
+          }
+          return { success: true, email, authUserId };
+        } else {
+          console.error('Re-subscription but no auth user found for:', email);
+          return { success: false, email, error: 'No existing account found for re-subscription' };
+        }
       }
 
       // Maak Supabase Auth user aan, of haal bestaande op

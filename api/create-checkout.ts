@@ -36,7 +36,7 @@ function encryptPassword(password: string, secretKey: string): string {
 
 interface CheckoutRequest {
   email: string;
-  password: string;
+  password?: string;
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
   plan?: 'monthly' | 'exam_package' | 'yearly';
 }
@@ -108,8 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { email, password, level, plan = 'monthly' } = body;
 
     // Validatie
-    if (!email || !password || !level) {
-      return res.status(400).json({ error: 'Alle velden zijn verplicht' });
+    if (!email || !level) {
+      return res.status(400).json({ error: 'E-mailadres en niveau zijn verplicht' });
     }
 
     // Validate plan
@@ -123,20 +123,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
-    }
-
-    // Password validatie - zelfde eisen als reset pagina
-    if (password.length < 8) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
-    }
-    if (!/[A-Z]/.test(password)) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 hoofdletter bevatten' });
-    }
-    if (!/[a-z]/.test(password)) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 kleine letter bevatten' });
-    }
-    if (!/[0-9]/.test(password)) {
-      return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 cijfer bevatten' });
     }
 
     // Initialize clients
@@ -198,6 +184,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Re-subscription flow for existing user:', email);
     }
 
+    // Password validatie - alleen verplicht voor nieuwe gebruikers
+    // Bij her-abonneren is het wachtwoord niet nodig (account bestaat al)
+    if (!isResubscription) {
+      if (!password) {
+        return res.status(400).json({ error: 'Wachtwoord is verplicht' });
+      }
+      if (password.length < 8) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' });
+      }
+      if (!/[A-Z]/.test(password)) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 hoofdletter bevatten' });
+      }
+      if (!/[a-z]/.test(password)) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 kleine letter bevatten' });
+      }
+      if (!/[0-9]/.test(password)) {
+        return res.status(400).json({ error: 'Wachtwoord moet minimaal 1 cijfer bevatten' });
+      }
+    }
+
     // Check of er al een pending registration is
     const { data: existingPending } = await supabase
       .from('pending_registrations')
@@ -213,22 +219,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('id', existingPending.id);
     }
 
-    // Maak Mollie customer aan (gebruik email als naam)
-    const customer = await mollie.customers.create({
-      name: email.toLowerCase(),
-      email: email.toLowerCase(),
-      metadata: {
-        level: level
-      }
-    });
+    // Hergebruik bestaande Mollie customer bij her-abonneren, anders maak nieuw aan
+    let customerId: string;
 
-    console.log('Mollie customer created:', customer.id);
+    if (isResubscription && existingSubscription?.mollie_customer_id) {
+      customerId = existingSubscription.mollie_customer_id;
+      console.log('Reusing existing Mollie customer:', customerId);
+    } else {
+      const customer = await mollie.customers.create({
+        name: email.toLowerCase(),
+        email: email.toLowerCase(),
+        metadata: {
+          level: level
+        }
+      });
+      customerId = customer.id;
+      console.log('Mollie customer created:', customerId);
+    }
 
     // Versleutel het wachtwoord veilig voor tijdelijke opslag
-    // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
-    // Het wachtwoord wordt verwijderd na account activatie
+    // Bij her-abonneren is er geen wachtwoord nodig (account bestaat al)
     const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
-    const encryptedPassword = encryptPassword(password, encryptionKey);
+    const encryptedPassword = password
+      ? encryptPassword(password, encryptionKey)
+      : 'RESUBSCRIPTION_NO_PASSWORD';
 
     // Sla pending registration op VOOR de Mollie betaling
     // Dit moet slagen, anders kan check-payment-status de betaling niet traceren
@@ -238,7 +252,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         email: email.toLowerCase(),
         password_hash: encryptedPassword, // Versleuteld - wordt verwijderd na account activatie
         level: level,
-        mollie_customer_id: customer.id,
+        mollie_customer_id: customerId,
         mollie_payment_id: 'pending', // Wordt geüpdatet na Mollie payment creatie
         plan_type: plan,
         status: 'pending',
@@ -255,7 +269,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           email: email.toLowerCase(),
           password_hash: encryptedPassword,
           level: level,
-          mollie_customer_id: customer.id,
+          mollie_customer_id: customerId,
           mollie_payment_id: 'pending',
           plan_type: plan,
           status: 'pending',
@@ -279,9 +293,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         currency: 'EUR',
         value: planConfig.amount,
       },
-      customerId: customer.id,
+      customerId: customerId,
       description: planConfig.description,
-      redirectUrl: `${appUrl}?payment_callback=true&pid=${customer.id}`,
+      redirectUrl: `${appUrl}?payment_callback=true&pid=${customerId}`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
       metadata: {
         type: planConfig.metadataType,
@@ -323,7 +337,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       success: true,
       checkoutUrl: payment.getCheckoutUrl(),
       paymentId: payment.id,
-      message: 'Redirect naar betaalpagina...'
+      isResubscription,
+      message: isResubscription
+        ? 'Welkom terug! Redirect naar betaalpagina...'
+        : 'Redirect naar betaalpagina...'
     });
 
   } catch (error) {

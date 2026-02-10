@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
 import { checkSubscription, cancelSubscription, SubscriptionStatus } from '../services/subscriptionService';
 import { auth } from '../services/supabaseService';
 import { SubjectPackageSettings } from './SubjectPackageSettings';
@@ -13,6 +14,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   userEmail,
   onBack
 }) => {
+  const navigate = useNavigate();
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
@@ -146,6 +148,18 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
     subscription.hasAccess &&
     !isOneTimePlan;
 
+  // Toon "opnieuw abonneren" knop als abonnement verlopen/opgezegd is zonder toegang
+  const canResubscribe = subscription && !subscription.hasAccess &&
+    ['expired', 'cancelled', 'trial_expired', 'none'].includes(subscription.status);
+
+  const handleResubscribe = () => {
+    const params = new URLSearchParams({
+      returning: 'true',
+      email: userEmail,
+    });
+    navigate(`/checkout?${params.toString()}`);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8fafc]">
       {/* Header */}
@@ -218,6 +232,30 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                             ? 'Probeer de pagina te vernieuwen. Als het probleem aanhoudt, neem contact op met support.'
                             : 'Neem een abonnement om toegang te krijgen tot alle functies.'}
                         </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Expired/cancelled subscription - resubscribe prompt */}
+                {canResubscribe && subscription?.status !== 'none' && (
+                  <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
+                    <div className="flex items-start gap-3">
+                      <RefreshCw className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-medium text-blue-900">
+                          Je abonnement is verlopen
+                        </p>
+                        <p className="text-sm text-blue-700 mt-1">
+                          Je kunt opnieuw abonneren zonder een nieuw account aan te maken.
+                        </p>
+                        <button
+                          onClick={handleResubscribe}
+                          className="mt-3 px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors text-sm flex items-center gap-2"
+                        >
+                          <RefreshCw className="w-4 h-4" />
+                          Opnieuw abonneren
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -357,6 +395,32 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                       </div>
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* Resubscribe Section - for cancelled users who still have access */}
+            {subscription?.status === 'cancelled' && subscription?.hasAccess && (
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="p-6 border-b border-slate-100">
+                  <h2 className="text-lg font-bold text-slate-900">Abonnement heractiveren</h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-slate-900">Toch doorgaan?</p>
+                      <p className="text-sm text-slate-500">
+                        Start een nieuw abonnement. Je hoeft geen nieuw account aan te maken.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleResubscribe}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Opnieuw abonneren
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
