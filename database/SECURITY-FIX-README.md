@@ -114,7 +114,7 @@ In Supabase Dashboard:
 
 1. Open Supabase Dashboard
 2. Ga naar SQL Editor
-3. Open het bestand `database/migration-secure-rls.sql`
+3. Open het bestand `database/migration-secure-rls-v3-FINAL.sql`
 4. Kopieer de hele inhoud
 5. Plak in SQL Editor
 6. Klik op **"Run"**
@@ -268,7 +268,7 @@ const examResultToDb = (result: ExamResult): DbExamResult => {
 
 **Gebruik dit ALLEEN in noodgevallen!** Dit brengt de onveilige situatie terug.
 
-Zie onderaan `migration-secure-rls.sql` voor rollback SQL.
+Zie onderaan `migration-secure-rls-v3-FINAL.sql` voor rollback SQL.
 
 **WAARSCHUWING:** Rollback betekent:
 - ❌ Alle data is weer publiek toegankelijk
