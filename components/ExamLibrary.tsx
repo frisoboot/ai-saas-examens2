@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Question, StudentLevel } from '../types';
-import { getQuestions, deleteQuestion, deleteExam } from '../services/storageService';
+import { getQuestions, deleteQuestion, deleteExam, updateExamPdf } from '../services/storageService';
+import { worksheetStorage } from '../services/worksheetStorageService';
 import { Button } from './Button';
 import {
   FolderOpen,
@@ -14,7 +15,10 @@ import {
   Search,
   RefreshCw,
   BookOpen,
-  Paperclip
+  Paperclip,
+  Upload,
+  Loader2,
+  ArrowLeftRight
 } from 'lucide-react';
 import { SUBJECTS } from '../constants/subjects';
 
@@ -46,6 +50,78 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLevel, setSelectedLevel] = useState<StudentLevel | 'ALL'>('ALL');
   const [deletingExam, setDeletingExam] = useState<string | null>(null);
+  const [swappingPdf, setSwappingPdf] = useState<string | null>(null); // key like "subject-year-level-pdf"
+
+  const handleSwapPdf = async (
+    subject: string,
+    year: number,
+    level: StudentLevel,
+    pdfType: 'examPdfUrl' | 'examBijlageUrl',
+    file: File,
+    oldUrl?: string
+  ) => {
+    const swapKey = `${subject}-${year}-${level}-${pdfType}`;
+    setSwappingPdf(swapKey);
+    try {
+      // 1. Upload new PDF
+      const newUrl = await worksheetStorage.uploadWorksheet(file);
+
+      // 2. Update all questions in this exam
+      const updatedCount = await updateExamPdf(subject, year, level, pdfType, newUrl);
+
+      // 3. Delete old PDF from storage if it existed
+      if (oldUrl && oldUrl.includes('/storage/v1/object/public/')) {
+        try {
+          await worksheetStorage.deleteWorksheet(oldUrl);
+        } catch (e) {
+          console.error('Kon oude PDF niet verwijderen:', e);
+        }
+      }
+
+      alert(`PDF bijgewerkt voor ${updatedCount} vragen.`);
+      await loadQuestions();
+    } catch (error: any) {
+      console.error('Fout bij wisselen PDF:', error);
+      alert(`Fout bij wisselen PDF: ${error.message || 'Onbekende fout'}`);
+    } finally {
+      setSwappingPdf(null);
+    }
+  };
+
+  const handleRemovePdf = async (
+    subject: string,
+    year: number,
+    level: StudentLevel,
+    pdfType: 'examPdfUrl' | 'examBijlageUrl',
+    oldUrl?: string
+  ) => {
+    const label = pdfType === 'examPdfUrl' ? 'opdrachten PDF' : 'bijlage PDF';
+    if (!confirm(`Weet je zeker dat je de ${label} wilt verwijderen voor ${subject} ${year} ${level}?`)) return;
+
+    const swapKey = `${subject}-${year}-${level}-${pdfType}`;
+    setSwappingPdf(swapKey);
+    try {
+      // 1. Clear PDF URL on all questions
+      const updatedCount = await updateExamPdf(subject, year, level, pdfType, undefined);
+
+      // 2. Delete file from storage
+      if (oldUrl && oldUrl.includes('/storage/v1/object/public/')) {
+        try {
+          await worksheetStorage.deleteWorksheet(oldUrl);
+        } catch (e) {
+          console.error('Kon PDF niet verwijderen uit storage:', e);
+        }
+      }
+
+      alert(`PDF verwijderd van ${updatedCount} vragen.`);
+      await loadQuestions();
+    } catch (error: any) {
+      console.error('Fout bij verwijderen PDF:', error);
+      alert(`Fout: ${error.message || 'Onbekende fout'}`);
+    } finally {
+      setSwappingPdf(null);
+    }
+  };
 
   useEffect(() => {
     loadQuestions();
@@ -385,29 +461,103 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
                           {/* Expanded: delete buttons + questions */}
                           {isYearExpanded && (
                             <div className="bg-white border-t border-slate-100">
-                              {/* PDF status badges per level */}
+                              {/* PDF management per level */}
                               {yearGroup.year > 0 && (
-                                <div className="flex flex-wrap items-center gap-2 px-16 py-2 bg-indigo-50/50 border-b border-slate-100">
+                                <div className="px-16 py-3 bg-indigo-50/50 border-b border-slate-100 space-y-3">
                                   {(['VMBO-TL', 'HAVO', 'VWO'] as StudentLevel[]).map(lvl => {
                                     const levelQuestions = yearGroup.byLevel[lvl];
                                     if (levelQuestions.length === 0) return null;
-                                    const hasOpdrachtPdf = levelQuestions.some(q => q.examPdfUrl);
-                                    const hasBijlagePdf = levelQuestions.some(q => q.examBijlageUrl);
-                                    if (!hasOpdrachtPdf && !hasBijlagePdf) return null;
+                                    const currentPdfUrl = levelQuestions.find(q => q.examPdfUrl)?.examPdfUrl;
+                                    const currentBijlageUrl = levelQuestions.find(q => q.examBijlageUrl)?.examBijlageUrl;
+                                    const pdfSwapKey = `${subjectGroup.subject}-${yearGroup.year}-${lvl}-examPdfUrl`;
+                                    const bijlageSwapKey = `${subjectGroup.subject}-${yearGroup.year}-${lvl}-examBijlageUrl`;
+                                    const isSwappingPdf = swappingPdf === pdfSwapKey;
+                                    const isSwappingBijlage = swappingPdf === bijlageSwapKey;
+
                                     return (
-                                      <div key={lvl} className="flex items-center gap-1.5">
-                                        <span className="text-xs text-slate-500 font-medium">{lvl}:</span>
-                                        {hasOpdrachtPdf && (
-                                          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
-                                            <FileText className="w-3 h-3" />
-                                            Opdrachten
-                                          </span>
+                                      <div key={lvl} className="flex flex-wrap items-center gap-2">
+                                        <span className="text-xs text-slate-600 font-bold w-16">{lvl}:</span>
+
+                                        {/* Opdrachten PDF */}
+                                        {currentPdfUrl ? (
+                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-indigo-100 border border-indigo-200">
+                                            <FileText className="w-3 h-3 text-indigo-600" />
+                                            <a href={currentPdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-700 hover:underline max-w-[120px] truncate">
+                                              Opdrachten
+                                            </a>
+                                            <label className={`cursor-pointer p-0.5 rounded hover:bg-indigo-200 transition-colors ${isSwappingPdf ? 'opacity-50 pointer-events-none' : ''}`} title="Wissel PDF">
+                                              {isSwappingPdf ? <Loader2 className="w-3 h-3 text-indigo-600 animate-spin" /> : <ArrowLeftRight className="w-3 h-3 text-indigo-600" />}
+                                              <input type="file" accept=".pdf,application/pdf" className="hidden" disabled={isSwappingPdf} onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleSwapPdf(subjectGroup.subject, yearGroup.year, lvl, 'examPdfUrl', file, currentPdfUrl);
+                                                e.target.value = '';
+                                              }} />
+                                            </label>
+                                            <button
+                                              onClick={() => handleRemovePdf(subjectGroup.subject, yearGroup.year, lvl, 'examPdfUrl', currentPdfUrl)}
+                                              className="p-0.5 text-red-500 hover:bg-red-100 rounded transition-colors"
+                                              title="Verwijder PDF"
+                                              disabled={isSwappingPdf}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <label className={`flex items-center gap-1 text-xs px-2 py-1 rounded border border-dashed cursor-pointer transition-colors ${
+                                            isSwappingPdf ? 'border-indigo-300 bg-indigo-50' : 'border-slate-300 hover:border-indigo-400 hover:bg-indigo-50/50'
+                                          }`}>
+                                            {isSwappingPdf ? (
+                                              <><Loader2 className="w-3 h-3 animate-spin text-indigo-600" /><span className="text-indigo-600">Uploaden...</span></>
+                                            ) : (
+                                              <><Upload className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Opdrachten PDF</span></>
+                                            )}
+                                            <input type="file" accept=".pdf,application/pdf" className="hidden" disabled={isSwappingPdf} onChange={e => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleSwapPdf(subjectGroup.subject, yearGroup.year, lvl, 'examPdfUrl', file);
+                                              e.target.value = '';
+                                            }} />
+                                          </label>
                                         )}
-                                        {hasBijlagePdf && (
-                                          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">
-                                            <Paperclip className="w-3 h-3" />
-                                            Bijlage
-                                          </span>
+
+                                        {/* Bijlage PDF */}
+                                        {currentBijlageUrl ? (
+                                          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-amber-100 border border-amber-200">
+                                            <Paperclip className="w-3 h-3 text-amber-600" />
+                                            <a href={currentBijlageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-700 hover:underline max-w-[120px] truncate">
+                                              Bijlage
+                                            </a>
+                                            <label className={`cursor-pointer p-0.5 rounded hover:bg-amber-200 transition-colors ${isSwappingBijlage ? 'opacity-50 pointer-events-none' : ''}`} title="Wissel bijlage">
+                                              {isSwappingBijlage ? <Loader2 className="w-3 h-3 text-amber-600 animate-spin" /> : <ArrowLeftRight className="w-3 h-3 text-amber-600" />}
+                                              <input type="file" accept=".pdf,application/pdf" className="hidden" disabled={isSwappingBijlage} onChange={e => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handleSwapPdf(subjectGroup.subject, yearGroup.year, lvl, 'examBijlageUrl', file, currentBijlageUrl);
+                                                e.target.value = '';
+                                              }} />
+                                            </label>
+                                            <button
+                                              onClick={() => handleRemovePdf(subjectGroup.subject, yearGroup.year, lvl, 'examBijlageUrl', currentBijlageUrl)}
+                                              className="p-0.5 text-red-500 hover:bg-red-100 rounded transition-colors"
+                                              title="Verwijder bijlage"
+                                              disabled={isSwappingBijlage}
+                                            >
+                                              <Trash2 className="w-3 h-3" />
+                                            </button>
+                                          </div>
+                                        ) : (
+                                          <label className={`flex items-center gap-1 text-xs px-2 py-1 rounded border border-dashed cursor-pointer transition-colors ${
+                                            isSwappingBijlage ? 'border-amber-300 bg-amber-50' : 'border-slate-300 hover:border-amber-400 hover:bg-amber-50/50'
+                                          }`}>
+                                            {isSwappingBijlage ? (
+                                              <><Loader2 className="w-3 h-3 animate-spin text-amber-600" /><span className="text-amber-600">Uploaden...</span></>
+                                            ) : (
+                                              <><Upload className="w-3 h-3 text-slate-400" /><span className="text-slate-500">Bijlage PDF</span></>
+                                            )}
+                                            <input type="file" accept=".pdf,application/pdf" className="hidden" disabled={isSwappingBijlage} onChange={e => {
+                                              const file = e.target.files?.[0];
+                                              if (file) handleSwapPdf(subjectGroup.subject, yearGroup.year, lvl, 'examBijlageUrl', file);
+                                              e.target.value = '';
+                                            }} />
+                                          </label>
                                         )}
                                       </div>
                                     );
