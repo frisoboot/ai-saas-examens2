@@ -87,7 +87,17 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     source: q.source,
     score: q.score,
     section: q.section,
-    sectionIntro: q.sectionIntro
+    sectionIntro: q.sectionIntro,
+    // PDF tekstboekje
+    examPdfUrl: q.examPdfUrl,
+    pdfPage: q.pdfPage,
+    // Bijlage PDF
+    examBijlageUrl: q.examBijlageUrl,
+    bijlagePdfPage: q.bijlagePdfPage,
+    // Worksheet
+    worksheetUrl: q.worksheetUrl,
+    worksheetLabel: q.worksheetLabel,
+    requiresWorksheet: q.requiresWorksheet
   };
 
   if (q.type === 'MULTIPLE_CHOICE' && q.options && q.correctAnswer) {
@@ -233,6 +243,8 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
       if (data.level) metadata.level = data.level as StudentLevel;
       if (data.year || data.examYear) metadata.examYear = data.year || data.examYear;
       if (data.source) metadata.source = data.source;
+      if (data.examPdfUrl) metadata.examPdfUrl = data.examPdfUrl;
+      if (data.examBijlageUrl) metadata.examBijlageUrl = data.examBijlageUrl;
 
       // Map questions and inherit metadata where not specified
       return data.questions.map((q: any) => ({
