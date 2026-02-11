@@ -2,8 +2,9 @@ import React, { useState, useRef } from 'react';
 import { BulkImportQuestion, ImportResult, QuestionType, StudentLevel } from '../types';
 import { parseCSV, parseJSON, bulkImportQuestions, generateCSVTemplate, validateFileType, readFileAsText } from '../services/importService';
 import { compressImage } from '../utils/imageUtils';
+import { worksheetStorage } from '../services/worksheetStorageService';
 import { Button } from './Button';
-import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Pencil, Trash2, Save, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Pencil, Trash2, Save, X, Image as ImageIcon, Loader2, BookOpen, Paperclip } from 'lucide-react';
 
 export const BulkImportQuestions: React.FC = () => {
   const [fileType, setFileType] = useState<'csv' | 'json'>('csv');
@@ -12,6 +13,12 @@ export const BulkImportQuestions: React.FC = () => {
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // PDF State
+  const [examPdfUrl, setExamPdfUrl] = useState<string | undefined>(undefined);
+  const [examBijlageUrl, setExamBijlageUrl] = useState<string | undefined>(undefined);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
+  const [uploadingBijlage, setUploadingBijlage] = useState(false);
 
   // Editing State
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -41,9 +48,52 @@ export const BulkImportQuestions: React.FC = () => {
       if (parsed.length === 0) {
         setError('Geen vragen gevonden in het bestand');
       }
+
+      // Pick up examPdfUrl / examBijlageUrl if already set in JSON (e.g. from a previous upload)
+      if (parsed.length > 0) {
+        if (parsed[0].examPdfUrl) setExamPdfUrl(parsed[0].examPdfUrl);
+        if (parsed[0].examBijlageUrl) setExamBijlageUrl(parsed[0].examBijlageUrl);
+      }
     } catch (err) {
       setError('Fout bij lezen van bestand');
       console.error(err);
+    }
+  };
+
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'bijlage') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const isUploading = type === 'pdf' ? setUploadingPdf : setUploadingBijlage;
+    isUploading(true);
+
+    try {
+      const url = await worksheetStorage.uploadWorksheet(file);
+      if (type === 'pdf') {
+        setExamPdfUrl(url);
+      } else {
+        setExamBijlageUrl(url);
+      }
+    } catch (err: any) {
+      setError(`Fout bij uploaden ${type === 'pdf' ? 'opdrachten PDF' : 'bijlage'}: ${err.message || 'Onbekende fout'}`);
+    } finally {
+      isUploading(false);
+    }
+  };
+
+  const removePdf = async (type: 'pdf' | 'bijlage') => {
+    const url = type === 'pdf' ? examPdfUrl : examBijlageUrl;
+    if (url && url.includes('/storage/v1/object/public/')) {
+      try {
+        await worksheetStorage.deleteWorksheet(url);
+      } catch (err) {
+        console.error('Fout bij verwijderen:', err);
+      }
+    }
+    if (type === 'pdf') {
+      setExamPdfUrl(undefined);
+    } else {
+      setExamBijlageUrl(undefined);
     }
   };
 
@@ -54,7 +104,13 @@ export const BulkImportQuestions: React.FC = () => {
     setError('');
 
     try {
-      const result = await bulkImportQuestions(parsedQuestions);
+      // Inject PDF URLs into all questions before importing
+      const questionsWithPdfs = parsedQuestions.map(q => ({
+        ...q,
+        examPdfUrl: q.examPdfUrl || examPdfUrl,
+        examBijlageUrl: q.examBijlageUrl || examBijlageUrl,
+      }));
+      const result = await bulkImportQuestions(questionsWithPdfs);
       setImportResult(result);
 
       if (result.success) {
@@ -63,6 +119,8 @@ export const BulkImportQuestions: React.FC = () => {
           setFile(null);
           setParsedQuestions([]);
           setImportResult(null);
+          setExamPdfUrl(undefined);
+          setExamBijlageUrl(undefined);
         }, 5000);
       } else if (result.failedCount > 0 && result.importedCount === 0) {
         // Alles mislukt
@@ -251,6 +309,85 @@ export const BulkImportQuestions: React.FC = () => {
             </Button>
           </div>
 
+          {/* PDF Upload Section */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+            {/* Opdrachten PDF / Tekstboekje */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                <BookOpen className="w-4 h-4 text-blue-600" />
+                Opdrachten PDF (tekstboekje)
+              </label>
+              {examPdfUrl ? (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <FileText className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <span className="text-sm text-blue-800 truncate flex-1">
+                    {worksheetStorage.getFileNameFromUrl(examPdfUrl)}
+                  </span>
+                  <a href={examPdfUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline flex-shrink-0">
+                    Bekijk
+                  </a>
+                  <button
+                    onClick={() => removePdf('pdf')}
+                    className="p-1 text-red-500 hover:bg-red-100 rounded flex-shrink-0"
+                    title="Verwijder PDF"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  uploadingPdf ? 'border-blue-300 bg-blue-50' : 'border-slate-300 hover:border-blue-400 hover:bg-blue-50/50'
+                }`}>
+                  {uploadingPdf ? (
+                    <><Loader2 className="w-5 h-5 animate-spin text-blue-600" /><span className="text-sm text-blue-600">Uploaden...</span></>
+                  ) : (
+                    <><Upload className="w-5 h-5 text-slate-400" /><span className="text-sm text-slate-500">Upload opdrachten PDF</span></>
+                  )}
+                  <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => handlePdfUpload(e, 'pdf')} disabled={uploadingPdf} />
+                </label>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Het vragenboekje. Gebruik <code className="bg-slate-200 px-1 rounded">pdfPage</code> per vraag voor de juiste pagina.</p>
+            </div>
+
+            {/* Bijlage PDF */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                <Paperclip className="w-4 h-4 text-amber-600" />
+                Bijlage PDF (bronnenboekje)
+              </label>
+              {examBijlageUrl ? (
+                <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <FileText className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                  <span className="text-sm text-amber-800 truncate flex-1">
+                    {worksheetStorage.getFileNameFromUrl(examBijlageUrl)}
+                  </span>
+                  <a href={examBijlageUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-amber-600 hover:underline flex-shrink-0">
+                    Bekijk
+                  </a>
+                  <button
+                    onClick={() => removePdf('bijlage')}
+                    className="p-1 text-red-500 hover:bg-red-100 rounded flex-shrink-0"
+                    title="Verwijder bijlage"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  uploadingBijlage ? 'border-amber-300 bg-amber-50' : 'border-slate-300 hover:border-amber-400 hover:bg-amber-50/50'
+                }`}>
+                  {uploadingBijlage ? (
+                    <><Loader2 className="w-5 h-5 animate-spin text-amber-600" /><span className="text-sm text-amber-600">Uploaden...</span></>
+                  ) : (
+                    <><Upload className="w-5 h-5 text-slate-400" /><span className="text-sm text-slate-500">Upload bijlage PDF</span></>
+                  )}
+                  <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => handlePdfUpload(e, 'bijlage')} disabled={uploadingBijlage} />
+                </label>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Teksten/bronnen. Gebruik <code className="bg-slate-200 px-1 rounded">bijlagePdfPage</code> per vraag voor de juiste pagina.</p>
+            </div>
+          </div>
+
           <div className="space-y-4">
              {parsedQuestions.map((q, idx) => {
                const isEditing = editingIndex === idx;
@@ -351,6 +488,8 @@ export const BulkImportQuestions: React.FC = () => {
                           <span className="text-xs px-2 py-0.5 bg-slate-100 rounded text-slate-500">{q.type}</span>
                           {q.imageUrl && <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded flex items-center gap-1"><ImageIcon className="w-3 h-3"/> Afbeelding</span>}
                           {q.contextText && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded flex items-center gap-1"><FileText className="w-3 h-3"/> Brontekst</span>}
+                          {q.pdfPage && <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded flex items-center gap-1"><BookOpen className="w-3 h-3"/> PDF p.{q.pdfPage}</span>}
+                          {q.bijlagePdfPage && <span className="text-xs px-2 py-0.5 bg-amber-100 text-amber-700 rounded flex items-center gap-1"><Paperclip className="w-3 h-3"/> Bijlage p.{q.bijlagePdfPage}</span>}
                        </div>
                        <p className="text-sm text-slate-600 line-clamp-2">{q.text}</p>
                     </div>
@@ -472,6 +611,10 @@ export const BulkImportQuestions: React.FC = () => {
               <li><strong>correctAnswer:</strong> Juiste antwoord (tekst) of <strong>correctIndex</strong> (nummer)</li>
               <li><strong>modelAnswer:</strong> Model antwoord voor open vragen</li>
               <li><strong>contextText:</strong> Brontekst bij de vraag (optioneel)</li>
+              <li><strong>pdfPage:</strong> Paginanummer in het tekstboekje voor deze vraag</li>
+              <li><strong>bijlagePdfPage:</strong> Paginanummer in de bijlage voor deze vraag</li>
+              <li><strong>section:</strong> Sectie-titel (bijv. "Tekst 1 - Titel")</li>
+              <li><strong>sectionIntro:</strong> Introductie bij de sectie</li>
             </ul>
           </>
         )}
