@@ -174,6 +174,14 @@ export interface BulkImportQuestion {
   requiresWorksheet?: boolean;
   section?: string;
   sectionIntro?: string;
+
+  // PDF tekstboekje (for exams like Nederlands, Engels, Geschiedenis)
+  examPdfUrl?: string;
+  pdfPage?: number;
+
+  // Bijlage PDF (for exams with separate attachment)
+  examBijlageUrl?: string;
+  bijlagePdfPage?: number;
 }
 
 export interface ImportResult {
