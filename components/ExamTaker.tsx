@@ -935,7 +935,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
               <span className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-indigo-600 text-white text-sm font-bold shadow-sm">
                 {activeQuestionIdx + 1}
               </span>
-              <span className="text-sm font-medium text-slate-400">van {totalDisplay}</span>
+              <span className="text-sm font-medium text-slate-400">Vraag {activeQuestionIdx + 1}</span>
             </div>
 
             <div className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-900 mb-8">
