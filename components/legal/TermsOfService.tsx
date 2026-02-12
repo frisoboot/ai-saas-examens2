@@ -11,7 +11,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
     <div className="min-h-screen bg-[#f8fafc]">
       <SEO
         title="Algemene Voorwaarden | AI Examentrainer"
-        description="Lees de algemene voorwaarden van AI Examentrainer. Informatie over je account, abonnement, proefperiode en gebruik van onze dienst."
+        description="Lees de algemene voorwaarden van AI Examentrainer. Informatie over je account, abonnement en gebruik van onze dienst."
         canonical="https://ai-examentrainer.nl/voorwaarden"
       />
 
@@ -47,7 +47,6 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             <li><a href="#toepasselijkheid" className="hover:underline">Toepasselijkheid</a></li>
             <li><a href="#account" className="hover:underline">Het account</a></li>
             <li><a href="#dienst" className="hover:underline">De dienst</a></li>
-            <li><a href="#proefperiode" className="hover:underline">Proefperiode</a></li>
             <li><a href="#abonnement" className="hover:underline">Abonnement en betaling</a></li>
             <li><a href="#opzegging" className="hover:underline">Opzegging</a></li>
             <li><a href="#ai-gebruik" className="hover:underline">Gebruik van AI</a></li>
@@ -70,7 +69,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
               <li><strong>Gebruiker</strong> (ook: "jij", "je", "jouw") — iedere persoon die een account aanmaakt en/of gebruikmaakt van de dienst.</li>
               <li><strong>Dienst</strong> — het online platform van AI Examentrainer, inclusief alle functionaliteiten zoals examenoefeningen, AI-tutor, flashcards en voortgangsoverzichten.</li>
               <li><strong>Account</strong> — de persoonlijke toegang tot de dienst, beveiligd met e-mailadres en wachtwoord.</li>
-              <li><strong>Abonnement</strong> — de betaalde toegang tot de dienst na afloop van de proefperiode.</li>
+              <li><strong>Abonnement</strong> — de betaalde toegang tot de dienst.</li>
             </ul>
           </section>
 
@@ -118,19 +117,9 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
             </p>
           </section>
 
-          {/* 5. Proefperiode */}
-          <section id="proefperiode">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">5. Proefperiode</h2>
-            <ul className="list-disc list-inside text-slate-700 space-y-2">
-              <li>Nieuwe gebruikers ontvangen een <strong>proefperiode van 3 dagen</strong> met volledige toegang tot alle functionaliteiten.</li>
-              <li>Bij registratie wordt een <strong>verificatiebetaling van €1,00</strong> uitgevoerd om je betaalmethode te verifiëren. Dit bedrag wordt <strong>niet</strong> teruggestort en dient als eerste betaling.</li>
-              <li>Na afloop van de proefperiode wordt automatisch een maandelijks abonnement gestart, tenzij je voor het einde van de proefperiode opzegt.</li>
-            </ul>
-          </section>
-
-          {/* 6. Abonnement */}
+          {/* 5. Abonnement */}
           <section id="abonnement">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">6. Abonnement en betaling</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">5. Abonnement en betaling</h2>
             <ul className="list-disc list-inside text-slate-700 space-y-2">
               <li>Het abonnement kost <strong>€12,50 per maand</strong> en wordt maandelijks automatisch verlengd.</li>
               <li>Betalingen worden verwerkt via <strong>Mollie</strong>. De beschikbare betaalmethoden worden getoond bij het afrekenen.</li>
@@ -141,7 +130,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 7. Opzegging */}
           <section id="opzegging">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">7. Opzegging</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">6. Opzegging</h2>
             <ul className="list-disc list-inside text-slate-700 space-y-2">
               <li>Je kunt je abonnement op elk moment opzeggen via de instellingenpagina in je account.</li>
               <li>Na opzegging behoud je toegang tot de dienst tot het einde van de lopende betaalperiode.</li>
@@ -152,7 +141,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 8. AI */}
           <section id="ai-gebruik">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">8. Gebruik van AI</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">7. Gebruik van AI</h2>
             <p className="text-slate-700 leading-relaxed">
               AI Examentrainer maakt gebruik van kunstmatige intelligentie (AI) voor verschillende functionaliteiten.
               Hierbij geldt het volgende:
@@ -167,7 +156,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 9. Eigendom */}
           <section id="eigendom">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">9. Intellectueel eigendom</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">8. Intellectueel eigendom</h2>
             <ul className="list-disc list-inside text-slate-700 space-y-2">
               <li>Alle inhoud op het platform (software, ontwerp, teksten, logo's) is eigendom van AI Examentrainer of haar licentiegevers, tenzij anders vermeld.</li>
               <li>Officiële examenvragen zijn eigendom van de betreffende rechthebbenden (zoals het College voor Toetsen en Examens) en worden gebruikt voor educatieve doeleinden.</li>
@@ -178,7 +167,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 10. Aansprakelijkheid */}
           <section id="aansprakelijkheid">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">10. Aansprakelijkheid</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">9. Aansprakelijkheid</h2>
             <ul className="list-disc list-inside text-slate-700 space-y-2">
               <li>AI Examentrainer is een <strong>hulpmiddel bij de examenvoorbereiding</strong>. Wij garanderen geen specifieke examenresultaten of slagingspercentages.</li>
               <li>Onze aansprakelijkheid is beperkt tot het bedrag dat je in de 3 maanden voorafgaand aan het ontstaan van de schade aan ons hebt betaald.</li>
@@ -190,7 +179,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 11. Privacy */}
           <section id="privacy">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">11. Privacybeleid</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">10. Privacybeleid</h2>
             <p className="text-slate-700 leading-relaxed">
               Op de verwerking van persoonsgegevens is ons{' '}
               <a href="/privacy" className="text-indigo-600 hover:underline font-medium">privacybeleid</a>{' '}
@@ -201,7 +190,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 12. Verboden gebruik */}
           <section id="verboden-gebruik">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">12. Verboden gebruik</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">11. Verboden gebruik</h2>
             <p className="text-slate-700 leading-relaxed">
               Het is niet toegestaan om:
             </p>
@@ -220,7 +209,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 13. Wijzigingen */}
           <section id="wijzigingen">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">13. Wijzigingen</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">12. Wijzigingen</h2>
             <p className="text-slate-700 leading-relaxed">
               Wij behouden ons het recht voor om deze algemene voorwaarden te wijzigen. Bij wezenlijke
               wijzigingen informeren wij je minimaal 30 dagen van tevoren via e-mail of een melding
@@ -231,7 +220,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 14. Toepasselijk recht */}
           <section id="toepasselijk-recht">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">14. Toepasselijk recht</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">13. Toepasselijk recht</h2>
             <p className="text-slate-700 leading-relaxed">
               Op deze voorwaarden en op elk geschil dat hieruit voortvloeit is <strong>Nederlands recht</strong> van
               toepassing. Geschillen worden voorgelegd aan de bevoegde rechter in Nederland.
