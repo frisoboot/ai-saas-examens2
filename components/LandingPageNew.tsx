@@ -496,14 +496,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   <p className="text-slate-500 text-sm">4 maanden toegang</p>
                 </div>
 
-                <div className="mb-2">
-                  <span className="text-4xl font-bold text-slate-900">€39</span>
-                  <span className="text-slate-500 ml-1">totaal</span>
+                <div className="mb-1">
+                  <span className="text-4xl font-bold text-slate-900">€9,75</span>
+                  <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
-                    = €9,75 per maand
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <span className="text-sm text-slate-400 line-through">€59,80</span>
+                  <span className="text-sm font-semibold text-slate-700">€39 totaal</span>
+                  <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
+                    Bespaar 35%
                   </span>
                 </div>
 
@@ -542,14 +544,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   <p className="text-slate-500 text-sm">12 maanden toegang</p>
                 </div>
 
-                <div className="mb-2">
-                  <span className="text-4xl font-bold text-slate-900">€99</span>
-                  <span className="text-slate-500 ml-1">totaal</span>
+                <div className="mb-1">
+                  <span className="text-4xl font-bold text-slate-900">€8,25</span>
+                  <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-6">
-                  <span className="inline-flex items-center px-3 py-1.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
-                    = €8,25 per maand
+                <div className="flex flex-wrap items-center gap-2 mb-6">
+                  <span className="text-sm text-slate-400 line-through">€179,40</span>
+                  <span className="text-sm font-semibold text-slate-700">€99 totaal</span>
+                  <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
+                    Bespaar 45%
                   </span>
                 </div>
 

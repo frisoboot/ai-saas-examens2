@@ -28,6 +28,9 @@ const PLAN_INFO: Record<PlanType, {
   label: string;
   price: string;
   priceDetail: string;
+  originalPrice?: string;
+  totalPrice?: string;
+  savings?: string;
   badge?: string;
   badgeColor?: string;
   header: string;
@@ -53,8 +56,11 @@ const PLAN_INFO: Record<PlanType, {
   },
   exam_package: {
     label: 'Examenpakket',
-    price: '€39',
-    priceDetail: ' totaal',
+    price: '€9,75',
+    priceDetail: '/maand',
+    originalPrice: '€59,80',
+    totalPrice: '€39 totaal',
+    savings: 'Bespaar 35%',
     badge: 'POPULAIR',
     badgeColor: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
     header: 'Koop je examenpakket',
@@ -69,8 +75,11 @@ const PLAN_INFO: Record<PlanType, {
   },
   yearly: {
     label: 'Jaarpakket',
-    price: '€99',
-    priceDetail: ' totaal',
+    price: '€8,25',
+    priceDetail: '/maand',
+    originalPrice: '€179,40',
+    totalPrice: '€99 totaal',
+    savings: 'Bespaar 45%',
     badge: 'BESTE DEAL',
     badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
     header: 'Koop je jaarpakket',
@@ -264,6 +273,16 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               <div className={`text-[11px] ${plan === key ? 'text-blue-500' : 'text-gray-400'}`}>
                 {info.priceDetail}
               </div>
+              {info.originalPrice && (
+                <div className="mt-1 flex items-center justify-center gap-1">
+                  <span className={`text-[10px] line-through ${plan === key ? 'text-blue-300' : 'text-gray-300'}`}>
+                    {info.originalPrice}
+                  </span>
+                  <span className={`text-[10px] font-semibold ${plan === key ? 'text-blue-600' : 'text-gray-600'}`}>
+                    {info.totalPrice}
+                  </span>
+                </div>
+              )}
             </button>
           ))}
         </div>
