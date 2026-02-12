@@ -72,6 +72,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     return map;
   }, [questions, student.level]);
 
+  // Count total questions per subject
+  const questionCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    questions
+      .filter(q => q.level === student.level && q.examYear)
+      .forEach(q => {
+        map.set(q.subject, (map.get(q.subject) || 0) + 1);
+      });
+    return map;
+  }, [questions, student.level]);
+
   // Group visible subjects by category
   const groupedSubjects = useMemo(() => {
     const visibleSet = new Set(visibleSubjects);
@@ -227,6 +238,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                       {group.subjects.map((subject) => {
                         const examCount = examCounts.get(subject) || 0;
+                        const questionCount = questionCounts.get(subject) || 0;
                         const Icon = getSubjectIcon(subject);
                         const colorClass = getSubjectColor(subject);
 
@@ -240,10 +252,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                               <div className={`w-14 h-14 rounded-2xl flex items-center justify-center group-hover:scale-110 group-hover:bg-opacity-100 transition-all duration-300 shadow-sm ${colorClass} bg-opacity-100`}>
                                 <Icon className="w-7 h-7" />
                               </div>
-                              {examCount > 0 && (
-                                <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
-                                  {examCount} {examCount === 1 ? 'Examen' : 'Examens'}
-                                </span>
+                              {questionCount > 0 && (
+                                <div className="flex items-center gap-2">
+                                  <span className="bg-green-50 text-green-600 text-xs font-bold px-3 py-1.5 rounded-full border border-green-100">
+                                    {questionCount} {questionCount === 1 ? 'vraag' : 'vragen'}
+                                  </span>
+                                  <span className="bg-blue-50 text-blue-600 text-xs font-bold px-3 py-1.5 rounded-full border border-blue-100">
+                                    {examCount} {examCount === 1 ? 'examen' : 'examens'}
+                                  </span>
+                                </div>
                               )}
                             </div>
 
