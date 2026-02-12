@@ -214,7 +214,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               size="lg"
               onClick={onCheckout}
             >
-              Start 3 dagen gratis
+              Account aanmaken
             </Button>
           </div>
 
