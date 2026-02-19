@@ -20,7 +20,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   const [cancelling, setCancelling] = useState(false);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [cancelResult, setCancelResult] = useState<{ success: boolean; message: string; accessUntil?: string } | null>(null);
-  const [resubscribePlan, setResubscribePlan] = useState<'monthly' | 'exam_package' | 'yearly'>('exam_package');
+  const [resubscribePlan, setResubscribePlan] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [resubscribing, setResubscribing] = useState(false);
   const [resubscribeResult, setResubscribeResult] = useState<{ success: boolean; message: string } | null>(null);
   const justResubscribed = searchParams.get('resubscribed') === 'true';
@@ -135,15 +135,33 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   };
 
   const planType = subscription?.planType;
-  const isOneTimePlan = planType === 'exam_package' || planType === 'yearly';
+  // Alleen legacy exam_package is eenmalig. Yearly/quarterly zijn nu recurring abonnementen.
+  const isOneTimePlan = planType === 'exam_package';
 
   const getPlanLabel = () => {
     switch (planType) {
-      case 'exam_package': return 'Examenpakket';
-      case 'yearly': return 'Jaarpakket';
+      case 'exam_package': return 'Examenpakket (oud)';
+      case 'yearly': return 'Jaarlijks';
+      case 'quarterly': return 'Per kwartaal';
       case 'monthly':
       case 'individual':
       default: return 'Maandelijks';
+    }
+  };
+
+  const getRecurringPriceLabel = () => {
+    switch (planType) {
+      case 'quarterly': return 'Daarna €24,95 per kwartaal';
+      case 'yearly': return 'Daarna €79,00 per jaar';
+      default: return 'Daarna €9,95 per maand';
+    }
+  };
+
+  const getActiveBillingLabel = () => {
+    switch (planType) {
+      case 'quarterly': return '€24,95 / kwartaal';
+      case 'yearly': return '€79,00 / jaar';
+      default: return '€9,95 / maand';
     }
   };
 
@@ -301,7 +319,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                           Nog {subscription.daysLeft} {subscription.daysLeft === 1 ? 'dag' : 'dagen'} proefperiode
                         </p>
                         <p className="text-sm text-blue-600">
-                          Daarna €14,95 per maand
+                          {getRecurringPriceLabel()}
                         </p>
                       </div>
                     </div>
@@ -318,7 +336,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                     {!isOneTimePlan && (
                       <div className="flex items-center justify-between py-3">
                         <span className="text-slate-500">Bedrag</span>
-                        <span className="font-medium text-slate-900">€14,95 / maand</span>
+                        <span className="font-medium text-slate-900">{getActiveBillingLabel()}</span>
                       </div>
                     )}
                   </>
@@ -425,9 +443,9 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                   {/* Plan selector */}
                   <div className="grid grid-cols-3 gap-2">
                     {([
-                      { key: 'monthly' as const, label: 'Maandelijks', price: '€14,95/mnd' },
-                      { key: 'exam_package' as const, label: 'Examenpakket', price: '€39 (4 mnd)' },
-                      { key: 'yearly' as const, label: 'Jaarpakket', price: '€99 (12 mnd)' },
+                      { key: 'monthly' as const, label: 'Maandelijks', price: '€9,95/mnd' },
+                      { key: 'quarterly' as const, label: 'Per kwartaal', price: '€24,95 (3 mnd)' },
+                      { key: 'yearly' as const, label: 'Jaarlijks', price: '€79 (12 mnd)' },
                     ]).map(({ key, label, price }) => (
                       <button
                         key={key}

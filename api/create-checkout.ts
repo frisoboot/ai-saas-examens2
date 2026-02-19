@@ -4,10 +4,11 @@
  * Flow:
  * 1. Valideer input en check of email beschikbaar is
  * 2. Maak Mollie customer aan
- * 3. Maak betaling aan (€14.95 voor maandelijks met mandaat, of eenmalig bedrag)
+ * 3. Maak €2 proefperiode-betaling aan (sequenceType first voor mandaat)
  * 4. Sla pending registratie op in database
  * 5. Redirect gebruiker naar Mollie checkout
- * 6. Na succesvolle betaling: webhook activeert account en start abonnement
+ * 6. Na succesvolle betaling: webhook activeert account, start 5-daagse trial
+ *    en plant recurring abonnement via Mollie subscription
  */
 
 import { createClient } from '@supabase/supabase-js';
@@ -38,27 +39,29 @@ interface CheckoutRequest {
   email: string;
   password: string;
   level: 'VMBO-TL' | 'HAVO' | 'VWO';
-  plan?: 'monthly' | 'exam_package' | 'yearly';
+  plan?: 'monthly' | 'quarterly' | 'yearly';
 }
 
+// Alle plannen starten met €2 proefperiode van 5 dagen (sequenceType first voor mandaat).
+// Na de proefperiode wordt automatisch het abonnementsbedrag afgeschreven via Mollie subscription.
 const PLAN_CONFIG = {
   monthly: {
-    amount: '14.95',
-    description: 'AI Examentrainer - Maandelijks abonnement',
-    useMandate: true,
-    metadataType: 'verification',
+    subscriptionAmountCents: 995,
+    subscriptionAmountStr: '9.95',
+    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €9,95/maand',
+    interval: '1 month',
   },
-  exam_package: {
-    amount: '39.00',
-    description: 'AI Examentrainer - Examenpakket (4 maanden)',
-    useMandate: false,
-    metadataType: 'one_time_purchase',
+  quarterly: {
+    subscriptionAmountCents: 2495,
+    subscriptionAmountStr: '24.95',
+    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €24,95/kwartaal',
+    interval: '3 months',
   },
   yearly: {
-    amount: '99.00',
-    description: 'AI Examentrainer - Jaarpakket (12 maanden)',
-    useMandate: false,
-    metadataType: 'one_time_purchase',
+    subscriptionAmountCents: 7900,
+    subscriptionAmountStr: '79.00',
+    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €79,00/jaar',
+    interval: '12 months',
   },
 } as const;
 
@@ -271,30 +274,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Maak betaling aan - type afhankelijk van gekozen plan
-    // Monthly: €14.95 eerste betaling met mandaat voor recurring
-    // Exam/Year: eenmalige betaling zonder mandaat
+    // Alle plannen: €2 proefperiode met sequenceType first (voor mandaat/recurring)
+    // Na 5 dagen start automatisch het recurring abonnement via Mollie
     const paymentParams: Parameters<typeof mollie.payments.create>[0] = {
       amount: {
         currency: 'EUR',
-        value: planConfig.amount,
+        value: '2.00',
       },
       customerId: customer.id,
       description: planConfig.description,
       redirectUrl: `${appUrl}?payment_callback=true&pid=${customer.id}`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
+      sequenceType: SequenceType.first,
       metadata: {
-        type: planConfig.metadataType,
+        type: 'trial',
         plan: plan,
         email: email.toLowerCase(),
         level: level,
+        subscriptionAmountCents: planConfig.subscriptionAmountCents,
+        trialDays: 5,
       },
     };
-
-    // Alleen voor monthly: sequenceType voor mandaat
-    if (planConfig.useMandate) {
-      paymentParams.sequenceType = SequenceType.first;
-    }
 
     const payment = (await mollie.payments.create(paymentParams)) as Payment;
 

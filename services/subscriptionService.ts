@@ -73,7 +73,7 @@ export async function createCheckout(
   email: string,
   password: string,
   level: 'VMBO-TL' | 'HAVO' | 'VWO',
-  plan: 'monthly' | 'exam_package' | 'yearly' = 'monthly'
+  plan: 'monthly' | 'quarterly' | 'yearly' = 'monthly'
 ): Promise<CheckoutResponse> {
   try {
     const response = await fetch(`${API_BASE}/api/create-checkout`, {
@@ -144,7 +144,7 @@ export async function cancelSubscription(token: string): Promise<{
  */
 export async function resubscribe(
   token: string,
-  plan: 'monthly' | 'exam_package' | 'yearly' = 'monthly'
+  plan: 'monthly' | 'quarterly' | 'yearly' = 'monthly'
 ): Promise<{ success: boolean; checkoutUrl?: string; message?: string }> {
   try {
     const response = await fetch(`${API_BASE}/api/resubscribe`, {
