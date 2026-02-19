@@ -2,9 +2,13 @@
  * Vercel Serverless Function - Mollie Webhook
  *
  * Ontvangt betalingsnotificaties van Mollie en:
- * 1. Bij eerste betaling (€14.95): activeert account en start abonnement
- * 2. Bij recurring payment: verlengt subscription
- * 3. Bij failed payment: markeert subscription als expired
+ * 1. Bij trial-betaling (€2.00, type='trial'): activeert account, start 5-daagse proefperiode
+ *    en plant recurring Mollie subscription die na de trial start
+ * 2. Bij recurring subscription payment (via subscriptionId): verlengt abonnement
+ * 3. Bij failed recurring payment: markeert subscription als payment_failed
+ * 4. [LEGACY] Bij type='verification' (€14.95): activeert account direct actief (oude flow)
+ * 5. [LEGACY] Bij type='one_time_purchase': activeert eenmalig pakket (oude flow)
+ * 6. [LEGACY] Bij type='subscription_payment' zonder subscriptionId: verlengt via metadata
  */
 
 import { createClient, User } from '@supabase/supabase-js';
@@ -378,7 +382,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // EERSTE BETALING (€14.95) - Account activatie + direct actief abonnement
+    // [LEGACY] EERSTE BETALING (€14.95, type='verification') - Niet meer gebruikt
+    // door create-checkout.ts. Nieuwe accounts gaan via de trial-flow hierboven.
+    // Dit blok blijft actief voor betalingen die vóór de trial-flow zijn aangemaakt.
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
       console.log('Processing first payment for:', metadata.email);
@@ -811,7 +817,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // VERIFICATIE / ONE-TIME PURCHASE - Failed/Cancelled
+    // [LEGACY] VERIFICATIE / ONE-TIME PURCHASE - Failed/Cancelled
     // ========================================================================
     if ((metadata.type === 'verification' || metadata.type === 'one_time_purchase') &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
