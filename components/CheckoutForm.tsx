@@ -22,7 +22,7 @@ interface CheckoutFormProps {
 }
 
 type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
-type PlanType = 'monthly' | 'exam_package' | 'yearly';
+type PlanType = 'monthly' | 'quarterly' | 'yearly';
 
 const PLAN_INFO: Record<PlanType, {
   label: string;
@@ -42,62 +42,66 @@ const PLAN_INFO: Record<PlanType, {
 }> = {
   monthly: {
     label: 'Maandelijks',
-    price: '€14,95',
+    price: '€9,95',
     priceDetail: '/maand',
-    header: 'Start je abonnement',
-    subtitle: '€14,95/maand, maandelijks opzegbaar',
-    buttonText: 'Ga naar betalen (€14,95)',
-    disclaimer: 'Er wordt €14,95/maand automatisch afgeschreven. Maandelijks opzegbaar.',
+    header: 'Start je proefperiode',
+    subtitle: '5 dagen proberen voor €2, daarna €9,95/maand',
+    subtitleDetail: 'Maandelijks opzegbaar via je instellingen',
+    buttonText: 'Probeer 5 dagen (€2,00)',
+    disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €9,95/maand afgeschreven. Maandelijks opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
+      '5 dagen proberen voor slechts €2',
       'Maandelijks opzegbaar',
     ],
   },
-  exam_package: {
-    label: 'Examenpakket',
-    price: '€9,75',
+  quarterly: {
+    label: 'Per kwartaal',
+    price: '€8,32',
     priceDetail: '/maand',
-    originalPrice: '€59,80',
-    totalPrice: '€39 totaal',
-    savings: 'Bespaar 35%',
+    totalPrice: '€24,95 per kwartaal',
+    savings: 'Bespaar 16%',
     badge: 'POPULAIR',
     badgeColor: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
-    header: 'Koop je examenpakket',
-    subtitle: '4 maanden volledige toegang voor €39',
-    buttonText: 'Afrekenen (€39,00)',
-    disclaimer: 'Geen abonnement. Stopt automatisch na 4 maanden.',
+    header: 'Start je proefperiode',
+    subtitle: '5 dagen proberen voor €2, daarna €24,95/kwartaal',
+    subtitleDetail: 'Automatisch verlengd per kwartaal, opzegbaar',
+    buttonText: 'Probeer 5 dagen (€2,00)',
+    disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €24,95 per kwartaal afgeschreven. Opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
-      'Geen abonnement nodig',
+      '5 dagen proberen voor slechts €2',
+      'Goedkoper dan maandelijks',
     ],
   },
   yearly: {
-    label: 'Jaarpakket',
-    price: '€8,25',
+    label: 'Jaarlijks',
+    price: '€6,58',
     priceDetail: '/maand',
-    originalPrice: '€179,40',
-    totalPrice: '€99 totaal',
-    savings: 'Bespaar 45%',
+    totalPrice: '€79 per jaar',
+    savings: 'Bespaar 34%',
     badge: 'BESTE DEAL',
     badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
-    header: 'Koop je jaarpakket',
-    subtitle: '12 maanden volledige toegang voor €99',
-    buttonText: 'Afrekenen (€99,00)',
-    disclaimer: 'Geen abonnement. Stopt automatisch na 12 maanden.',
+    header: 'Start je proefperiode',
+    subtitle: '5 dagen proberen voor €2, daarna €79,00/jaar',
+    subtitleDetail: 'Automatisch verlengd per jaar, opzegbaar',
+    buttonText: 'Probeer 5 dagen (€2,00)',
+    disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €79,00/jaar afgeschreven. Opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
-      'Geen abonnement nodig',
+      '5 dagen proberen voor slechts €2',
+      'Meest voordelig per maand',
     ],
   },
 };
 
 export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess }) => {
   const [searchParams] = useSearchParams();
-  const initialPlan = (searchParams.get('plan') as PlanType) || 'exam_package';
-  const validPlan = PLAN_INFO[initialPlan] ? initialPlan : 'exam_package';
+  const initialPlan = (searchParams.get('plan') as PlanType) || 'monthly';
+  const validPlan = PLAN_INFO[initialPlan] ? initialPlan : 'monthly';
 
   const [step, setStep] = useState<'form' | 'processing' | 'redirect'>('form');
   const [email, setEmail] = useState('');
@@ -156,12 +160,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setIsLoading(true);
     setStep('processing');
 
-    // Facebook Pixel: track checkout initiation
+    // Facebook Pixel: track checkout initiation (altijd €2 trial fee)
     if (typeof fbq === 'function') {
       fbq('track', 'InitiateCheckout', {
         content_name: currentPlan.label,
         currency: 'EUR',
-        value: parseFloat(currentPlan.price.replace('€', '').replace(',', '.')),
+        value: 2.00,
       });
     }
 
@@ -273,11 +277,13 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               <div className={`text-[11px] ${plan === key ? 'text-blue-500' : 'text-gray-400'}`}>
                 {info.priceDetail}
               </div>
-              {info.originalPrice && (
+              {info.totalPrice && (
                 <div className="mt-1 flex items-center justify-center gap-1">
-                  <span className={`text-[10px] line-through ${plan === key ? 'text-blue-300' : 'text-gray-300'}`}>
-                    {info.originalPrice}
-                  </span>
+                  {info.originalPrice && (
+                    <span className={`text-[10px] line-through ${plan === key ? 'text-blue-300' : 'text-gray-300'}`}>
+                      {info.originalPrice}
+                    </span>
+                  )}
                   <span className={`text-[10px] font-semibold ${plan === key ? 'text-blue-600' : 'text-gray-600'}`}>
                     {info.totalPrice}
                   </span>

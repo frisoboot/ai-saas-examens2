@@ -90,6 +90,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       email?: string;
       level?: string;
       plan?: string;
+      subscriptionAmountCents?: number | string;
+      trialDays?: number | string;
     } | null;
 
     if (!metadata) {
@@ -202,16 +204,207 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
+    // TRIAL BETALING (€2.00) - Account activatie + 5-daagse proefperiode
+    // ========================================================================
+    if (metadata.type === 'trial' && payment.status === 'paid') {
+      console.log('Processing trial payment for:', metadata.email, 'plan:', metadata.plan);
+
+      let { data: pending } = await supabase
+        .from('pending_registrations')
+        .select('*')
+        .eq('mollie_payment_id', paymentId)
+        .maybeSingle();
+
+      // Fallback: als de pending_registration nog 'pending' als payment ID heeft
+      // (kan gebeuren bij race condition of als de update in create-checkout faalde)
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[Trial] Pending found by email fallback (payment ID mismatch):', metadata.email);
+          pending = pendingByEmail;
+
+          // Update de pending registration met het juiste payment ID
+          await supabase
+            .from('pending_registrations')
+            .update({ mollie_payment_id: paymentId })
+            .eq('id', pendingByEmail.id);
+        }
+      }
+
+      const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
+      if (!accountResult.success) {
+        if (accountResult.error === 'Password decryption failed') {
+          return res.status(500).json({ received: false, error: accountResult.error });
+        }
+        return res.status(200).json({ received: true, error: accountResult.error });
+      }
+
+      const email = accountResult.email;
+      const plan = (metadata.plan as string) || 'monthly';
+      const trialDays = Number(metadata.trialDays) || 5;
+      const subscriptionAmountCents = Number(metadata.subscriptionAmountCents) || 995;
+      const subscriptionAmountStr = (subscriptionAmountCents / 100).toFixed(2);
+
+      const now = new Date();
+      const trialEnd = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
+      const customerId = payment.customerId;
+
+      const planIntervals: Record<string, string> = {
+        monthly: '1 month',
+        quarterly: '3 months',
+        yearly: '12 months',
+      };
+      const planDescriptions: Record<string, string> = {
+        monthly: 'AI Examentrainer - Maandelijks abonnement',
+        quarterly: 'AI Examentrainer - Kwartaalabonnement',
+        yearly: 'AI Examentrainer - Jaarpakket',
+      };
+
+      const { data: existingSub } = await supabase
+        .from('subscriptions')
+        .select('id')
+        .eq('user_email', email)
+        .maybeSingle();
+
+      let subscription: { id: string } | null = null;
+      const subData = {
+        status: 'trial',
+        plan_type: plan,
+        price_cents: subscriptionAmountCents,
+        trial_started_at: now.toISOString(),
+        trial_ends_at: trialEnd.toISOString(),
+        current_period_start: now.toISOString(),
+        current_period_end: trialEnd.toISOString(),
+        mollie_customer_id: customerId,
+        mollie_subscription_id: null as string | null,
+      };
+
+      if (existingSub) {
+        const { data: updatedSub, error: updateError } = await supabase
+          .from('subscriptions')
+          .update(subData)
+          .eq('id', existingSub.id)
+          .select()
+          .single();
+        if (updateError) {
+          console.error('Trial subscription update error:', updateError);
+        } else {
+          subscription = updatedSub;
+        }
+      } else {
+        const { data: newSub, error: insertError } = await supabase
+          .from('subscriptions')
+          .insert({ user_email: email, user_name: email, ...subData })
+          .select()
+          .single();
+        if (insertError) {
+          console.error('Trial subscription insert error:', insertError);
+        } else {
+          subscription = newSub;
+        }
+      }
+
+      // Log de €2 trial betaling
+      await supabase.from('payments').insert({
+        subscription_id: subscription?.id,
+        mollie_payment_id: paymentId,
+        amount_cents: 200,
+        currency: 'EUR',
+        status: 'paid',
+        description: `Proefperiode betaling - ${planDescriptions[plan] || plan}`,
+        payment_method: payment.method || null,
+        paid_at: payment.paidAt || new Date().toISOString(),
+      });
+
+      // Maak Mollie recurring subscription aan die start na de proefperiode
+      if (customerId) {
+        try {
+          const mandates = await mollie.customerMandates.page({ customerId });
+          const validMandate = mandates.find(m => m.status === 'valid' || m.status === 'pending');
+
+          if (!validMandate) {
+            console.error('No valid mandate after trial payment for customer:', customerId);
+          } else {
+            const startDate = trialEnd.toISOString().split('T')[0];
+            const mollieSubscription = await mollie.customerSubscriptions.create({
+              customerId,
+              amount: { value: subscriptionAmountStr, currency: 'EUR' },
+              interval: planIntervals[plan] || '1 month',
+              description: planDescriptions[plan] || 'AI Examentrainer abonnement',
+              startDate,
+              webhookUrl: `${appUrl}/api/mollie-webhook`,
+              metadata: { type: 'subscription_payment', email, plan },
+            });
+
+            console.log('Created Mollie subscription:', mollieSubscription.id, 'starts:', startDate, 'interval:', planIntervals[plan]);
+
+            await supabase
+              .from('subscriptions')
+              .update({ mollie_subscription_id: mollieSubscription.id })
+              .eq('user_email', email);
+          }
+        } catch (subError) {
+          console.error('Error creating Mollie subscription after trial:', subError);
+          // Niet fataal: gebruiker heeft 5 dagen trial toegang
+        }
+      }
+
+      if (pending) {
+        await supabase.from('pending_registrations').delete().eq('id', pending.id);
+        console.log('Deleted pending registration for trial:', email);
+      }
+
+      console.log('Trial activation complete for:', email, 'trial until:', trialEnd.toISOString());
+    }
+
+    // ========================================================================
+    // TRIAL BETALING - Mislukt/Geannuleerd
+    // ========================================================================
+    if (metadata.type === 'trial' &&
+        (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
+      console.log('Trial payment failed/cancelled for:', metadata.email);
+      await supabase
+        .from('pending_registrations')
+        .delete()
+        .eq('mollie_payment_id', paymentId);
+    }
+
+    // ========================================================================
     // EERSTE BETALING (€14.95) - Account activatie + direct actief abonnement
     // ========================================================================
     if (metadata.type === 'verification' && payment.status === 'paid') {
       console.log('Processing first payment for:', metadata.email);
 
-      const { data: pending } = await supabase
+      let { data: pending } = await supabase
         .from('pending_registrations')
         .select('*')
         .eq('mollie_payment_id', paymentId)
         .maybeSingle();
+
+      // Fallback: zoek op email als payment ID niet matcht
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[Verification] Pending found by email fallback:', metadata.email);
+          pending = pendingByEmail;
+        }
+      }
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
@@ -349,11 +542,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const plan = metadata.plan || 'exam_package';
       console.log('Processing one-time purchase for:', metadata.email, 'plan:', plan);
 
-      const { data: pending } = await supabase
+      let { data: pending } = await supabase
         .from('pending_registrations')
         .select('*')
         .eq('mollie_payment_id', paymentId)
         .maybeSingle();
+
+      // Fallback: zoek op email als payment ID niet matcht
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[OneTimePurchase] Pending found by email fallback:', metadata.email);
+          pending = pendingByEmail;
+        }
+      }
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
@@ -457,6 +667,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // ========================================================================
     // RESUBSCRIPTION - Bestaande gebruiker heractiveert abonnement (ingelogd)
+    // Betaalt direct het volledige abonnementsbedrag (geen trial)
     // ========================================================================
     if (metadata.type === 'resubscription' && payment.status === 'paid') {
       const email = metadata.email!;
@@ -465,10 +676,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const now = new Date();
       const periodEnd = new Date(now);
-      const durationMonths = plan === 'yearly' ? 12 : plan === 'exam_package' ? 4 : 1;
+
+      const durationMonthsByPlan: Record<string, number> = {
+        monthly: 1, quarterly: 3, yearly: 12, individual: 1, exam_package: 4,
+      };
+      const durationMonths = durationMonthsByPlan[plan] || 1;
       periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
 
-      const priceCents = plan === 'yearly' ? 9900 : plan === 'exam_package' ? 3900 : 1495;
+      const priceCentsByPlan: Record<string, number> = {
+        monthly: 995, quarterly: 2495, yearly: 7900, individual: 995, exam_package: 3900,
+      };
+      const priceCents = priceCentsByPlan[plan] || 995;
+
+      const planAmountsByPlan: Record<string, string> = {
+        monthly: '9.95', quarterly: '24.95', yearly: '79.00',
+      };
+      const planIntervals: Record<string, string> = {
+        monthly: '1 month', quarterly: '3 months', yearly: '12 months',
+      };
+      const planDescriptions: Record<string, string> = {
+        monthly: 'AI Examentrainer - Maandelijks abonnement',
+        quarterly: 'AI Examentrainer - Kwartaalabonnement',
+        yearly: 'AI Examentrainer - Jaarpakket',
+      };
+
       const customerId = payment.customerId;
 
       // Update bestaande subscription of maak nieuwe aan
@@ -541,27 +772,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           amount_cents: priceCents,
           currency: 'EUR',
           status: 'paid',
-          description: `Herabonnering - ${plan === 'yearly' ? 'Jaarpakket' : plan === 'exam_package' ? 'Examenpakket' : 'Maandelijks'}`,
+          description: `Herabonnering - ${planDescriptions[plan] || plan}`,
           payment_method: payment.method || null,
           paid_at: payment.paidAt || new Date().toISOString()
         });
 
-      // Voor monthly: maak Mollie recurring subscription aan
-      if (plan === 'monthly' && customerId) {
+      // Maak Mollie recurring subscription aan voor alle recurring plannen
+      if (customerId && planIntervals[plan]) {
         try {
-          const mandates = await mollie.customerMandates.page({ customerId: customerId });
+          const mandates = await mollie.customerMandates.page({ customerId });
           const validMandate = mandates.find(m => m.status === 'valid' || m.status === 'pending');
 
           if (validMandate) {
             const startDate = periodEnd.toISOString().split('T')[0];
             const mollieSubscription = await mollie.customerSubscriptions.create({
-              customerId: customerId,
-              amount: { value: '14.95', currency: 'EUR' },
-              interval: '1 month',
-              description: 'AI Examentrainer - Maandelijks abonnement',
-              startDate: startDate,
+              customerId,
+              amount: { value: planAmountsByPlan[plan] || '9.95', currency: 'EUR' },
+              interval: planIntervals[plan],
+              description: planDescriptions[plan] || 'AI Examentrainer abonnement',
+              startDate,
               webhookUrl: `${appUrl}/api/mollie-webhook`,
-              metadata: { type: 'subscription_payment', email: email }
+              metadata: { type: 'subscription_payment', email, plan }
             });
 
             await supabase
@@ -569,7 +800,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
               .update({ mollie_subscription_id: mollieSubscription.id })
               .eq('user_email', email);
 
-            console.log('Created recurring subscription:', mollieSubscription.id);
+            console.log('Created recurring subscription for resubscription:', mollieSubscription.id);
           }
         } catch (subError) {
           console.error('Error creating recurring subscription:', subError);
@@ -610,16 +841,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle();
 
       if (subscription) {
-        console.log('Found subscription for user:', subscription.user_email);
+        console.log('Found subscription for user:', subscription.user_email, 'plan:', subscription.plan_type);
 
-        const periodEnd = new Date();
-        periodEnd.setMonth(periodEnd.getMonth() + 1);
+        const now = new Date();
+        const periodEnd = new Date(now);
+
+        // Plan-aware periode berekening (i.p.v. hardcoded 1 maand)
+        const durationMonthsByPlan: Record<string, number> = {
+          monthly: 1, quarterly: 3, yearly: 12, individual: 1, exam_package: 4,
+        };
+        const durationMonths = durationMonthsByPlan[subscription.plan_type] || 1;
+        periodEnd.setMonth(periodEnd.getMonth() + durationMonths);
+
+        const planDescriptions: Record<string, string> = {
+          monthly: 'Maandelijks abonnement',
+          quarterly: 'Kwartaalabonnement',
+          yearly: 'Jaarpakket',
+        };
 
         await supabase
           .from('subscriptions')
           .update({
-            status: 'active',
-            current_period_start: new Date().toISOString(),
+            status: 'active',  // trial → active bij eerste recurring payment
+            current_period_start: now.toISOString(),
             current_period_end: periodEnd.toISOString()
           })
           .eq('id', subscription.id);
@@ -630,15 +874,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .insert({
             subscription_id: subscription.id,
             mollie_payment_id: paymentId,
-            amount_cents: subscription.price_cents || 1495,
+            amount_cents: subscription.price_cents || 995,
             currency: 'EUR',
             status: 'paid',
-            description: 'Maandelijks abonnement',
+            description: planDescriptions[subscription.plan_type] || 'Abonnementsbetaling',
             payment_method: payment.method || null,
             paid_at: payment.paidAt || new Date().toISOString()
           });
 
-        console.log('Subscription payment processed for:', subscription.user_email);
+        console.log('Subscription payment processed for:', subscription.user_email, 'new period end:', periodEnd.toISOString());
       } else {
         console.error('No subscription found for mollie_subscription_id:', subscriptionId);
       }

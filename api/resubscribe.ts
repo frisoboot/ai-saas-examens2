@@ -17,21 +17,26 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
 import { setCorsHeaders } from './utils/cors.js';
 
+// Verlopen gebruikers betalen direct het volledige abonnementsbedrag (geen trial).
+// Alle plannen zijn recurring en gebruiken sequenceType first voor mandaat.
 const PLAN_CONFIG = {
   monthly: {
-    amount: '14.95',
+    amount: '9.95',
+    amountCents: 995,
     description: 'AI Examentrainer - Maandelijks abonnement (herabonnering)',
-    useMandate: true,
+    interval: '1 month',
   },
-  exam_package: {
-    amount: '39.00',
-    description: 'AI Examentrainer - Examenpakket (4 maanden)',
-    useMandate: false,
+  quarterly: {
+    amount: '24.95',
+    amountCents: 2495,
+    description: 'AI Examentrainer - Kwartaalabonnement (herabonnering)',
+    interval: '3 months',
   },
   yearly: {
-    amount: '99.00',
-    description: 'AI Examentrainer - Jaarpakket (12 maanden)',
-    useMandate: false,
+    amount: '79.00',
+    amountCents: 7900,
+    description: 'AI Examentrainer - Jaarpakket (herabonnering)',
+    interval: '12 months',
   },
 } as const;
 
@@ -130,7 +135,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Created new Mollie customer:', customerId);
     }
 
-    // Maak Mollie betaling aan
+    // Maak Mollie betaling aan - altijd sequenceType first voor mandaat/recurring
     const paymentParams: Parameters<typeof mollie.payments.create>[0] = {
       amount: {
         currency: 'EUR',
@@ -140,16 +145,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       description: planConfig.description,
       redirectUrl: `${appUrl}/settings?resubscribed=true`,
       webhookUrl: `${appUrl}/api/mollie-webhook`,
+      sequenceType: SequenceType.first,
       metadata: {
         type: 'resubscription',
         plan: plan,
         email: email,
       },
     };
-
-    if (planConfig.useMandate) {
-      paymentParams.sequenceType = SequenceType.first;
-    }
 
     const payment = (await mollie.payments.create(paymentParams)) as Payment;
     console.log('Resubscription payment created:', payment.id, 'for:', email);

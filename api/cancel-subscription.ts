@@ -68,10 +68,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(404).json({ error: 'Geen abonnement gevonden' });
     }
 
-    // Eenmalige pakketten kunnen niet opgezegd worden
-    if (subscription.plan_type === 'exam_package' || subscription.plan_type === 'yearly') {
+    // Alle nieuwe plannen (monthly / quarterly / yearly) zijn recurring en opzegbaar.
+    // Legacy exam_package is eenmalig en kan niet opgezegd worden.
+    if (subscription.plan_type === 'exam_package') {
       return res.status(400).json({
-        error: 'Dit pakket kan niet opgezegd worden. Je hebt een eenmalig pakket dat automatisch afloopt.'
+        error: 'Dit pakket kan niet opgezegd worden. Het stopt automatisch na 4 maanden.'
       });
     }
 

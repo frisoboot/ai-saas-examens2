@@ -27,13 +27,19 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState<string | null>(null);
   const [accountReady, setAccountReady] = useState(false);
-  const [checkCount, setCheckCount] = useState(0);
   const [countdown, setCountdown] = useState(5);
   // Bewaar payment ID in ref zodat we het kunnen gebruiken na localStorage cleanup
   const paymentIdRef = useRef<string | null>(null);
+  // Track of we de initiële payment check al hebben gedaan
+  const initialCheckDoneRef = useRef(false);
+  // Aparte counters voor pending payment polling en account ready polling
+  const [pendingCheckCount, setPendingCheckCount] = useState(0);
 
-  // Check betaalstatus bij laden
+  // Check betaalstatus bij laden (eenmalig + pending polling)
   useEffect(() => {
+    // Skip als we al een definitieve status hebben
+    if (initialCheckDoneRef.current && state !== 'pending') return;
+
     // Payment ID ophalen: ref > localStorage > URL parameter (fallback)
     const paymentId = paymentIdRef.current
       || localStorage.getItem('pending_payment_id')
@@ -59,6 +65,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
 
           switch (result.status) {
             case 'paid':
+              initialCheckDoneRef.current = true;
               setState('paid');
               setMessage(result.message);
               // Facebook Pixel: track successful registration/purchase
@@ -75,13 +82,14 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
               setState('pending');
               setMessage(result.message);
               // Blijf checken voor pending payments
-              if (checkCount < 60) { // Max 60 checks (5 minuten)
-                setTimeout(() => setCheckCount(c => c + 1), 5000);
+              if (pendingCheckCount < 60) { // Max 60 checks (5 minuten)
+                setTimeout(() => setPendingCheckCount(c => c + 1), 5000);
               }
               break;
             case 'failed':
             case 'canceled':
             case 'expired':
+              initialCheckDoneRef.current = true;
               setState('failed');
               setMessage(result.message);
               // Verwijder payment ID uit localStorage
@@ -90,10 +98,11 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
           }
         } else {
           // API call mislukt - probeer opnieuw in plaats van direct "failed" te tonen
-          if (checkCount < 5) {
+          if (pendingCheckCount < 5) {
             console.warn('Payment status check returned error, retrying...', result.message);
-            setTimeout(() => setCheckCount(c => c + 1), 3000);
+            setTimeout(() => setPendingCheckCount(c => c + 1), 3000);
           } else {
+            initialCheckDoneRef.current = true;
             setState('failed');
             setMessage(result.message || 'Er ging iets mis bij het ophalen van de betaalstatus.');
             localStorage.removeItem('pending_payment_id');
@@ -102,9 +111,10 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
       } catch (error) {
         console.error('Payment status check error:', error);
         // Bij netwerkfout: retry een paar keer
-        if (checkCount < 5) {
-          setTimeout(() => setCheckCount(c => c + 1), 3000);
+        if (pendingCheckCount < 5) {
+          setTimeout(() => setPendingCheckCount(c => c + 1), 3000);
         } else {
+          initialCheckDoneRef.current = true;
           setState('failed');
           setMessage('Er ging iets mis bij het controleren van je betaling. Probeer de pagina te vernieuwen.');
         }
@@ -112,11 +122,13 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     };
 
     checkStatus();
-  }, [checkCount, urlPaymentId]);
+  }, [pendingCheckCount, urlPaymentId, state]);
 
-  // Bij success: check of account klaar is
+  // Bij success: check of account klaar is (max 30 seconden wachten)
+  const [accountCheckCount, setAccountCheckCount] = useState(0);
+  const maxAccountChecks = 15; // 15 checks x 2 sec = 30 seconden max
   useEffect(() => {
-    if (state === 'paid' && !accountReady && checkCount < 60) {
+    if (state === 'paid' && !accountReady && accountCheckCount < maxAccountChecks) {
       // Gebruik de ref in plaats van localStorage (die is al verwijderd na paid status)
       const paymentId = paymentIdRef.current;
       if (paymentId) {
@@ -126,18 +138,22 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
             if (result.accountReady) {
               setAccountReady(true);
             } else {
-              setCheckCount(c => c + 1);
+              setAccountCheckCount(c => c + 1);
             }
           } catch (error) {
             console.error('Account ready check error:', error);
             // Bij error, blijf proberen
-            setCheckCount(c => c + 1);
+            setAccountCheckCount(c => c + 1);
           }
         }, 2000);
         return () => clearTimeout(timer);
       }
     }
-  }, [state, accountReady, checkCount]);
+    // Na max wachttijd: toon login knop toch (account is waarschijnlijk aangemaakt)
+    if (state === 'paid' && !accountReady && accountCheckCount >= maxAccountChecks) {
+      setAccountReady(true);
+    }
+  }, [state, accountReady, accountCheckCount]);
 
   // Google Ads conversie tracking bij succesvolle betaling
   useEffect(() => {
