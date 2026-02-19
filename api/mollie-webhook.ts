@@ -209,11 +209,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (metadata.type === 'trial' && payment.status === 'paid') {
       console.log('Processing trial payment for:', metadata.email, 'plan:', metadata.plan);
 
-      const { data: pending } = await supabase
+      let { data: pending } = await supabase
         .from('pending_registrations')
         .select('*')
         .eq('mollie_payment_id', paymentId)
         .maybeSingle();
+
+      // Fallback: als de pending_registration nog 'pending' als payment ID heeft
+      // (kan gebeuren bij race condition of als de update in create-checkout faalde)
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[Trial] Pending found by email fallback (payment ID mismatch):', metadata.email);
+          pending = pendingByEmail;
+
+          // Update de pending registration met het juiste payment ID
+          await supabase
+            .from('pending_registrations')
+            .update({ mollie_payment_id: paymentId })
+            .eq('id', pendingByEmail.id);
+        }
+      }
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
@@ -359,11 +383,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (metadata.type === 'verification' && payment.status === 'paid') {
       console.log('Processing first payment for:', metadata.email);
 
-      const { data: pending } = await supabase
+      let { data: pending } = await supabase
         .from('pending_registrations')
         .select('*')
         .eq('mollie_payment_id', paymentId)
         .maybeSingle();
+
+      // Fallback: zoek op email als payment ID niet matcht
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[Verification] Pending found by email fallback:', metadata.email);
+          pending = pendingByEmail;
+        }
+      }
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
@@ -501,11 +542,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const plan = metadata.plan || 'exam_package';
       console.log('Processing one-time purchase for:', metadata.email, 'plan:', plan);
 
-      const { data: pending } = await supabase
+      let { data: pending } = await supabase
         .from('pending_registrations')
         .select('*')
         .eq('mollie_payment_id', paymentId)
         .maybeSingle();
+
+      // Fallback: zoek op email als payment ID niet matcht
+      if (!pending && metadata.email) {
+        const { data: pendingByEmail } = await supabase
+          .from('pending_registrations')
+          .select('*')
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (pendingByEmail) {
+          console.warn('[OneTimePurchase] Pending found by email fallback:', metadata.email);
+          pending = pendingByEmail;
+        }
+      }
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {

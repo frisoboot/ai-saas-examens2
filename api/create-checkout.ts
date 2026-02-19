@@ -201,20 +201,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Re-subscription flow for existing user:', email);
     }
 
-    // Check of er al een pending registration is
-    const { data: existingPending } = await supabase
+    // Verwijder oude pending registrations voor dit email
+    // Gebruik delete ipv maybeSingle() om meerdere records veilig te verwijderen
+    await supabase
       .from('pending_registrations')
-      .select('*')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+      .delete()
+      .eq('email', email.toLowerCase());
 
-    if (existingPending) {
-      // Verwijder oude pending registration
-      await supabase
-        .from('pending_registrations')
-        .delete()
-        .eq('id', existingPending.id);
-    }
+    // Verwijder ook verlopen 'pending' placeholder records van andere emails
+    // die de UNIQUE constraint op mollie_payment_id kunnen blokkeren
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .eq('mollie_payment_id', 'pending')
+      .lt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
 
     // Maak Mollie customer aan (gebruik email als naam)
     const customer = await mollie.customers.create({
@@ -301,11 +301,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     console.log('Mollie payment created:', payment.id, 'Status:', payment.status);
 
     // Update pending registration met het echte Mollie payment ID
-    await supabase
+    const { error: pidUpdateError } = await supabase
       .from('pending_registrations')
       .update({ mollie_payment_id: payment.id })
       .eq('email', email.toLowerCase())
       .eq('mollie_payment_id', 'pending');
+
+    if (pidUpdateError) {
+      console.error('Failed to update pending registration with payment ID:', pidUpdateError);
+      // Niet fataal: webhook heeft fallback lookup op email
+    }
 
     // Update redirect URL met payment ID (fallback voor als localStorage niet werkt)
     try {
