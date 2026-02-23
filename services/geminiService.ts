@@ -54,6 +54,22 @@ interface ChatSession {
 const MAX_CHAT_CONTEXT_MESSAGES = 8;
 
 const chatSessions = new Map<string, ChatSession>();
+const chatSessionTimers = new Map<string, ReturnType<typeof setTimeout>>();
+
+// Auto-cleanup stale sessions after 30 minutes of inactivity
+const CHAT_SESSION_TTL_MS = 30 * 60 * 1000;
+
+function scheduleSessionCleanup(sessionId: string) {
+  // Clear previous timer if exists
+  const existing = chatSessionTimers.get(sessionId);
+  if (existing) clearTimeout(existing);
+
+  const timer = setTimeout(() => {
+    chatSessions.delete(sessionId);
+    chatSessionTimers.delete(sessionId);
+  }, CHAT_SESSION_TTL_MS);
+  chatSessionTimers.set(sessionId, timer);
+}
 
 // Subject Expert Chat - returns a chat-like interface
 export const createSubjectChat = (subject: string, student: StudentProfile) => {
@@ -114,6 +130,7 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
     systemInstruction,
     messages: [],
   });
+  scheduleSessionCleanup(sessionId);
 
   // Return a chat-like interface
   return {
@@ -124,8 +141,9 @@ export const createSubjectChat = (subject: string, student: StudentProfile) => {
         throw new Error('Chat session not found');
       }
 
-      // Add user message to history
+      // Add user message to history and refresh session timer
       session.messages.push({ role: 'user', content: message });
+      scheduleSessionCleanup(sessionId);
 
       // Build conversation context using only recent messages (sliding window).
       // The system instruction already contains student level, subject, and struggle points,

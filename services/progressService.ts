@@ -35,7 +35,7 @@ export const calculateProgress = (
   const totalExamsTaken = subjectResults.length;
   const totalQuestionsAnswered = subjectResults.reduce((sum, r) => sum + r.totalQuestions, 0);
   const totalCorrectAnswers = subjectResults.reduce((sum, r) => sum + r.score, 0);
-  const averageScore = (totalCorrectAnswers / totalQuestionsAnswered) * 100;
+  const averageScore = totalQuestionsAnswered > 0 ? (totalCorrectAnswers / totalQuestionsAnswered) * 100 : 0;
 
   // Get last 5 exam scores for trend (sorted by date, newest first)
   const sortedResults = [...subjectResults].sort((a, b) =>
@@ -44,7 +44,7 @@ export const calculateProgress = (
 
   const recentScores = sortedResults
     .slice(0, 5)
-    .map(r => Math.round((r.score / r.totalQuestions) * 100));
+    .map(r => r.totalQuestions > 0 ? Math.round((r.score / r.totalQuestions) * 100) : 0);
 
   // Calculate improvement rate (comparing first half vs second half of exams)
   let improvementRate = 0;
@@ -176,7 +176,7 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
   const newTotalExams = (existing?.total_exams_taken || 0) + 1;
   const newTotalQuestions = (existing?.total_questions_answered || 0) + result.totalQuestions;
   const newTotalCorrect = (existing?.total_correct_answers || 0) + result.score;
-  const newAverageScore = (newTotalCorrect / newTotalQuestions) * 100;
+  const newAverageScore = newTotalQuestions > 0 ? (newTotalCorrect / newTotalQuestions) * 100 : 0;
 
   // Calculate improvement rate
   let newImprovementRate = existing?.improvement_rate || 0;
@@ -196,8 +196,12 @@ export const updateProgressAfterExam = async (result: ExamResult): Promise<void>
       const firstHalf = recentResults.slice(0, mid);
       const secondHalf = recentResults.slice(mid);
 
-      const firstAvg = firstHalf.reduce((sum, r) => sum + (r.score / r.total_questions), 0) / firstHalf.length;
-      const secondAvg = secondHalf.reduce((sum, r) => sum + (r.score / r.total_questions), 0) / secondHalf.length;
+      const firstAvg = firstHalf.length > 0
+        ? firstHalf.reduce((sum, r) => sum + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / firstHalf.length
+        : 0;
+      const secondAvg = secondHalf.length > 0
+        ? secondHalf.reduce((sum, r) => sum + (r.total_questions > 0 ? r.score / r.total_questions : 0), 0) / secondHalf.length
+        : 0;
 
       newImprovementRate = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
     }

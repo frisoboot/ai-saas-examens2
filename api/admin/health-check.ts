@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { setCorsHeaders } from '../utils/cors.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -370,12 +371,8 @@ function checkEnvironmentVariables(): ServiceHealth {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS headers - use shared whitelist to prevent unauthorized origins
+  setCorsHeaders(res, req.headers.origin, 'GET,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();

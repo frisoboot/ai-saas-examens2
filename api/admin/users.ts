@@ -5,6 +5,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { setCorsHeaders } from '../utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from '../utils/rateLimiter.js';
 
 // Check of email een admin is
@@ -18,12 +19,8 @@ const isAdminEmail = (email: string | undefined): boolean => {
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers direct in de functie
-  const origin = req.headers.origin || '*';
-  res.setHeader('Access-Control-Allow-Origin', origin);
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  // CORS headers - use shared whitelist to prevent unauthorized origins
+  setCorsHeaders(res, req.headers.origin, 'GET,POST,DELETE,OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -234,6 +231,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
 
   } catch (error: any) {
-    return res.status(500).json({ error: 'Er ging iets mis', details: error.message });
+    return res.status(500).json({ error: 'Er ging iets mis' });
   }
 }
