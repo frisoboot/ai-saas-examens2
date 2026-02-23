@@ -103,6 +103,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ received: true });
     }
 
+    // Idempotency check: skip if this payment was already processed
+    const { data: existingPayment } = await supabase
+      .from('payments')
+      .select('id')
+      .eq('mollie_payment_id', paymentId)
+      .maybeSingle();
+
+    if (existingPayment) {
+      console.log('Webhook already processed for payment:', paymentId);
+      return res.status(200).json({ received: true, alreadyProcessed: true });
+    }
+
     // ========================================================================
     // HELPER: Create or find account (used by both verification and one-time purchase)
     // ========================================================================

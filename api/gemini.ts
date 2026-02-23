@@ -133,45 +133,94 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       throw new Error('AI_GATEWAY_API_KEY environment variable not set');
     }
 
+    // Input validation helpers
+    const validLevels = ['VMBO-TL', 'VMBO-GL', 'VMBO-BB', 'VMBO-KB', 'HAVO', 'VWO'];
+    const MAX_TEXT_LENGTH = 10000;
+    const MAX_QUESTION_COUNT = 50;
+
     switch (action) {
       case 'getExplanation': {
         const { question, studentAnswer } = payload;
+        if (!question || !question.text || typeof question.text !== 'string') {
+          return res.status(400).json({ error: 'Ongeldige vraag' });
+        }
+        if (question.text.length > MAX_TEXT_LENGTH) {
+          return res.status(400).json({ error: 'Vraagtekst te lang' });
+        }
         const result = await generateExplanation(question, studentAnswer);
         return res.status(200).json({ result });
       }
 
       case 'generateLookalikeQuestions': {
         const { subject, level, count, topic, examStyle } = payload;
-        const result = await generateLookalikeExamQuestions(subject, level, count, topic, examStyle);
+        if (!subject || typeof subject !== 'string' || !subject.trim()) {
+          return res.status(400).json({ error: 'Ongeldig vak' });
+        }
+        if (!level || !validLevels.includes(level)) {
+          return res.status(400).json({ error: 'Ongeldig niveau' });
+        }
+        const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
+        const result = await generateLookalikeExamQuestions(subject, level, safeCount, topic, examStyle);
         return res.status(200).json({ result });
       }
 
       case 'generateExamSummary': {
         const { questions, answers, score, totalQuestions, studentName, subject } = payload;
+        if (!Array.isArray(questions) || questions.length === 0) {
+          return res.status(400).json({ error: 'Geen vragen meegegeven' });
+        }
+        if (typeof score !== 'number' || typeof totalQuestions !== 'number' || totalQuestions <= 0) {
+          return res.status(400).json({ error: 'Ongeldige score gegevens' });
+        }
         const result = await generateExamSummary(questions, answers, score, totalQuestions, studentName, subject);
         return res.status(200).json({ result });
       }
 
       case 'generateFlashcards': {
         const { subject, level, count, topic } = payload;
-        const result = await generateFlashcards(subject, level, count, topic);
+        if (!subject || typeof subject !== 'string' || !subject.trim()) {
+          return res.status(400).json({ error: 'Ongeldig vak' });
+        }
+        if (!level || !validLevels.includes(level)) {
+          return res.status(400).json({ error: 'Ongeldig niveau' });
+        }
+        const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
+        const result = await generateFlashcards(subject, level, safeCount, topic);
         return res.status(200).json({ result });
       }
 
       case 'chat': {
         const { message, systemInstruction } = payload;
+        if (!message || typeof message !== 'string' || !message.trim()) {
+          return res.status(400).json({ error: 'Leeg bericht' });
+        }
+        if (message.length > MAX_TEXT_LENGTH) {
+          return res.status(400).json({ error: 'Bericht te lang' });
+        }
         const result = await chat(message, systemInstruction);
         return res.status(200).json({ result });
       }
 
       case 'gradeOpenQuestion': {
         const { question, studentAnswer } = payload;
+        if (!question || !question.text || typeof question.text !== 'string') {
+          return res.status(400).json({ error: 'Ongeldige vraag' });
+        }
+        if (typeof studentAnswer !== 'string' || studentAnswer.length > MAX_TEXT_LENGTH) {
+          return res.status(400).json({ error: 'Ongeldig antwoord' });
+        }
         const result = await gradeOpenQuestion(question, studentAnswer);
         return res.status(200).json({ result });
       }
 
       case 'generateStudyFeedback': {
         const { studentName, level, subjectAnalyses, overallProgress } = payload;
+        if (!studentName || typeof studentName !== 'string') {
+          return res.status(400).json({ error: 'Ongeldige leerlingnaam' });
+        }
+        if (!level || !validLevels.includes(level)) {
+          return res.status(400).json({ error: 'Ongeldig niveau' });
+        }
         const result = await generateStudyFeedback(studentName, level, subjectAnalyses, overallProgress);
         return res.status(200).json({ result });
       }
@@ -187,16 +236,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       response: error.response?.data || error.response?.statusText,
     });
 
-    // Provide more specific error messages
+    // Provide user-friendly error messages without leaking internal details
     let errorMessage = 'Er ging iets mis met de AI service';
     if (error.message?.includes('API_KEY') || error.message?.includes('API key')) {
-      errorMessage = 'API key configuratie probleem';
+      errorMessage = 'API configuratie probleem - neem contact op met support';
     } else if (error.message?.includes('quota') || error.message?.includes('rate')) {
       errorMessage = 'API limiet bereikt, probeer het later opnieuw';
     } else if (error.message?.includes('model')) {
-      errorMessage = 'Model niet beschikbaar: ' + error.message;
-    } else if (error.message) {
-      errorMessage = error.message;
+      errorMessage = 'AI model tijdelijk niet beschikbaar';
     }
 
     return res.status(500).json({

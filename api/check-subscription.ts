@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from './utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
@@ -19,6 +20,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (req.method !== 'GET' && req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // Rate limiting - prevent subscription enumeration
+  const clientIP = getClientIP(req);
+  const rateLimitResult = checkRateLimit(`check-sub:${clientIP}`, rateLimits.general);
+  if (!rateLimitResult.allowed) {
+    res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
+    return res.status(429).json({ error: 'Te veel verzoeken. Probeer het later opnieuw.' });
   }
 
   try {
@@ -179,8 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Check subscription error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis'
     });
   }
 }

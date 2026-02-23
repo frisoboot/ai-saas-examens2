@@ -122,6 +122,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const planConfig = PLAN_CONFIG[plan];
 
+    // Level validatie
+    const validLevels = ['VMBO-TL', 'HAVO', 'VWO'];
+    if (!validLevels.includes(level)) {
+      return res.status(400).json({ error: 'Ongeldig niveau geselecteerd' });
+    }
+
     // Email validatie
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
@@ -231,6 +237,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
     // Het wachtwoord wordt verwijderd na account activatie
     const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+    if (!process.env.PASSWORD_ENCRYPTION_KEY) {
+      console.warn('PASSWORD_ENCRYPTION_KEY not set - falling back to MOLLIE_API_KEY. Set a dedicated encryption key for production.');
+    }
     const encryptedPassword = encryptPassword(password, encryptionKey);
 
     // Sla pending registration op VOOR de Mollie betaling
@@ -334,8 +343,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (error) {
     console.error('Checkout error:', error);
     return res.status(500).json({
-      error: 'Er ging iets mis bij het starten van de checkout',
-      details: error instanceof Error ? error.message : 'Unknown error'
+      error: 'Er ging iets mis bij het starten van de checkout'
     });
   }
 }
