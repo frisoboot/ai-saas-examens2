@@ -121,7 +121,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
           <section id="abonnement">
             <h2 className="text-xl font-semibold text-slate-900 mb-3">5. Abonnement en betaling</h2>
             <ul className="list-disc list-inside text-slate-700 space-y-2">
-              <li>Het abonnement kost <strong>€12,50 per maand</strong> en wordt maandelijks automatisch verlengd.</li>
+              <li>Het maandelijks abonnement kost <strong>€9,95 per maand</strong>. Daarnaast zijn er kwartaal- (€24,95) en jaarabonnementen (€79,00). Alle abonnementen worden automatisch verlengd en starten met een proefperiode van 5 dagen voor €2,00.</li>
               <li>Betalingen worden verwerkt via <strong>Mollie</strong>. De beschikbare betaalmethoden worden getoond bij het afrekenen.</li>
               <li>Bij een mislukte betaling proberen wij de betaling opnieuw te verwerken. Na herhaaldelijk falen kan de toegang worden opgeschort.</li>
               <li>Alle bedragen zijn inclusief BTW (indien van toepassing).</li>

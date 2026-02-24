@@ -298,7 +298,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onLogin, onCheckout })
               </div>
 
               <div className="mb-6">
-                <span className="text-4xl font-bold text-gray-900">€12,50</span>
+                <span className="text-4xl font-bold text-gray-900">€9,95</span>
                 <span className="text-gray-500 ml-2">/ maand</span>
               </div>
 
