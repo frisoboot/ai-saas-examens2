@@ -510,7 +510,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           paid_at: payment.paidAt || new Date().toISOString()
         });
 
-      // Maak Mollie subscription aan die start na 1 maand (€14,95/maand recurring)
+      // Maak Mollie subscription aan na proefperiode (bedrag afhankelijk van gekozen plan)
       if (customerId) {
         try {
           const mandates = await mollie.customerMandates.page({ customerId: customerId });

@@ -183,8 +183,8 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
               die voldoet aan de PCI-DSS standaard voor veilige betalingsverwerking.
             </p>
             <ul className="list-disc list-inside text-slate-700 space-y-2 mt-3">
-              <li>Bij registratie wordt een <strong>verificatiebetaling van €1,00</strong> uitgevoerd om je betaalmethode te verifiëren.</li>
-              <li>Na registratie wordt een maandelijks abonnement van <strong>€12,50 per maand</strong> automatisch afgeschreven.</li>
+              <li>Bij registratie wordt een <strong>proefbetaling van €2,00</strong> uitgevoerd voor een proefperiode van 5 dagen.</li>
+              <li>Na de proefperiode wordt het gekozen abonnement automatisch afgeschreven: <strong>€9,95/maand</strong>, <strong>€24,95/kwartaal</strong>, of <strong>€79,00/jaar</strong>.</li>
               <li>Wij slaan geen creditcardnummers of bankrekeningnummers op. Alle financiële gegevens worden door Mollie beheerd.</li>
               <li>Wij bewaren alleen een referentie naar de Mollie-transactie en de abonnementsstatus.</li>
             </ul>

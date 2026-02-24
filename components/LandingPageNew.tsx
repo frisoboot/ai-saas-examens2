@@ -111,7 +111,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
   }, []);
 
   const handleStartTrial = (plan?: string) => {
-    navigate(`/checkout${plan ? `?plan=${plan}` : '?plan=exam_package'}`);
+    navigate(`/checkout${plan ? `?plan=${plan}` : '?plan=quarterly'}`);
   };
 
   const scrollToSection = (id: string) => {
@@ -216,10 +216,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             <p className="text-reveal text-reveal-delay-5 text-sm text-slate-500 flex items-center justify-center gap-4">
               <span className="flex items-center gap-1.5">
                 <Shield className="w-4 h-4 text-emerald-500" />
-                Geen abonnement nodig
+                5 dagen proberen voor €2
               </span>
               <span className="w-1 h-1 bg-slate-300 rounded-full"></span>
-              <span>Vanaf €39 totaal</span>
+              <span>Vanaf €6,58/maand</span>
             </p>
           </div>
 
@@ -450,7 +450,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
 
                 <div className="mb-2">
-                  <span className="text-4xl font-bold text-slate-900">€14,95</span>
+                  <span className="text-4xl font-bold text-slate-900">€9,95</span>
                   <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
@@ -480,10 +480,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 <StyledButton onClick={() => handleStartTrial('monthly')} variant="secondary" className="w-full justify-center">
                   Kies maandelijks
                 </StyledButton>
+                <p className="text-xs text-slate-400 text-center mt-3">5 dagen proberen voor €2</p>
               </div>
             </div>
 
-            {/* Examenpakket - Highlighted */}
+            {/* Per kwartaal - Highlighted */}
             <div className="scroll-reveal relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-[2rem] blur opacity-30"></div>
               <div className="relative bg-white rounded-3xl p-8 border border-orange-100 shine-effect h-full flex flex-col">
@@ -492,20 +493,19 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Examenpakket</h3>
-                  <p className="text-slate-500 text-sm">4 maanden toegang</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Per kwartaal</h3>
+                  <p className="text-slate-500 text-sm">Elke 3 maanden verlengd</p>
                 </div>
 
                 <div className="mb-1">
-                  <span className="text-4xl font-bold text-slate-900">€9,75</span>
+                  <span className="text-4xl font-bold text-slate-900">€8,32</span>
                   <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mb-6">
-                  <span className="text-sm text-slate-400 line-through">€59,80</span>
-                  <span className="text-sm font-semibold text-slate-700">€39 totaal</span>
+                  <span className="text-sm font-semibold text-slate-700">€24,95 per kwartaal</span>
                   <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
-                    Bespaar 35%
+                    Bespaar 16%
                   </span>
                 </div>
 
@@ -515,7 +515,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                     'Alle 16 vakken',
                     'Persoonlijke AI-tutor',
                     'Flashcards & echte examens',
-                    'Geen abonnement nodig'
+                    'Goedkoper dan maandelijks'
                   ].map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-sm">
                       <div className="w-5 h-5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -526,13 +526,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   ))}
                 </ul>
 
-                <StyledButton onClick={() => handleStartTrial('exam_package')} className="w-full justify-center">
-                  Koop examenpakket
+                <StyledButton onClick={() => handleStartTrial('quarterly')} className="w-full justify-center">
+                  Kies per kwartaal
                 </StyledButton>
+                <p className="text-xs text-slate-400 text-center mt-3">5 dagen proberen voor €2</p>
               </div>
             </div>
 
-            {/* Jaarpakket */}
+            {/* Jaarlijks */}
             <div className="scroll-reveal relative">
               <div className="bg-white rounded-3xl p-8 border border-emerald-200 h-full flex flex-col">
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-4 py-1.5 rounded-full">
@@ -540,20 +541,19 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
 
                 <div className="mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 mb-1">Jaarpakket</h3>
-                  <p className="text-slate-500 text-sm">12 maanden toegang</p>
+                  <h3 className="text-xl font-bold text-slate-900 mb-1">Jaarlijks</h3>
+                  <p className="text-slate-500 text-sm">Elk jaar verlengd</p>
                 </div>
 
                 <div className="mb-1">
-                  <span className="text-4xl font-bold text-slate-900">€8,25</span>
+                  <span className="text-4xl font-bold text-slate-900">€6,58</span>
                   <span className="text-slate-500 ml-1">/ maand</span>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2 mb-6">
-                  <span className="text-sm text-slate-400 line-through">€179,40</span>
-                  <span className="text-sm font-semibold text-slate-700">€99 totaal</span>
+                  <span className="text-sm font-semibold text-slate-700">€79 per jaar</span>
                   <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 rounded-full text-xs font-medium text-emerald-700">
-                    Bespaar 45%
+                    Bespaar 34%
                   </span>
                 </div>
 
@@ -563,7 +563,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                     'Alle 16 vakken',
                     'Persoonlijke AI-tutor',
                     'Flashcards & echte examens',
-                    'Geen abonnement nodig'
+                    'Meest voordelig per maand'
                   ].map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-sm">
                       <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
@@ -575,8 +575,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </ul>
 
                 <StyledButton onClick={() => handleStartTrial('yearly')} variant="secondary" className="w-full justify-center border-emerald-300 hover:border-emerald-400">
-                  Koop jaarpakket
+                  Kies jaarlijks
                 </StyledButton>
+                <p className="text-xs text-slate-400 text-center mt-3">5 dagen proberen voor €2</p>
               </div>
             </div>
           </div>
@@ -622,11 +623,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               },
               {
                 question: 'Wat is het verschil tussen de pakketten?',
-                answer: 'Het maandelijks abonnement (€14,95/maand) is flexibel en maandelijks opzegbaar. Het examenpakket (€39 totaal) geeft je 4 maanden volledige toegang — perfect voor de examenperiode. Het jaarpakket (€99 totaal) geeft je 12 maanden toegang, ideaal als je vroeg wilt beginnen. Alle pakketten geven toegang tot dezelfde functies.'
+                answer: 'Het maandelijks abonnement (€9,95/maand) is flexibel en maandelijks opzegbaar. Het kwartaalabonnement (€24,95/kwartaal, oftewel €8,32/maand) is goedkoper per maand. Het jaarabonnement (€79/jaar, oftewel €6,58/maand) is het voordeligst. Alle abonnementen starten met 5 dagen proberen voor €2 en geven toegang tot dezelfde functies.'
               },
               {
                 question: 'Kan ik maandelijks opzeggen?',
-                answer: 'Het maandelijks abonnement kun je op elk moment opzeggen, zonder opzegkosten. Het examenpakket en jaarpakket zijn vaste bedragen — die hoef je niet op te zeggen. De toegang loopt automatisch af na respectievelijk 4 of 12 maanden.'
+                answer: 'Ja, alle abonnementen zijn opzegbaar. Het maandelijks abonnement kun je op elk moment opzeggen. Het kwartaal- en jaarabonnement worden automatisch verlengd maar zijn ook opzegbaar. Je kunt opzeggen via je instellingen, zonder opzegkosten.'
               },
               {
                 question: 'Werkt het op mijn telefoon?',
