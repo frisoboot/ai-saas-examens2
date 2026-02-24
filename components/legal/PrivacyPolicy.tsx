@@ -37,7 +37,7 @@ export const PrivacyPolicy: React.FC<PrivacyPolicyProps> = ({ onBack }) => {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Privacybeleid</h1>
-        <p className="text-slate-500 mb-8">Laatst bijgewerkt: 3 februari 2025</p>
+        <p className="text-slate-500 mb-8">Laatst bijgewerkt: 24 februari 2026</p>
 
         {/* Table of Contents */}
         <nav className="bg-white rounded-xl border border-slate-200 p-6 mb-10">

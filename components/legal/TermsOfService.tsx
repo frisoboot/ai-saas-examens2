@@ -37,7 +37,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <h1 className="text-3xl font-bold text-slate-900 mb-2">Algemene Voorwaarden</h1>
-        <p className="text-slate-500 mb-8">Laatst bijgewerkt: 3 februari 2025</p>
+        <p className="text-slate-500 mb-8">Laatst bijgewerkt: 24 februari 2026</p>
 
         {/* Table of Contents */}
         <nav className="bg-white rounded-xl border border-slate-200 p-6 mb-10">
@@ -229,7 +229,7 @@ export const TermsOfService: React.FC<TermsOfServiceProps> = ({ onBack }) => {
 
           {/* 15. Contact */}
           <section id="contact">
-            <h2 className="text-xl font-semibold text-slate-900 mb-3">15. Contact</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-3">14. Contact</h2>
             <p className="text-slate-700 leading-relaxed">
               Heb je vragen over deze voorwaarden? Neem contact met ons op:
             </p>
