@@ -7,8 +7,9 @@ import { BulkImportQuestions } from './BulkImportQuestions';
 import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
 import { ImageOverview } from './ImageOverview';
+import { FirecrawlImport } from './FirecrawlImport';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, Globe } from 'lucide-react';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images';
+type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'firecrawl' | 'exam-builder' | 'health-check' | 'images';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('library');
@@ -328,6 +329,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
             CSV/JSON Import
           </button>
           <button
+            onClick={() => { setActiveTab('firecrawl'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'firecrawl' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <Globe className="w-4 h-4" />
+            PDF Scraper
+          </button>
+          <button
             onClick={() => { setActiveTab('health-check'); setMobileMenuOpen(false); }}
             className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
               activeTab === 'health-check' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
@@ -418,6 +428,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                 >
                   <Upload className="w-4 h-4" />
                   CSV/JSON Import
+                </button>
+                <button
+                  onClick={() => setActiveTab('firecrawl')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'firecrawl'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <Globe className="w-4 h-4" />
+                  PDF Scraper
                 </button>
                 <button
                   onClick={() => setActiveTab('health-check')}
@@ -528,6 +549,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'import' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <BulkImportQuestions />
+           </div>
+        ) : activeTab === 'firecrawl' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <FirecrawlImport />
            </div>
         ) : activeTab === 'health-check' ? (
            <div className="flex-1 overflow-y-auto p-6">
