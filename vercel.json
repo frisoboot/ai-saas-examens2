@@ -2,6 +2,10 @@
   "functions": {
     "api/**/*.ts": {
       "runtime": "@vercel/node@5.5.17"
+    },
+    "api/firecrawl-scrape.ts": {
+      "runtime": "@vercel/node@5.5.17",
+      "maxDuration": 60
     }
   },
   "rewrites": [
