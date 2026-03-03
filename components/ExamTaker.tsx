@@ -57,9 +57,10 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
 
   // PDF split-screen state - default to first available tab
-  const [leftPanelTab, setLeftPanelTab] = useState<'opdrachten' | 'bijlage' | 'context'>(() => {
+  const [leftPanelTab, setLeftPanelTab] = useState<'opdrachten' | 'bijlage' | 'kaart' | 'context'>(() => {
     if (initialSession.pdfUrl) return 'opdrachten';
     if (initialSession.bijlageUrl) return 'bijlage';
+    if (initialSession.kaartUrl) return 'kaart';
     return 'context';
   });
   // Mobile: toggle between PDF and questions
@@ -633,20 +634,23 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   // Has context includes section intro OR question-specific context
   const hasContext = !!currentQuestion.contextText || showSectionIntro;
 
-  // PDF support: check if exam has a PDF tekstboekje and/or bijlage
+  // PDF support: check if exam has a PDF tekstboekje and/or bijlage and/or kaartboekje
   const examPdfUrl = session.pdfUrl;
   const examBijlageUrl = session.bijlageUrl;
+  const examKaartUrl = session.kaartUrl;
   const hasPdf = !!examPdfUrl;
   const hasBijlage = !!examBijlageUrl;
-  const hasLeftPanel = hasContext || hasPdf || hasBijlage;
+  const hasKaart = !!examKaartUrl;
+  const hasLeftPanel = hasContext || hasPdf || hasBijlage || hasKaart;
 
   // Determine which content to show in left panel
   const showPdfPanel = hasPdf && leftPanelTab === 'opdrachten';
   const showBijlagePanel = hasBijlage && leftPanelTab === 'bijlage';
+  const showKaartPanel = hasKaart && leftPanelTab === 'kaart';
   const showContextPanel = hasContext && leftPanelTab === 'context';
 
   // Count available tabs for the left panel
-  const availableTabs = [hasPdf && 'opdrachten', hasBijlage && 'bijlage', hasContext && 'context'].filter(Boolean);
+  const availableTabs = [hasPdf && 'opdrachten', hasBijlage && 'bijlage', hasKaart && 'kaart', hasContext && 'context'].filter(Boolean);
   const hasMultipleTabs = availableTabs.length > 1;
 
   return (
@@ -692,7 +696,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           )}
 
           {/* Mobile PDF toggle button */}
-          {(hasPdf || hasBijlage) && (
+          {(hasPdf || hasBijlage || hasKaart) && (
             <button
               onClick={() => setShowMobilePdf(!showMobilePdf)}
               className={`lg:hidden flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
@@ -759,6 +763,19 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                     Bijlage
                   </button>
                 )}
+                {hasKaart && (
+                  <button
+                    onClick={() => setLeftPanelTab('kaart')}
+                    className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition ${
+                      leftPanelTab === 'kaart'
+                        ? 'text-green-700 border-b-2 border-green-600 bg-green-50/50'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Kaartboekje
+                  </button>
+                )}
                 {hasContext && (
                   <button
                     onClick={() => setLeftPanelTab('context')}
@@ -791,6 +808,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 url={examBijlageUrl}
                 page={currentQuestion.bijlagePdfPage}
                 label="Bijlage"
+                className="flex-1"
+              />
+            )}
+
+            {/* Kaartboekje PDF Viewer */}
+            {showKaartPanel && examKaartUrl && (
+              <PdfViewer
+                url={examKaartUrl}
+                page={currentQuestion.kaartPdfPage}
+                label="Kaartboekje"
                 className="flex-1"
               />
             )}

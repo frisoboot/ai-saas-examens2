@@ -94,6 +94,9 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     // Bijlage PDF
     examBijlageUrl: q.examBijlageUrl,
     bijlagePdfPage: q.bijlagePdfPage,
+    // Kaartboekje PDF
+    examKaartUrl: q.examKaartUrl,
+    kaartPdfPage: q.kaartPdfPage,
     // Worksheet
     worksheetUrl: q.worksheetUrl,
     worksheetLabel: q.worksheetLabel,
@@ -245,6 +248,7 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
       if (data.source) metadata.source = data.source;
       if (data.examPdfUrl) metadata.examPdfUrl = data.examPdfUrl;
       if (data.examBijlageUrl) metadata.examBijlageUrl = data.examBijlageUrl;
+      if (data.examKaartUrl) metadata.examKaartUrl = data.examKaartUrl;
 
       // Map questions and inherit metadata where not specified
       return data.questions.map((q: any) => ({
