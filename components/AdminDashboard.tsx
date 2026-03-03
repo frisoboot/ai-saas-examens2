@@ -826,7 +826,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                        </div>
 
                        {/* Vraag tekst */}
-                       <p className="text-slate-700 text-sm line-clamp-3 mb-3 leading-relaxed">
+                       <p className="text-slate-700 text-sm line-clamp-3 mb-3 leading-relaxed whitespace-pre-line">
                          {q.text}
                        </p>
 

@@ -1978,7 +1978,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       </p>
                     )}
 
-                    <p className="text-gray-800 mb-3">{q.text}</p>
+                    <p className="text-gray-800 mb-3 whitespace-pre-line">{q.text}</p>
 
                     {q.imageUrl && (
                       <img src={q.imageUrl} alt="Question" className="max-w-md mb-3 rounded" />

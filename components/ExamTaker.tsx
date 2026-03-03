@@ -6,7 +6,7 @@ import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../servi
 import { Button } from './Button';
 import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { examMarkdownComponents } from '../utils/markdownComponents';
+import { examMarkdownComponents, examRemarkPlugins } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
 import { PdfViewer } from './PdfViewer';
@@ -838,7 +838,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                   {/* Section Introduction (only on first question of section) */}
                   {showSectionIntro && (
                     <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800 mb-8">
-                      <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.sectionIntro}</ReactMarkdown>
+                      <ReactMarkdown components={examMarkdownComponents} remarkPlugins={examRemarkPlugins}>{currentQuestion.sectionIntro}</ReactMarkdown>
                     </div>
                   )}
 
@@ -849,7 +849,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                         <span>Bronmateriaal</span>
                       </div>
                       <div className="prose prose-slate max-w-none font-serif text-lg leading-loose text-slate-800">
-                        <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.contextText}</ReactMarkdown>
+                        <ReactMarkdown components={examMarkdownComponents} remarkPlugins={examRemarkPlugins}>{currentQuestion.contextText}</ReactMarkdown>
                       </div>
                     </>
                   )}
@@ -963,7 +963,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             </div>
 
             <div className="prose prose-slate max-w-none text-lg leading-relaxed text-slate-900 mb-8">
-              <ReactMarkdown components={examMarkdownComponents}>{currentQuestion.text}</ReactMarkdown>
+              <ReactMarkdown components={examMarkdownComponents} remarkPlugins={examRemarkPlugins}>{currentQuestion.text}</ReactMarkdown>
             </div>
 
             <div className="space-y-4 mb-8 flex-1">
