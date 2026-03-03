@@ -40,12 +40,25 @@ const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => 
     }
     if (!q.correctAnswer) {
       errors.push({ row, field: 'correctAnswer', message: 'Juist antwoord is verplicht voor meerkeuze' });
-    } else if (q.options && !q.options.some(opt => opt.toLowerCase().trim() === q.correctAnswer!.toLowerCase().trim())) {
-      errors.push({
-        row,
-        field: 'correctAnswer',
-        message: `Juist antwoord "${q.correctAnswer}" komt niet voor in de opties`
-      });
+    } else if (q.options) {
+      const answer = q.correctAnswer.trim();
+      // Support single-letter answers (A/B/C/D) as index references
+      if (/^[a-zA-Z]$/.test(answer)) {
+        const letterIndex = answer.toLowerCase().charCodeAt(0) - 97; // 'a'=0, 'b'=1, etc.
+        if (letterIndex < 0 || letterIndex >= q.options.length) {
+          errors.push({
+            row,
+            field: 'correctAnswer',
+            message: `Antwoordletter "${answer.toUpperCase()}" verwijst naar optie ${letterIndex + 1}, maar er zijn maar ${q.options.length} opties`
+          });
+        }
+      } else if (!q.options.some(opt => opt.toLowerCase().trim() === answer.toLowerCase())) {
+        errors.push({
+          row,
+          field: 'correctAnswer',
+          message: `Juist antwoord "${q.correctAnswer}" komt niet voor in de opties`
+        });
+      }
     }
   }
 
@@ -105,13 +118,20 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
 
   if (q.type === 'MULTIPLE_CHOICE' && q.options && q.correctAnswer) {
     question.options = q.options;
-    // Find correct index based on correctAnswer string
-    question.correctIndex = q.options.findIndex(
-      opt => opt.toLowerCase().trim() === q.correctAnswer!.toLowerCase().trim()
-    );
+    const answer = q.correctAnswer.trim();
 
-    if (question.correctIndex === -1) {
-      question.correctIndex = 0; // Default to first option if not found
+    // Support single-letter answers (A/B/C/D) as index references
+    if (/^[a-zA-Z]$/.test(answer)) {
+      const letterIndex = answer.toLowerCase().charCodeAt(0) - 97; // 'a'=0, 'b'=1, etc.
+      question.correctIndex = (letterIndex >= 0 && letterIndex < q.options.length) ? letterIndex : 0;
+    } else {
+      // Find correct index based on exact text match
+      question.correctIndex = q.options.findIndex(
+        opt => opt.toLowerCase().trim() === answer.toLowerCase()
+      );
+      if (question.correctIndex === -1) {
+        question.correctIndex = 0;
+      }
     }
   }
 
