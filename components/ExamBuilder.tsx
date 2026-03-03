@@ -363,7 +363,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
   const checkForDuplicate = (draft: QuestionDraft): Question | null => {
     const questionNumber = draft.questionNumber || (questions.length + 1);
-    const potentialId = `${examMeta.subject}-${examMeta.year}-T${examMeta.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
+    const potentialId = `${examMeta.subject}-${examMeta.level}-${examMeta.year}-T${examMeta.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
 
     return existingQuestions.find(q => q.id === potentialId) || null;
   };
@@ -671,7 +671,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       for (let i = 0; i < questions.length; i++) {
         const draft = questions[i];
         const questionNumber = draft.questionNumber || (i + 1);
-        const questionId = `${examMeta.subject}-${examMeta.year}-T${examMeta.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
+        const questionId = `${examMeta.subject}-${examMeta.level}-${examMeta.year}-T${examMeta.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
 
         const validOptions = draft.type === 'MULTIPLE_CHOICE'
           ? draft.options?.filter(opt => opt.trim() !== '')
