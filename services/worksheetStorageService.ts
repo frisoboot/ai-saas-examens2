@@ -11,7 +11,7 @@ const ALLOWED_MIME_TYPES = [
   'image/gif'
 ];
 const ALLOWED_EXTENSIONS = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
-const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (Supabase free tier maximum)
 
 // SECURITY: File magic numbers (signatures) for content validation
 // These are the first few bytes of valid files - used to verify actual file type
@@ -83,7 +83,7 @@ export const worksheetStorage = {
 
     // SECURITY: Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      throw new Error('Bestand is te groot. Maximum grootte is 20MB.');
+      throw new Error('Bestand is te groot. Maximum grootte is 50MB.');
     }
 
     // SECURITY: Validate MIME type
