@@ -123,6 +123,71 @@ export const deleteExam = async (
 };
 
 // ============================================================================
+// UPDATE EXAM PDFs (add/replace/remove PDFs for existing exams)
+// ============================================================================
+
+export interface UpdateExamPdfsParams {
+  subject: string;
+  year: number;
+  level: StudentLevel;
+  examPdfUrl?: string | null;       // null = remove, undefined = no change
+  examBijlageUrl?: string | null;   // null = remove, undefined = no change
+  examKaartUrl?: string | null;     // null = remove, undefined = no change
+}
+
+export interface UpdateExamPdfsResult {
+  updatedQuestions: number;
+  errors: string[];
+}
+
+/**
+ * Update PDF URLs on all questions in an exam (subject+year+level).
+ * Pass null to remove a PDF, a URL string to set/replace, or undefined to leave unchanged.
+ */
+export const updateExamPdfs = async (params: UpdateExamPdfsParams): Promise<UpdateExamPdfsResult> => {
+  requireDatabase();
+
+  const result: UpdateExamPdfsResult = {
+    updatedQuestions: 0,
+    errors: [],
+  };
+
+  const allQuestions = await dbQuestions.getAll();
+  const examQuestions = allQuestions.filter(q =>
+    q.subject === params.subject &&
+    q.examYear === params.year &&
+    q.level === params.level
+  );
+
+  if (examQuestions.length === 0) {
+    return result;
+  }
+
+  for (const q of examQuestions) {
+    try {
+      const updated = { ...q };
+
+      if (params.examPdfUrl !== undefined) {
+        updated.examPdfUrl = params.examPdfUrl ?? undefined;
+      }
+      if (params.examBijlageUrl !== undefined) {
+        updated.examBijlageUrl = params.examBijlageUrl ?? undefined;
+      }
+      if (params.examKaartUrl !== undefined) {
+        updated.examKaartUrl = params.examKaartUrl ?? undefined;
+      }
+
+      await dbQuestions.save(updated);
+      result.updatedQuestions++;
+    } catch (e) {
+      result.errors.push(`Vraag ${q.id} niet bijgewerkt`);
+    }
+  }
+
+  return result;
+};
+
+// ============================================================================
 // YEAR-BASED EXAM FUNCTIONS
 // ============================================================================
 
