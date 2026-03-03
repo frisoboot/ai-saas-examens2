@@ -1,10 +1,14 @@
 import React from 'react';
 import type { Components } from 'react-markdown';
+import remarkBreaks from 'remark-breaks';
 
 /**
  * Shared ReactMarkdown component overrides for consistent list and text styling.
  * Use these as the `components` prop on <ReactMarkdown>.
  */
+
+/** Remark plugins that convert single newlines to <br> (used for long question texts). */
+export const examRemarkPlugins = [remarkBreaks];
 
 /** Default markdown components for exam content (questions, context, section intros). */
 export const examMarkdownComponents: Components = {

@@ -170,7 +170,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex-shrink-0 mt-0.5">
               {questionIndex + 1}
             </span>
-            <p className="text-slate-900 font-medium">{question.text}</p>
+            <p className="text-slate-900 font-medium whitespace-pre-line">{question.text}</p>
           </div>
 
           {isSkipped ? (
