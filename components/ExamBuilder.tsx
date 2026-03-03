@@ -518,7 +518,21 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         imageUrl: q.imageUrl || '',
         hasImage: q.hasImage || false,
         options: q.type === 'MULTIPLE_CHOICE' ? (q.options || ['', '', '', '']) : undefined,
-        correctIndex: q.type === 'MULTIPLE_CHOICE' ? (q.correctIndex || 0) : undefined,
+        correctIndex: q.type === 'MULTIPLE_CHOICE' ? (() => {
+          if (typeof q.correctIndex === 'number') return q.correctIndex;
+          // Support single-letter correctAnswer (A/B/C/D) as index reference
+          if (typeof q.correctAnswer === 'string' && /^[a-zA-Z]$/.test(q.correctAnswer.trim())) {
+            const idx = q.correctAnswer.trim().toLowerCase().charCodeAt(0) - 97;
+            const opts = q.options || [];
+            return (idx >= 0 && idx < opts.length) ? idx : 0;
+          }
+          // Support full-text correctAnswer: find matching option
+          if (typeof q.correctAnswer === 'string' && q.options) {
+            const found = q.options.findIndex((opt: string) => opt.toLowerCase().trim() === q.correctAnswer.toLowerCase().trim());
+            if (found !== -1) return found;
+          }
+          return 0;
+        })() : undefined,
         modelAnswer: q.type === 'OPEN' ? (q.modelAnswer || '') : undefined,
         worksheetUrl: q.worksheetUrl || '',
         worksheetLabel: q.worksheetLabel || '',
