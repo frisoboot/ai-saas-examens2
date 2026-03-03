@@ -2,7 +2,7 @@ import { Question } from '../types';
 
 /**
  * Extract the question number from a question ID.
- * ID format: Subject-Year-TTijdvak-QNumber (e.g., "Nederlands-2024-T1-Q5" → 5)
+ * ID format: Subject-Level-Year-TTijdvak-QNumber (e.g., "Nederlands-HAVO-2024-T1-Q5" → 5)
  * Falls back to Infinity so unparseable IDs sort to the end.
  */
 function extractQuestionNumber(id: string): number {
