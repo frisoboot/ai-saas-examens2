@@ -218,6 +218,8 @@ const AppContent: React.FC = () => {
       const examPdfUrl = sortedQuestions.find(q => q.examPdfUrl)?.examPdfUrl;
       // Extract bijlage PDF URL from questions (shared across all questions in one exam)
       const examBijlageUrl = sortedQuestions.find(q => q.examBijlageUrl)?.examBijlageUrl;
+      // Extract kaartboekje PDF URL from questions (shared across all questions in one exam)
+      const examKaartUrl = sortedQuestions.find(q => q.examKaartUrl)?.examKaartUrl;
 
       setCurrentExamSession({
         studentName: currentProfile.name,
@@ -230,6 +232,7 @@ const AppContent: React.FC = () => {
         timeLimit, // Time limit in minutes (0 = no limit)
         pdfUrl: examPdfUrl,
         bijlageUrl: examBijlageUrl,
+        kaartUrl: examKaartUrl,
         feedbackMode: feedbackMode || 'exam'
       });
       navigate('/exam');

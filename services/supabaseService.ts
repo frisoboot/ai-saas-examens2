@@ -63,6 +63,8 @@ interface DbQuestion {
   pdf_page?: number;
   exam_bijlage_url?: string;
   bijlage_pdf_page?: number;
+  exam_kaart_url?: string;
+  kaart_pdf_page?: number;
   created_at?: string;
   updated_at?: string;
 }
@@ -93,7 +95,9 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     examPdfUrl: dbQuestion.exam_pdf_url,
     pdfPage: dbQuestion.pdf_page,
     examBijlageUrl: dbQuestion.exam_bijlage_url,
-    bijlagePdfPage: dbQuestion.bijlage_pdf_page
+    bijlagePdfPage: dbQuestion.bijlage_pdf_page,
+    examKaartUrl: dbQuestion.exam_kaart_url,
+    kaartPdfPage: dbQuestion.kaart_pdf_page
   };
 };
 
@@ -123,7 +127,9 @@ const questionToDb = (question: Question): DbQuestion => {
     exam_pdf_url: question.examPdfUrl,
     pdf_page: question.pdfPage,
     exam_bijlage_url: question.examBijlageUrl,
-    bijlage_pdf_page: question.bijlagePdfPage
+    bijlage_pdf_page: question.bijlagePdfPage,
+    exam_kaart_url: question.examKaartUrl,
+    kaart_pdf_page: question.kaartPdfPage
   };
 };
 

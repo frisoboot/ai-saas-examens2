@@ -55,6 +55,10 @@ export interface Question {
   // Bijlage PDF (for exams with separate attachment like Binas, atlas, source booklet)
   examBijlageUrl?: string;   // URL to bijlage PDF in Supabase Storage - shared across all questions in one exam
   bijlagePdfPage?: number;   // Specific page number in the bijlage PDF to show for this question
+
+  // Kaartboekje PDF (for exams with a separate maps booklet, e.g. Aardrijkskunde)
+  examKaartUrl?: string;     // URL to kaartboekje PDF in Supabase Storage - shared across all questions in one exam
+  kaartPdfPage?: number;     // Specific page number in the kaartboekje PDF to show for this question
 }
 
 export interface Answer {
@@ -111,6 +115,9 @@ export interface ExamSession {
 
   // Bijlage PDF URL (extracted from questions for the entire exam)
   bijlageUrl?: string;
+
+  // Kaartboekje PDF URL (extracted from questions for the entire exam)
+  kaartUrl?: string;
 
   // Feedback mode: 'coach' = instant feedback after each question, 'exam' = all at the end
   feedbackMode?: FeedbackMode;
@@ -182,6 +189,10 @@ export interface BulkImportQuestion {
   // Bijlage PDF (for exams with separate attachment)
   examBijlageUrl?: string;
   bijlagePdfPage?: number;
+
+  // Kaartboekje PDF (for exams with a separate maps booklet, e.g. Aardrijkskunde)
+  examKaartUrl?: string;
+  kaartPdfPage?: number;
 }
 
 export interface ImportResult {

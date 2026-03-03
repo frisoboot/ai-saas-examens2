@@ -17,8 +17,10 @@ export const BulkImportQuestions: React.FC = () => {
   // PDF State
   const [examPdfUrl, setExamPdfUrl] = useState<string | undefined>(undefined);
   const [examBijlageUrl, setExamBijlageUrl] = useState<string | undefined>(undefined);
+  const [examKaartUrl, setExamKaartUrl] = useState<string | undefined>(undefined);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingBijlage, setUploadingBijlage] = useState(false);
+  const [uploadingKaart, setUploadingKaart] = useState(false);
 
   // Editing State
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
@@ -53,6 +55,7 @@ export const BulkImportQuestions: React.FC = () => {
       if (parsed.length > 0) {
         if (parsed[0].examPdfUrl) setExamPdfUrl(parsed[0].examPdfUrl);
         if (parsed[0].examBijlageUrl) setExamBijlageUrl(parsed[0].examBijlageUrl);
+        if (parsed[0].examKaartUrl) setExamKaartUrl(parsed[0].examKaartUrl);
       }
     } catch (err) {
       setError('Fout bij lezen van bestand');
@@ -60,29 +63,32 @@ export const BulkImportQuestions: React.FC = () => {
     }
   };
 
-  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'bijlage') => {
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'pdf' | 'bijlage' | 'kaart') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const isUploading = type === 'pdf' ? setUploadingPdf : setUploadingBijlage;
-    isUploading(true);
+    const setUploading = type === 'pdf' ? setUploadingPdf : type === 'bijlage' ? setUploadingBijlage : setUploadingKaart;
+    setUploading(true);
 
     try {
       const url = await worksheetStorage.uploadWorksheet(file);
       if (type === 'pdf') {
         setExamPdfUrl(url);
-      } else {
+      } else if (type === 'bijlage') {
         setExamBijlageUrl(url);
+      } else {
+        setExamKaartUrl(url);
       }
     } catch (err: any) {
-      setError(`Fout bij uploaden ${type === 'pdf' ? 'opdrachten PDF' : 'bijlage'}: ${err.message || 'Onbekende fout'}`);
+      const label = type === 'pdf' ? 'opdrachten PDF' : type === 'bijlage' ? 'bijlage' : 'kaartboekje';
+      setError(`Fout bij uploaden ${label}: ${err.message || 'Onbekende fout'}`);
     } finally {
-      isUploading(false);
+      setUploading(false);
     }
   };
 
-  const removePdf = async (type: 'pdf' | 'bijlage') => {
-    const url = type === 'pdf' ? examPdfUrl : examBijlageUrl;
+  const removePdf = async (type: 'pdf' | 'bijlage' | 'kaart') => {
+    const url = type === 'pdf' ? examPdfUrl : type === 'bijlage' ? examBijlageUrl : examKaartUrl;
     if (url && url.includes('/storage/v1/object/public/')) {
       try {
         await worksheetStorage.deleteWorksheet(url);
@@ -92,8 +98,10 @@ export const BulkImportQuestions: React.FC = () => {
     }
     if (type === 'pdf') {
       setExamPdfUrl(undefined);
-    } else {
+    } else if (type === 'bijlage') {
       setExamBijlageUrl(undefined);
+    } else {
+      setExamKaartUrl(undefined);
     }
   };
 
@@ -109,6 +117,7 @@ export const BulkImportQuestions: React.FC = () => {
         ...q,
         examPdfUrl: q.examPdfUrl || examPdfUrl,
         examBijlageUrl: q.examBijlageUrl || examBijlageUrl,
+        examKaartUrl: q.examKaartUrl || examKaartUrl,
       }));
       const result = await bulkImportQuestions(questionsWithPdfs);
       setImportResult(result);
@@ -121,6 +130,7 @@ export const BulkImportQuestions: React.FC = () => {
           setImportResult(null);
           setExamPdfUrl(undefined);
           setExamBijlageUrl(undefined);
+          setExamKaartUrl(undefined);
         }, 5000);
       } else if (result.failedCount > 0 && result.importedCount === 0) {
         // Alles mislukt
@@ -310,7 +320,7 @@ export const BulkImportQuestions: React.FC = () => {
           </div>
 
           {/* PDF Upload Section */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
             {/* Opdrachten PDF / Tekstboekje */}
             <div>
               <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
@@ -385,6 +395,44 @@ export const BulkImportQuestions: React.FC = () => {
                 </label>
               )}
               <p className="text-xs text-slate-500 mt-1">Teksten/bronnen. Gebruik <code className="bg-slate-200 px-1 rounded">bijlagePdfPage</code> per vraag voor de juiste pagina.</p>
+            </div>
+
+            {/* Kaartboekje PDF */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                <FileText className="w-4 h-4 text-green-600" />
+                Kaartboekje PDF
+              </label>
+              {examKaartUrl ? (
+                <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <FileText className="w-5 h-5 text-green-600 flex-shrink-0" />
+                  <span className="text-sm text-green-800 truncate flex-1">
+                    {worksheetStorage.getFileNameFromUrl(examKaartUrl)}
+                  </span>
+                  <a href={examKaartUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-green-600 hover:underline flex-shrink-0">
+                    Bekijk
+                  </a>
+                  <button
+                    onClick={() => removePdf('kaart')}
+                    className="p-1 text-red-500 hover:bg-red-100 rounded flex-shrink-0"
+                    title="Verwijder kaartboekje"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className={`flex items-center justify-center gap-2 p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                  uploadingKaart ? 'border-green-300 bg-green-50' : 'border-slate-300 hover:border-green-400 hover:bg-green-50/50'
+                }`}>
+                  {uploadingKaart ? (
+                    <><Loader2 className="w-5 h-5 animate-spin text-green-600" /><span className="text-sm text-green-600">Uploaden...</span></>
+                  ) : (
+                    <><Upload className="w-5 h-5 text-slate-400" /><span className="text-sm text-slate-500">Upload kaartboekje PDF</span></>
+                  )}
+                  <input type="file" accept=".pdf,application/pdf" className="hidden" onChange={e => handlePdfUpload(e, 'kaart')} disabled={uploadingKaart} />
+                </label>
+              )}
+              <p className="text-xs text-slate-500 mt-1">Kaartboekje (bijv. Aardrijkskunde). Gebruik <code className="bg-slate-200 px-1 rounded">kaartPdfPage</code> per vraag.</p>
             </div>
           </div>
 

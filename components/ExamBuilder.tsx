@@ -13,6 +13,7 @@ interface ExamMetadata {
   level: StudentLevel;
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
   examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
+  examKaartUrl?: string; // Kaartboekje PDF URL for the entire exam
 }
 
 interface QuestionDraft extends Partial<Question> {
@@ -59,6 +60,7 @@ interface JsonQuestion {
   requiresWorksheet?: boolean;
   pdfPage?: number;    // Page number in the exam PDF tekstboekje
   bijlagePdfPage?: number; // Page number in the bijlage PDF
+  kaartPdfPage?: number; // Page number in the kaartboekje PDF
 }
 
 interface JsonImportFormat {
@@ -68,6 +70,7 @@ interface JsonImportFormat {
   level?: StudentLevel;
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
   examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
+  examKaartUrl?: string; // Kaartboekje PDF URL for the entire exam
   questions: JsonQuestion[];
 }
 
@@ -94,6 +97,7 @@ const generateJsonTemplate = (): string => {
         "level": "VERPLICHT - Niveau: 'VMBO-TL', 'HAVO', of 'VWO' (hoofdlettergevoelig, exact deze waarden)",
         "examPdfUrl": "OPTIONEEL - URL naar een PDF met de opdrachten/tekstboekje dat bij het hele examen hoort. Wordt als split-screen naast de vragen getoond.",
         "examBijlageUrl": "OPTIONEEL - URL naar een bijlage-PDF die bij het hele examen hoort (bijv. Binas, atlas, bronnenboekje). Wordt als tab naast de opdrachten-PDF getoond.",
+        "examKaartUrl": "OPTIONEEL - URL naar een kaartboekje-PDF die bij het hele examen hoort (bijv. Aardrijkskunde kaartboekje). Wordt als aparte tab naast de andere PDFs getoond.",
         "questions": "VERPLICHT - Array van vraag-objecten (zie fieldExplanations_question)"
       },
       fieldExplanations_question: {
@@ -108,6 +112,7 @@ const generateJsonTemplate = (): string => {
         "hasImage": "OPTIONEEL - true als deze vraag een afbeelding nodig heeft maar die nog niet is toegevoegd. De vraag wordt dan gemarkeerd zodat je later de afbeelding kunt uploaden",
         "pdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in het PDF tekstboekje (examPdfUrl). Als je dit invult springt de PDF viewer automatisch naar deze pagina wanneer de leerling bij deze vraag komt. Alleen zinvol als examPdfUrl is ingevuld",
         "bijlagePdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in de bijlage-PDF (examBijlageUrl). Als je dit invult springt de bijlage-viewer naar deze pagina bij deze vraag. Alleen zinvol als examBijlageUrl is ingevuld",
+        "kaartPdfPage": "OPTIONEEL - Paginanummer (getal, 1-gebaseerd) in het kaartboekje (examKaartUrl). Als je dit invult springt de kaart-viewer naar deze pagina bij deze vraag. Alleen zinvol als examKaartUrl is ingevuld",
         "worksheetUrl": "OPTIONEEL - URL naar een bijlage (PDF of afbeelding) die specifiek bij deze ene vraag hoort, bijv. een Binas-tabel of uitwerkpapier. Anders dan examPdfUrl (dat is voor het hele examen)",
         "worksheetLabel": "OPTIONEEL - Label voor de bijlage, bijv. 'Binas-tabel 45' of 'Uitwerkpapier'. Wordt getoond in de vraag-interface",
         "requiresWorksheet": "OPTIONEEL - true als de leerling de bijlage (worksheetUrl) nodig heeft om de vraag te beantwoorden. Als true kan de leerling de vraag overslaan als ze de bijlage niet hebben"
@@ -118,6 +123,7 @@ const generateJsonTemplate = (): string => {
         with_context: "Vraag met brontekst: voeg contextText toe (wordt links van de vraag getoond)",
         with_pdf: "Examen met tekstboekje: voeg examPdfUrl toe op top-level, en optioneel pdfPage per vraag",
         with_bijlage: "Examen met bijlage: voeg examBijlageUrl toe op top-level, en optioneel bijlagePdfPage per vraag",
+        with_kaart: "Examen met kaartboekje (Aardrijkskunde): voeg examKaartUrl toe op top-level, en optioneel kaartPdfPage per vraag",
         with_image: "Vraag met afbeelding: voeg imageUrl toe (base64 of URL), of zet hasImage=true om later toe te voegen"
       }
     },
@@ -128,6 +134,7 @@ const generateJsonTemplate = (): string => {
     level: "HAVO",
     examPdfUrl: "",
     examBijlageUrl: "",
+    examKaartUrl: "",
 
     questions: [
       {
@@ -496,6 +503,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       if (data.examBijlageUrl) {
         setExamMeta(prev => ({ ...prev, examBijlageUrl: data.examBijlageUrl }));
       }
+      // Import kaartboekje PDF URL if provided
+      if (data.examKaartUrl) {
+        setExamMeta(prev => ({ ...prev, examKaartUrl: data.examKaartUrl }));
+      }
 
       // Convert JSON questions to QuestionDraft format
       const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
@@ -513,7 +524,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         worksheetLabel: q.worksheetLabel || '',
         requiresWorksheet: q.requiresWorksheet || false,
         pdfPage: q.pdfPage,
-        bijlagePdfPage: q.bijlagePdfPage
+        bijlagePdfPage: q.bijlagePdfPage,
+        kaartPdfPage: q.kaartPdfPage
       }));
 
       // Add to existing questions
@@ -670,6 +682,8 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           pdfPage: draft.pdfPage,
           examBijlageUrl: examMeta.examBijlageUrl,
           bijlagePdfPage: draft.bijlagePdfPage,
+          examKaartUrl: examMeta.examKaartUrl,
+          kaartPdfPage: draft.kaartPdfPage,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -1186,6 +1200,64 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                           showNotification('success', 'Bijlage geüpload');
                         } catch (error) {
                           showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden bijlage PDF');
+                        }
+                      }}
+                      className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                    />
+                  )}
+                </div>
+
+                {/* Kaartboekje PDF Upload */}
+                <div className="pt-4 border-t">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <FileDown className="w-4 h-4 inline mr-1" />
+                    Kaartboekje PDF (optioneel)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload een kaartboekje-PDF voor het hele examen (bijv. Aardrijkskunde kaartboekje)
+                  </p>
+                  {examMeta.examKaartUrl ? (
+                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <FileDown className="w-5 h-5 text-green-600" />
+                          <span className="text-sm font-medium text-green-900">Kaartboekje geüpload</span>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (examMeta.examKaartUrl && examMeta.examKaartUrl.includes('/storage/v1/object/public/')) {
+                              await worksheetStorage.deleteWorksheet(examMeta.examKaartUrl);
+                            }
+                            setExamMeta({ ...examMeta, examKaartUrl: undefined });
+                            showNotification('info', 'Kaartboekje verwijderd');
+                          }}
+                          className="p-1 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <a
+                        href={examMeta.examKaartUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-green-600 hover:underline mt-1 block truncate"
+                      >
+                        Bekijk kaartboekje
+                      </a>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const url = await worksheetStorage.uploadWorksheet(file);
+                          setExamMeta({ ...examMeta, examKaartUrl: url });
+                          showNotification('success', 'Kaartboekje geüpload');
+                        } catch (error) {
+                          showNotification('error', error instanceof Error ? error.message : 'Fout bij uploaden kaartboekje PDF');
                         }
                       }}
                       className="w-full p-2 border border-gray-300 rounded-lg text-sm"
