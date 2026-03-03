@@ -2,6 +2,14 @@ import { Question, BulkImportQuestion, ImportResult, ImportError, StudentLevel, 
 import { saveQuestion } from './storageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
+// Normalize level to correct casing (havo → HAVO, vwo → VWO, vmbo-tl → VMBO-TL)
+const normalizeLevel = (value: string | undefined | null): StudentLevel | undefined => {
+  if (!value) return undefined;
+  const upper = value.trim().toUpperCase();
+  if (['VMBO-TL', 'HAVO', 'VWO'].includes(upper)) return upper as StudentLevel;
+  return value.trim() as StudentLevel; // return as-is; validation will catch truly invalid values
+};
+
 // Validate a single question
 const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => {
   const errors: ImportError[] = [];
@@ -165,10 +173,10 @@ export const parseCSV = (csvText: string): BulkImportQuestion[] => {
           break;
         case 'level':
         case 'niveau':
-          question.level = value as StudentLevel;
+          question.level = normalizeLevel(value);
           break;
         case 'type':
-          question.type = value as QuestionType;
+          question.type = value?.trim().toUpperCase() as QuestionType;
           break;
         case 'text':
         case 'vraag':
@@ -254,7 +262,11 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
 
     // Case 1: Direct array of questions
     if (Array.isArray(data)) {
-      return data as BulkImportQuestion[];
+      return data.map((q: any) => ({
+        ...q,
+        level: normalizeLevel(q.level),
+        type: q.type?.toUpperCase() as QuestionType,
+      })) as BulkImportQuestion[];
     }
 
     // Case 2: Object with questions array (common exam format)
@@ -263,7 +275,7 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
       const metadata: Partial<BulkImportQuestion> = {};
 
       if (data.subject) metadata.subject = data.subject;
-      if (data.level) metadata.level = data.level as StudentLevel;
+      if (data.level) metadata.level = normalizeLevel(data.level);
       if (data.year || data.examYear) metadata.examYear = data.year || data.examYear;
       if (data.source) metadata.source = data.source;
       if (data.examPdfUrl) metadata.examPdfUrl = data.examPdfUrl;
@@ -278,8 +290,8 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
         correctAnswer: q.correctAnswer || (q.correctIndex !== undefined && q.options ? q.options[q.correctIndex] : undefined),
         // Ensure type is uppercase
         type: q.type?.toUpperCase() as QuestionType || metadata.type,
-        // Ensure level is correct format
-        level: (q.level || metadata.level) as StudentLevel,
+        // Ensure level is correct format (normalizes havo→HAVO, vwo→VWO, vmbo-tl→VMBO-TL)
+        level: normalizeLevel(q.level) || normalizeLevel(metadata.level as string),
       })) as BulkImportQuestion[];
     }
 
