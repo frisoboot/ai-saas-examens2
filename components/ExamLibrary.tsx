@@ -14,7 +14,8 @@ import {
   Search,
   RefreshCw,
   BookOpen,
-  Paperclip
+  Paperclip,
+  AlertCircle
 } from 'lucide-react';
 import { SUBJECTS } from '../constants/subjects';
 
@@ -221,6 +222,9 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
   };
 
   const totalQuestions = groupedData.reduce((sum, g) => sum + g.totalQuestions, 0);
+  const hiddenQuestionsCount = selectedLevel !== 'ALL'
+    ? questions.filter(q => q.level !== selectedLevel).length
+    : 0;
 
   if (loading) {
     return (
@@ -273,11 +277,34 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
         </Button>
       </div>
 
+      {/* Filter banner: toon wanneer niveau-filter actief is */}
+      {selectedLevel !== 'ALL' && hiddenQuestionsCount > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-6 flex items-center gap-2 text-sm text-amber-800">
+          <AlertCircle className="w-4 h-4 flex-shrink-0 text-amber-600" />
+          <span>
+            Filter actief: je ziet alleen <strong>{selectedLevel}</strong> vragen.{' '}
+            <strong>{hiddenQuestionsCount}</strong> {hiddenQuestionsCount === 1 ? 'vraag' : 'vragen'} op andere niveaus {hiddenQuestionsCount === 1 ? 'is' : 'zijn'} verborgen.{' '}
+            <button
+              onClick={() => setSelectedLevel('ALL')}
+              className="underline font-semibold hover:text-amber-900 transition-colors"
+            >
+              Toon alle niveaus
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
-          <div className="text-2xl font-bold text-slate-900">{totalQuestions}</div>
-          <div className="text-sm text-slate-500">Totaal vragen</div>
+          <div className="text-2xl font-bold text-slate-900">
+            {selectedLevel !== 'ALL' ? (
+              <span>{totalQuestions} <span className="text-base font-normal text-slate-400">/ {questions.length}</span></span>
+            ) : totalQuestions}
+          </div>
+          <div className="text-sm text-slate-500">
+            {selectedLevel !== 'ALL' ? `${selectedLevel} vragen` : 'Totaal vragen'}
+          </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <div className="text-2xl font-bold text-indigo-600">{groupedData.length}</div>
