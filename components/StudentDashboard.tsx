@@ -54,20 +54,21 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
     loadQuestions();
   }, []);
 
-  // Get unique exam counts per subject (count distinct examYears, not individual questions)
+  // Get unique exam counts per subject (count distinct year+tijdvak combinations)
   const examCounts = useMemo(() => {
-    const examYearsPerSubject = new Map<string, Set<number>>();
+    const examsPerSubject = new Map<string, Set<string>>();
     questions
       .filter(q => q.level === student.level && q.examYear) // Only count exam questions
       .forEach(q => {
-        if (!examYearsPerSubject.has(q.subject)) {
-          examYearsPerSubject.set(q.subject, new Set());
+        if (!examsPerSubject.has(q.subject)) {
+          examsPerSubject.set(q.subject, new Set());
         }
-        examYearsPerSubject.get(q.subject)!.add(q.examYear!);
+        const tijdvak = q.tijdvak || 1;
+        examsPerSubject.get(q.subject)!.add(`${q.examYear}-${tijdvak}`);
       });
     const map = new Map<string, number>();
-    examYearsPerSubject.forEach((years, subject) => {
-      map.set(subject, years.size);
+    examsPerSubject.forEach((exams, subject) => {
+      map.set(subject, exams.size);
     });
     return map;
   }, [questions, student.level]);
