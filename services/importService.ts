@@ -81,14 +81,26 @@ const validateQuestion = (q: BulkImportQuestion, row: number): ImportError[] => 
 // Counter to prevent ID collisions during bulk imports
 let importCounter = 0;
 
-const convertToQuestion = (q: BulkImportQuestion): Question => {
+const convertToQuestion = (q: BulkImportQuestion, questionIndex: number): Question => {
   // Fix: Use counter to prevent ID collisions during rapid bulk imports
   const timestamp = Date.now();
   const random = Math.random().toString(36).substr(2, 9);
   const counter = importCounter++;
 
+  // Generate structured ID if tijdvak is available (matches ExamBuilder format)
+  let questionId: string;
+  if (q.tijdvak && q.subject && q.level && q.examYear) {
+    const questionNumber = questionIndex + 1;
+    questionId = `${q.subject}-${q.level}-${q.examYear}-T${q.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
+  } else {
+    questionId = `${timestamp}-${counter}-${random}`;
+  }
+
+  // Generate source with tijdvak if available and no explicit source set
+  const source = q.source || (q.tijdvak && q.examYear ? `Examen ${q.examYear} Tijdvak ${q.tijdvak}` : undefined);
+
   const question: Question = {
-    id: `${timestamp}-${counter}-${random}`,
+    id: questionId,
     type: q.type,
     subject: q.subject,
     level: q.level,
@@ -97,7 +109,7 @@ const convertToQuestion = (q: BulkImportQuestion): Question => {
     examType: q.examYear ? 'official_exam' : 'practice',
     contextText: q.contextText,
     imageUrl: q.imageUrl,
-    source: q.source,
+    source: source,
     score: q.score,
     section: q.section,
     sectionIntro: q.sectionIntro,
@@ -207,6 +219,10 @@ export const parseCSV = (csvText: string): BulkImportQuestion[] => {
         case 'answer':
           question.modelAnswer = value;
           break;
+        case 'tijdvak':
+        case 'period':
+          question.tijdvak = value ? parseInt(value) : undefined;
+          break;
         case 'section':
         case 'sectie':
           question.section = value;
@@ -265,6 +281,7 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
       if (data.subject) metadata.subject = data.subject;
       if (data.level) metadata.level = data.level as StudentLevel;
       if (data.year || data.examYear) metadata.examYear = data.year || data.examYear;
+      if (data.tijdvak && [1, 2, 3].includes(data.tijdvak)) metadata.tijdvak = data.tijdvak;
       if (data.source) metadata.source = data.source;
       if (data.examPdfUrl) metadata.examPdfUrl = data.examPdfUrl;
       if (data.examBijlageUrl) metadata.examBijlageUrl = data.examBijlageUrl;
@@ -315,7 +332,7 @@ export const bulkImportQuestions = async (
     }
 
     try {
-      const question = convertToQuestion(q);
+      const question = convertToQuestion(q, i);
       await saveQuestion(question);
       importedCount++;
     } catch (error) {
