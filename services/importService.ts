@@ -88,9 +88,10 @@ const convertToQuestion = (q: BulkImportQuestion, questionIndex: number): Questi
   const counter = importCounter++;
 
   // Generate structured ID if tijdvak is available (matches ExamBuilder format)
+  // Use questionNumber from the data if available, otherwise fall back to import index
   let questionId: string;
   if (q.tijdvak && q.subject && q.level && q.examYear) {
-    const questionNumber = questionIndex + 1;
+    const questionNumber = q.questionNumber || (questionIndex + 1);
     questionId = `${q.subject}-${q.level}-${q.examYear}-T${q.tijdvak}-Q${questionNumber}`.replace(/\s+/g, '-');
   } else {
     questionId = `${timestamp}-${counter}-${random}`;

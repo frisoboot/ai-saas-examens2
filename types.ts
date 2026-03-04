@@ -180,6 +180,7 @@ export interface BulkImportQuestion {
   worksheetLabel?: string;
   requiresWorksheet?: boolean;
   tijdvak?: number; // Exam period: 1 (eerste tijdvak), 2 (tweede tijdvak), 3 (herkansing)
+  questionNumber?: number; // Question number within the exam (used for ID generation)
   section?: string;
   sectionIntro?: string;
 
