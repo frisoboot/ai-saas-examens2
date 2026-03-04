@@ -54,6 +54,7 @@ CREATE TABLE questions (
   score INTEGER,          -- Points for this question
   exam_year INTEGER,
   exam_type TEXT CHECK (exam_type IN ('practice', 'official_exam')),
+  tijdvak INTEGER CHECK (tijdvak IN (1, 2, 3)),  -- Exam period: 1=eerste tijdvak, 2=tweede tijdvak, 3=herkansing
   worksheet_url TEXT,           -- URL to PDF/image in Storage
   worksheet_label TEXT,         -- Label like "Binas-tabel 45"
   requires_worksheet BOOLEAN DEFAULT false,  -- If true, student can skip

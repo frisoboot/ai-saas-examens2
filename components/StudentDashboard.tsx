@@ -12,7 +12,7 @@ import { StudentDifficultyOverview } from './StudentDifficultyOverview';
 
 interface StudentDashboardProps {
   student: StudentProfile;
-  onStartExam: (subject: string, year?: number, timeLimit?: number, feedbackMode?: FeedbackMode) => void;
+  onStartExam: (subject: string, year?: number, timeLimit?: number, feedbackMode?: FeedbackMode, tijdvak?: number) => void;
   onStartChat: (subject: string) => void;
   onStartFlashcards: (subject: string, count: number, topic?: string) => void;
   onStartLookalikeExam: (subject: string, count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
@@ -102,7 +102,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
         student={student}
         onBack={() => setSelectedSubject(null)}
         onStartChat={() => onStartChat(selectedSubject)}
-        onStartExam={(year, timeLimit, feedbackMode) => onStartExam(selectedSubject, year, timeLimit, feedbackMode)}
+        onStartExam={(year, timeLimit, feedbackMode, tijdvak) => onStartExam(selectedSubject, year, timeLimit, feedbackMode, tijdvak)}
         onStartFlashcards={(count, topic) => onStartFlashcards(selectedSubject, count, topic)}
         onStartLookalikeExam={(count, topic, examStyle, timeLimit) =>
           onStartLookalikeExam(selectedSubject, count, topic, examStyle, timeLimit)

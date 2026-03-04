@@ -54,6 +54,7 @@ interface DbQuestion {
   score?: number;
   exam_year?: number;
   exam_type?: 'practice' | 'official_exam';
+  tijdvak?: number;
   worksheet_url?: string;
   worksheet_label?: string;
   requires_worksheet?: boolean;
@@ -87,6 +88,7 @@ const dbToQuestion = (dbQuestion: DbQuestion): Question => {
     score: dbQuestion.score,
     examYear: dbQuestion.exam_year,
     examType: dbQuestion.exam_type,
+    tijdvak: dbQuestion.tijdvak,
     worksheetUrl: dbQuestion.worksheet_url,
     worksheetLabel: dbQuestion.worksheet_label,
     requiresWorksheet: dbQuestion.requires_worksheet,
@@ -119,6 +121,7 @@ const questionToDb = (question: Question): DbQuestion => {
     score: question.score,
     exam_year: question.examYear,
     exam_type: question.examType,
+    tijdvak: question.tijdvak,
     worksheet_url: question.worksheetUrl,
     worksheet_label: question.worksheetLabel,
     requires_worksheet: question.requiresWorksheet,

@@ -22,9 +22,20 @@ interface ExamLibraryProps {
   onEditQuestion?: (question: Question) => void;
 }
 
+interface TijdvakGroup {
+  tijdvak: number;
+  questions: Question[];
+  byLevel: {
+    'VMBO-TL': Question[];
+    'HAVO': Question[];
+    'VWO': Question[];
+  };
+}
+
 interface YearGroup {
   year: number;
   questions: Question[];
+  tijdvakken: TijdvakGroup[];
   byLevel: {
     'VMBO-TL': Question[];
     'HAVO': Question[];
@@ -125,6 +136,29 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
       }
     });
 
+    // Helper to create tijdvak groups from a list of questions
+    const createTijdvakGroups = (qs: Question[]): TijdvakGroup[] => {
+      const tvMap = new Map<number, Question[]>();
+      qs.forEach(q => {
+        const tv = q.tijdvak || 1;
+        const list = tvMap.get(tv) || [];
+        list.push(q);
+        tvMap.set(tv, list);
+      });
+      return [...tvMap.keys()].sort((a, b) => a - b).map(tv => {
+        const tvQuestions = tvMap.get(tv)!;
+        return {
+          tijdvak: tv,
+          questions: tvQuestions,
+          byLevel: {
+            'VMBO-TL': tvQuestions.filter(q => q.level === 'VMBO-TL'),
+            'HAVO': tvQuestions.filter(q => q.level === 'HAVO'),
+            'VWO': tvQuestions.filter(q => q.level === 'VWO'),
+          }
+        };
+      });
+    };
+
     // Sorteer jaren (nieuwste eerst)
     const years: YearGroup[] = [];
     const sortedYears = [...yearMap.keys()].sort((a, b) => b - a);
@@ -134,6 +168,7 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
       years.push({
         year,
         questions: yearQuestions,
+        tijdvakken: createTijdvakGroups(yearQuestions),
         byLevel: {
           'VMBO-TL': yearQuestions.filter(q => q.level === 'VMBO-TL'),
           'HAVO': yearQuestions.filter(q => q.level === 'HAVO'),
@@ -147,6 +182,7 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
       years.push({
         year: 0, // 0 = geen jaar
         questions: noYear,
+        tijdvakken: createTijdvakGroups(noYear),
         byLevel: {
           'VMBO-TL': noYear.filter(q => q.level === 'VMBO-TL'),
           'HAVO': noYear.filter(q => q.level === 'HAVO'),
@@ -361,6 +397,17 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
                             )}
                             <Calendar className="w-4 h-4 text-green-500" />
                             <span className="font-medium text-slate-700 flex-1">{yearLabel}</span>
+
+                            {/* Tijdvak badges */}
+                            {yearGroup.tijdvakken.length > 1 && (
+                              <div className="flex gap-1 mr-2">
+                                {yearGroup.tijdvakken.map(tv => (
+                                  <span key={tv.tijdvak} className="text-xs font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-100">
+                                    T{tv.tijdvak}: {tv.questions.length}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
 
                             {/* Level badges */}
                             <div className="flex gap-2">

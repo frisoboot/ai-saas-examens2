@@ -202,3 +202,53 @@ export const getQuestionsBySubjectAndYear = async (
     (!level || q.level === level)
   );
 };
+
+// ============================================================================
+// TIJDVAK-AWARE FUNCTIONS
+// ============================================================================
+
+export interface YearTijdvakInfo {
+  year: number;
+  tijdvakken: number[]; // Available tijdvakken for this year (e.g. [1, 2])
+  questionCounts: Map<number, number>; // tijdvak -> question count
+}
+
+/**
+ * Get available years with their tijdvakken for a specific subject and level
+ */
+export const getAvailableYearsWithTijdvakken = async (
+  subject: string,
+  level?: StudentLevel
+): Promise<YearTijdvakInfo[]> => {
+  const questions = await getQuestions();
+  const filtered = questions.filter(q =>
+    q.subject === subject &&
+    q.examYear !== undefined &&
+    q.examYear !== null &&
+    (!level || q.level === level)
+  );
+
+  // Group by year, then by tijdvak
+  const yearMap = new Map<number, Map<number, number>>();
+  for (const q of filtered) {
+    const year = q.examYear!;
+    const tijdvak = q.tijdvak || 1; // Default to tijdvak 1 if not set
+    if (!yearMap.has(year)) {
+      yearMap.set(year, new Map());
+    }
+    const tvMap = yearMap.get(year)!;
+    tvMap.set(tijdvak, (tvMap.get(tijdvak) || 0) + 1);
+  }
+
+  // Convert to sorted array
+  const result: YearTijdvakInfo[] = [];
+  for (const [year, tvMap] of yearMap) {
+    result.push({
+      year,
+      tijdvakken: [...tvMap.keys()].sort((a, b) => a - b),
+      questionCounts: tvMap,
+    });
+  }
+
+  return result.sort((a, b) => b.year - a.year);
+};
