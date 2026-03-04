@@ -108,6 +108,7 @@ const convertToQuestion = (q: BulkImportQuestion, questionIndex: number): Questi
     text: q.text,
     examYear: q.examYear,
     examType: q.examYear ? 'official_exam' : 'practice',
+    tijdvak: q.tijdvak,
     contextText: q.contextText,
     imageUrl: q.imageUrl,
     source: source,

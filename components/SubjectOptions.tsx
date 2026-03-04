@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from './Button';
 import { ArrowLeft, MessageCircle, Sparkles, Calendar, Layers, GraduationCap, Clock, Eye, ClipboardCheck } from 'lucide-react';
 import { StudentProfile, FeedbackMode } from '../types';
-import { getAvailableYearsForSubject, getQuestionCountBySubjectAndYear } from '../services/storageService';
+import { getAvailableYearsWithTijdvakken, YearTijdvakInfo } from '../services/storageService';
 import { FlashcardGeneratorMenu } from './FlashcardGeneratorMenu';
 import { LookalikeGeneratorMenu } from './LookalikeGeneratorMenu';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
@@ -12,7 +12,7 @@ interface SubjectOptionsProps {
   student: StudentProfile;
   onBack: () => void;
   onStartChat: () => void;
-  onStartExam: (year?: number, timeLimit?: number, feedbackMode?: FeedbackMode) => void;
+  onStartExam: (year?: number, timeLimit?: number, feedbackMode?: FeedbackMode, tijdvak?: number) => void;
   onStartFlashcards: (count: number, topic?: string) => void;
   onStartLookalikeExam: (count: number, topic?: string, examStyle?: string, timeLimit?: number) => void;
 }
@@ -26,8 +26,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   onStartFlashcards,
   onStartLookalikeExam
 }) => {
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
-  const [yearCounts, setYearCounts] = useState<Map<number, number>>(new Map());
+  const [yearTijdvakken, setYearTijdvakken] = useState<YearTijdvakInfo[]>([]);
   const [view, setView] = useState<'default' | 'flashcard-setup' | 'lookalike-setup'>('default');
   const [examTimeLimit, setExamTimeLimit] = useState<number>(0);
   const [showTimerOptions, setShowTimerOptions] = useState(false);
@@ -46,20 +45,11 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
   useEffect(() => {
     const loadYears = async () => {
       try {
-        // Get years only for this specific subject and level
-        const years = await getAvailableYearsForSubject(subject, student.level);
-        setAvailableYears(years);
-
-        // Load question counts per year for this subject
-        const counts = new Map<number, number>();
-        for (const year of years) {
-          const count = await getQuestionCountBySubjectAndYear(subject, year, student.level);
-          counts.set(year, count);
-        }
-        setYearCounts(counts);
+        const data = await getAvailableYearsWithTijdvakken(subject, student.level);
+        setYearTijdvakken(data);
       } catch (error) {
         console.error('Fout bij ophalen examenjaren:', error);
-        setAvailableYears([]);
+        setYearTijdvakken([]);
       }
     };
     loadYears();
@@ -210,7 +200,7 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
               </div>
             </div>
 
-            {availableYears.length === 0 ? (
+            {yearTijdvakken.length === 0 ? (
               <div className="bg-slate-50 rounded-2xl p-6 text-center border border-slate-200">
                 <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-100 flex items-center justify-center">
                   <Calendar className="w-6 h-6 text-slate-400" />
@@ -327,41 +317,61 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                   Beschikbare Examens
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {availableYears.map(year => (
-                    <button
-                      key={year}
-                      onClick={() => onStartExam(year, examTimeLimit, feedbackMode)}
-                      className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-6 h-6 rounded-lg bg-green-50 text-green-600 flex items-center justify-center transition-colors">
-                          <Calendar className="w-3.5 h-3.5" />
-                        </div>
-                        <span className="font-bold text-base text-slate-900">
-                          {year}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-slate-500 font-medium">
-                          {yearCounts.get(year) || 0} vragen
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {feedbackMode === 'coach' && (
-                            <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
-                              <Eye className="w-3 h-3" />
-                              Coach
+                  {yearTijdvakken.flatMap(yearInfo =>
+                    yearInfo.tijdvakken.map(tijdvak => {
+                      const questionCount = yearInfo.questionCounts.get(tijdvak) || 0;
+                      const hasMulipleTijdvakken = yearInfo.tijdvakken.length > 1;
+                      const tijdvakLabel = tijdvak === 3 ? 'Herkansing' : `Tijdvak ${tijdvak}`;
+
+                      return (
+                        <button
+                          key={`${yearInfo.year}-T${tijdvak}`}
+                          onClick={() => onStartExam(yearInfo.year, examTimeLimit, feedbackMode, tijdvak)}
+                          className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-green-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="w-6 h-6 rounded-lg bg-green-50 text-green-600 flex items-center justify-center transition-colors">
+                              <Calendar className="w-3.5 h-3.5" />
+                            </div>
+                            <span className="font-bold text-base text-slate-900">
+                              {yearInfo.year}
                             </span>
-                          )}
-                          {examTimeLimit > 0 && (
-                            <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {examTimeLimit === 150 ? '2,5u' : '3u'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </button>
-                  ))}
+                            {hasMulipleTijdvakken && (
+                              <span className="text-xs font-semibold px-1.5 py-0.5 rounded bg-green-50 text-green-700">
+                                T{tijdvak}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex flex-col">
+                              {hasMulipleTijdvakken && (
+                                <span className="text-xs text-green-600 font-medium">
+                                  {tijdvakLabel}
+                                </span>
+                              )}
+                              <span className="text-xs text-slate-500 font-medium">
+                                {questionCount} vragen
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {feedbackMode === 'coach' && (
+                                <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
+                                  <Eye className="w-3 h-3" />
+                                  Coach
+                                </span>
+                              )}
+                              {examTimeLimit > 0 && (
+                                <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {examTimeLimit === 150 ? '2,5u' : '3u'}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })
+                  )}
 
                   {/* Random exam option */}
                   <button

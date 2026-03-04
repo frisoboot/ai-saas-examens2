@@ -20,6 +20,7 @@ export interface Question {
   // Year-based exam fields
   examYear?: number; // e.g., 2024, 2023, null for practice questions
   examType?: ExamType; // 'practice' or 'official_exam'
+  tijdvak?: number; // Exam period: 1 (eerste tijdvak), 2 (tweede tijdvak), 3 (herkansing)
 
   // For context/reading comprehension
   contextText?: string;
