@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
+import { CheckCircle, Home, ChevronLeft, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { examMarkdownComponents, examRemarkPlugins } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
@@ -52,6 +52,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [showingCoachFeedback, setShowingCoachFeedback] = useState(false);
   const [coachGradingOpen, setCoachGradingOpen] = useState(false);
   const isCoachMode = initialSession.feedbackMode === 'coach';
+
+  // Track which questions have been checked in coach mode
+  const [coachCheckedQuestions, setCoachCheckedQuestions] = useState<Set<string>>(new Set());
 
   // Image zoom state
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
@@ -104,8 +107,12 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       const existingAns = session.answers[currentQuestion.id];
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
     }
-    // Reset coach feedback when navigating to a new question
-    setShowingCoachFeedback(false);
+    // Auto-show feedback for already-checked questions in coach mode, reset for unchecked
+    if (isCoachMode && coachCheckedQuestions.has(currentQuestion.id)) {
+      setShowingCoachFeedback(true);
+    } else {
+      setShowingCoachFeedback(false);
+    }
   }, [activeQuestionIdx, currentQuestion]);
 
   // Close zoomed image on ESC key
@@ -189,6 +196,12 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
 
     setShowingCoachFeedback(true);
+    setCoachCheckedQuestions(prev => new Set(prev).add(currentQuestion.id));
+
+    // Skip re-grading if this question was already graded (e.g. after navigating back)
+    if (currentQuestion.id in openQuestionGrades || (currentQuestion.type === 'MULTIPLE_CHOICE' && coachCheckedQuestions.has(currentQuestion.id))) {
+      return;
+    }
 
     // Grade open questions with AI
     if (currentQuestion.type === 'OPEN') {
@@ -219,6 +232,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       finishExam();
     } else {
       setActiveQuestionIdx(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (activeQuestionIdx > 0) {
+      // Save current open answer before navigating back
+      if (currentQuestion.type === 'OPEN') {
+        handleSelectAnswer(openAnswerInput);
+      }
+      setActiveQuestionIdx(prev => prev - 1);
     }
   };
 
@@ -1137,6 +1160,17 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
             <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3">
+                {activeQuestionIdx > 0 && (
+                  <Button
+                    onClick={handlePrevious}
+                    disabled={coachGradingOpen}
+                    variant="secondary"
+                    size="lg"
+                    className="pr-5"
+                  >
+                    <ChevronLeft className="w-5 h-5 mr-1" />Terug
+                  </Button>
+                )}
                 <div className="text-xs text-slate-400 max-w-[200px] truncate">
                   {currentQuestion.source && `Bron: ${currentQuestion.source}`}
                 </div>
