@@ -190,6 +190,11 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
     setShowingCoachFeedback(true);
 
+    // Skip re-grading if this question was already graded (e.g. after navigating back)
+    if (currentQuestion.id in openQuestionGrades || (currentQuestion.type === 'MULTIPLE_CHOICE')) {
+      return;
+    }
+
     // Grade open questions with AI
     if (currentQuestion.type === 'OPEN') {
       if (!openAnswerInput.trim()) {
@@ -1151,6 +1156,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                 {activeQuestionIdx > 0 && (
                   <Button
                     onClick={handlePrevious}
+                    disabled={coachGradingOpen}
                     variant="secondary"
                     size="lg"
                     className="pr-5"
