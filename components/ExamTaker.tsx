@@ -53,6 +53,9 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
   const [coachGradingOpen, setCoachGradingOpen] = useState(false);
   const isCoachMode = initialSession.feedbackMode === 'coach';
 
+  // Track which questions have been checked in coach mode
+  const [coachCheckedQuestions, setCoachCheckedQuestions] = useState<Set<string>>(new Set());
+
   // Image zoom state
   const [zoomedImageUrl, setZoomedImageUrl] = useState<string | null>(null);
 
@@ -104,8 +107,12 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       const existingAns = session.answers[currentQuestion.id];
       setOpenAnswerInput(typeof existingAns === 'string' ? existingAns : '');
     }
-    // Reset coach feedback when navigating to a new question
-    setShowingCoachFeedback(false);
+    // Auto-show feedback for already-checked questions in coach mode, reset for unchecked
+    if (isCoachMode && coachCheckedQuestions.has(currentQuestion.id)) {
+      setShowingCoachFeedback(true);
+    } else {
+      setShowingCoachFeedback(false);
+    }
   }, [activeQuestionIdx, currentQuestion]);
 
   // Close zoomed image on ESC key
@@ -189,9 +196,10 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     }
 
     setShowingCoachFeedback(true);
+    setCoachCheckedQuestions(prev => new Set(prev).add(currentQuestion.id));
 
     // Skip re-grading if this question was already graded (e.g. after navigating back)
-    if (currentQuestion.id in openQuestionGrades || (currentQuestion.type === 'MULTIPLE_CHOICE')) {
+    if (currentQuestion.id in openQuestionGrades || (currentQuestion.type === 'MULTIPLE_CHOICE' && coachCheckedQuestions.has(currentQuestion.id))) {
       return;
     }
 
@@ -233,7 +241,6 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       if (currentQuestion.type === 'OPEN') {
         handleSelectAnswer(openAnswerInput);
       }
-      setShowingCoachFeedback(false);
       setActiveQuestionIdx(prev => prev - 1);
     }
   };
