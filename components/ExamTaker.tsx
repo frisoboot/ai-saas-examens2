@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
+import { CheckCircle, Home, ChevronLeft, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { examMarkdownComponents, examRemarkPlugins } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
@@ -219,6 +219,17 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       finishExam();
     } else {
       setActiveQuestionIdx(prev => prev + 1);
+    }
+  };
+
+  const handlePrevious = () => {
+    if (activeQuestionIdx > 0) {
+      // Save current open answer before navigating back
+      if (currentQuestion.type === 'OPEN') {
+        handleSelectAnswer(openAnswerInput);
+      }
+      setShowingCoachFeedback(false);
+      setActiveQuestionIdx(prev => prev - 1);
     }
   };
 
@@ -1137,6 +1148,16 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
             <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
               <div className="flex items-center gap-3">
+                {activeQuestionIdx > 0 && (
+                  <Button
+                    onClick={handlePrevious}
+                    variant="secondary"
+                    size="lg"
+                    className="pr-5"
+                  >
+                    <ChevronLeft className="w-5 h-5 mr-1" />Terug
+                  </Button>
+                )}
                 <div className="text-xs text-slate-400 max-w-[200px] truncate">
                   {currentQuestion.source && `Bron: ${currentQuestion.source}`}
                 </div>
