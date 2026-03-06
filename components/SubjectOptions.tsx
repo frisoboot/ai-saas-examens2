@@ -373,39 +373,6 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                     })
                   )}
 
-                  {/* Random exam option */}
-                  <button
-                    onClick={() => onStartExam(undefined, examTimeLimit, feedbackMode)}
-                    className="group bg-white rounded-xl p-4 border border-slate-200/60 hover:border-indigo-500/30 shadow-[0_2px_8px_rgba(0,0,0,0.04)] hover:shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-300 text-left hover:scale-105 active:scale-95"
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center transition-all">
-                        <Sparkles className="w-3.5 h-3.5" />
-                      </div>
-                      <span className="font-bold text-base text-slate-900">
-                        Mix
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-slate-500 font-medium">
-                        Alle jaren
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {feedbackMode === 'coach' && (
-                          <span className="text-xs text-indigo-600 font-medium flex items-center gap-1">
-                            <Eye className="w-3 h-3" />
-                            Coach
-                          </span>
-                        )}
-                        {examTimeLimit > 0 && (
-                          <span className="text-xs text-amber-600 font-medium flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {examTimeLimit === 150 ? '2,5u' : '3u'}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </button>
                 </div>
               </div>
             )}
