@@ -21,8 +21,9 @@ import { SubscriptionSettings } from './components/SubscriptionSettings';
 import { FeedbackPage } from './components/FeedbackPage';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
+import { ActivationCodeForm } from './components/ActivationCodeForm';
 import { LoadingScreen } from './components/LoadingScreen';
-import { XCircle, RefreshCw, LogOut } from 'lucide-react';
+import { XCircle, RefreshCw, LogOut, KeyRound } from 'lucide-react';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -109,6 +110,13 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
               className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
             >
               Opnieuw abonneren
+            </button>
+            <button
+              onClick={() => navigate('/activate')}
+              className="w-full px-4 py-3 bg-white text-indigo-600 border border-indigo-200 rounded-xl font-medium hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <KeyRound className="w-4 h-4" />
+              Activatiecode invoeren
             </button>
             <button
               onClick={() => navigate('/settings')}
@@ -524,6 +532,16 @@ const AppContent: React.FC = () => {
             <SubscriptionSettings
               userEmail={user?.email || ''}
               onBack={() => navigate('/dashboard')}
+            />
+          </ProtectedRoute>
+        } />
+
+        {/* Activatiecode - alleen auth check, geen subscription check nodig */}
+        <Route path="/activate" element={
+          <ProtectedRoute>
+            <ActivationCodeForm
+              onBack={() => navigate(-1)}
+              onSuccess={() => navigate('/dashboard')}
             />
           </ProtectedRoute>
         } />

@@ -407,6 +407,11 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                 <br />
                 {currentPlan.disclaimer}
               </p>
+
+              <p className="text-center text-sm text-gray-500 mt-4">
+                Heb je een activatiecode?{' '}
+                <a href="/activate" className="text-indigo-600 hover:underline font-medium">Voer deze hier in</a>
+              </p>
             </form>
           )}
 

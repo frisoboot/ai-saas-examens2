@@ -8,7 +8,8 @@ import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
 import { ImageOverview } from './ImageOverview';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound } from 'lucide-react';
+import { AdminActivationCodes } from './AdminActivationCodes';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images';
+type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images' | 'activation-codes';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('library');
@@ -345,6 +346,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
             <ImageIcon className="w-4 h-4" />
             Afbeeldingen
           </button>
+          <button
+            onClick={() => { setActiveTab('activation-codes'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'activation-codes' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <KeyRound className="w-4 h-4" />
+            Activatiecodes
+          </button>
         </div>
       )}
 
@@ -441,6 +451,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <ImageIcon className="w-4 h-4" />
                   Afbeeldingen
                 </button>
+                <button
+                  onClick={() => setActiveTab('activation-codes')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'activation-codes'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <KeyRound className="w-4 h-4" />
+                  Activatiecodes
+                </button>
              </div>
          </div>
 
@@ -536,6 +557,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'images' ? (
            <div className="flex-1 overflow-y-auto">
              <ImageOverview onBack={() => setActiveTab('library')} />
+           </div>
+        ) : activeTab === 'activation-codes' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <AdminActivationCodes />
            </div>
         ) : (
           <>

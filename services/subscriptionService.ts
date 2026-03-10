@@ -176,6 +176,172 @@ export async function resubscribe(
 }
 
 /**
+ * Activatiecode inwisselen voor abonnement
+ */
+export async function activateWithCode(
+  token: string,
+  code: string
+): Promise<{
+  success: boolean;
+  message: string;
+  subscription?: {
+    status: string;
+    planType: string;
+    periodEnd: string;
+    durationDays: number;
+  };
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/activate-code`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ code })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.error || 'Activatiecode kon niet worden ingewisseld'
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Activate code error:', error);
+    return {
+      success: false,
+      message: 'Netwerk fout bij het activeren van de code'
+    };
+  }
+}
+
+/**
+ * Admin: Activatiecodes ophalen
+ */
+export async function getActivationCodes(token: string): Promise<{
+  success: boolean;
+  codes?: any[];
+  message?: string;
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/activation-codes`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: data.error || 'Kon codes niet ophalen' };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Get activation codes error:', error);
+    return { success: false, message: 'Netwerk fout' };
+  }
+}
+
+/**
+ * Admin: Activatiecodes aanmaken
+ */
+export async function createActivationCodes(
+  token: string,
+  options: {
+    count?: number;
+    plan_type?: string;
+    duration_days?: number;
+    max_uses?: number;
+    label?: string;
+    expires_at?: string;
+    custom_code?: string;
+  }
+): Promise<{ success: boolean; codes?: any[]; message?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/activation-codes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(options)
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: data.error || 'Kon codes niet aanmaken' };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Create activation codes error:', error);
+    return { success: false, message: 'Netwerk fout' };
+  }
+}
+
+/**
+ * Admin: Activatiecode bijwerken
+ */
+export async function updateActivationCode(
+  token: string,
+  id: string,
+  updates: { is_active?: boolean; label?: string; max_uses?: number; expires_at?: string | null }
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/activation-codes`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({ id, ...updates })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: data.error || 'Kon code niet bijwerken' };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Update activation code error:', error);
+    return { success: false, message: 'Netwerk fout' };
+  }
+}
+
+/**
+ * Admin: Activatiecode verwijderen
+ */
+export async function deleteActivationCode(
+  token: string,
+  id: string
+): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await fetch(`${API_BASE}/api/admin/activation-codes?id=${id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return { success: false, message: data.error || 'Kon code niet verwijderen' };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Delete activation code error:', error);
+    return { success: false, message: 'Netwerk fout' };
+  }
+}
+
+/**
  * Check betaalstatus bij Mollie
  */
 export async function checkPaymentStatus(paymentId: string): Promise<PaymentStatusResponse> {
