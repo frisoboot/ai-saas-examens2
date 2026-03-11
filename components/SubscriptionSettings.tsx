@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2, RefreshCw } from 'lucide-react';
-import { checkSubscription, cancelSubscription, resubscribe, SubscriptionStatus } from '../services/subscriptionService';
+import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2, RefreshCw, KeyRound } from 'lucide-react';
+import { checkSubscription, cancelSubscription, resubscribe, activateWithCode, SubscriptionStatus } from '../services/subscriptionService';
 import { auth } from '../services/supabaseService';
 import { SubjectPackageSettings } from './SubjectPackageSettings';
 
@@ -23,6 +23,9 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   const [resubscribePlan, setResubscribePlan] = useState<'monthly' | 'quarterly' | 'yearly'>('monthly');
   const [resubscribing, setResubscribing] = useState(false);
   const [resubscribeResult, setResubscribeResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [activationCode, setActivationCode] = useState('');
+  const [activating, setActivating] = useState(false);
+  const [activationResult, setActivationResult] = useState<{ success: boolean; message: string } | null>(null);
   const justResubscribed = searchParams.get('resubscribed') === 'true';
 
   useEffect(() => {
@@ -195,6 +198,32 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
       setResubscribeResult({ success: false, message: 'Er ging iets mis. Probeer het later opnieuw.' });
     } finally {
       setResubscribing(false);
+    }
+  };
+
+  const handleActivateCode = async () => {
+    const trimmed = activationCode.trim();
+    if (!trimmed) return;
+
+    setActivating(true);
+    setActivationResult(null);
+    try {
+      const { session } = await auth.getSession();
+      if (!session?.access_token) {
+        setActivationResult({ success: false, message: 'Geen geldige sessie. Log opnieuw in.' });
+        return;
+      }
+      const result = await activateWithCode(session.access_token, trimmed);
+      setActivationResult({ success: result.success, message: result.message });
+      if (result.success) {
+        setActivationCode('');
+        await loadSubscription();
+      }
+    } catch (error) {
+      console.error('Activation error:', error);
+      setActivationResult({ success: false, message: 'Er ging iets mis. Probeer het later opnieuw.' });
+    } finally {
+      setActivating(false);
     }
   };
 
@@ -493,6 +522,62 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
                 </div>
               </div>
             )}
+
+            {/* Activation Code Section */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+              <div className="p-6 border-b border-slate-100">
+                <h2 className="text-lg font-bold text-slate-900">Activatiecode inwisselen</h2>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-600">
+                  Heb je een activatiecode ontvangen? Vul deze hieronder in om je abonnement te activeren.
+                </p>
+                <div className="flex gap-3">
+                  <input
+                    type="text"
+                    value={activationCode}
+                    onChange={e => setActivationCode(e.target.value.toUpperCase())}
+                    placeholder="Bijv. ABCD-EFGH-JKLM"
+                    maxLength={50}
+                    className="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-sm font-mono tracking-wider focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
+                    disabled={activating}
+                    onKeyDown={e => { if (e.key === 'Enter') handleActivateCode(); }}
+                  />
+                  <button
+                    onClick={handleActivateCode}
+                    disabled={activating || !activationCode.trim()}
+                    className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2 flex-shrink-0"
+                  >
+                    {activating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <KeyRound className="w-4 h-4" />
+                    )}
+                    {activating ? 'Bezig...' : 'Activeren'}
+                  </button>
+                </div>
+                {activationResult && (
+                  <div className={`rounded-xl p-4 border ${
+                    activationResult.success
+                      ? 'bg-green-50 border-green-200'
+                      : 'bg-red-50 border-red-200'
+                  }`}>
+                    <div className="flex items-start gap-3">
+                      {activationResult.success ? (
+                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                      ) : (
+                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                      )}
+                      <p className={`text-sm font-medium ${
+                        activationResult.success ? 'text-green-900' : 'text-red-900'
+                      }`}>
+                        {activationResult.message}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
 
             {/* Payment Info */}
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
