@@ -536,14 +536,12 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
 
-        {/* Activatiecode - alleen auth check, geen subscription check nodig */}
+        {/* Activatiecode - publiek: nieuwe gebruikers kunnen registreren met code */}
         <Route path="/activate" element={
-          <ProtectedRoute>
-            <ActivationCodeForm
-              onBack={() => navigate(-1)}
-              onSuccess={() => navigate('/dashboard')}
-            />
-          </ProtectedRoute>
+          <ActivationCodeForm
+            onBack={() => navigate(-1)}
+            onSuccess={() => navigate('/dashboard')}
+          />
         } />
 
         {/* Admin Routes */}

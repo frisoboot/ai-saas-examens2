@@ -221,6 +221,50 @@ export async function activateWithCode(
 }
 
 /**
+ * Registreer een nieuw account met een activatiecode (geen betaling nodig)
+ */
+export async function registerWithCode(
+  email: string,
+  password: string,
+  level: string,
+  code: string
+): Promise<{
+  success: boolean;
+  message: string;
+  subscription?: {
+    status: string;
+    planType: string;
+    periodEnd: string;
+    durationDays: number;
+  };
+}> {
+  try {
+    const response = await fetch(`${API_BASE}/api/register-with-code`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, level, code })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data.error || 'Registratie mislukt'
+      };
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Register with code error:', error);
+    return {
+      success: false,
+      message: 'Netwerk fout bij het registreren'
+    };
+  }
+}
+
+/**
  * Admin: Activatiecodes ophalen
  */
 export async function getActivationCodes(token: string): Promise<{
