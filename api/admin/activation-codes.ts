@@ -92,8 +92,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .order('created_at', { ascending: false });
 
       if (error) {
+        if (error.code === '42P01') {
+          console.error('Table activation_codes does not exist. Run the migration SQL first.');
+          return res.status(500).json({ error: 'Database tabel ontbreekt. Voer de migratie SQL uit in Supabase.' });
+        }
         console.error('Error fetching activation codes:', error);
-        return res.status(500).json({ error: 'Kon codes niet ophalen' });
+        return res.status(500).json({ error: 'Kon codes niet ophalen', details: error.message });
       }
 
       return res.status(200).json({ success: true, codes });
@@ -168,8 +172,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (insertError.code === '23505') { // unique violation
           return res.status(400).json({ error: 'Een of meer codes bestaan al' });
         }
+        if (insertError.code === '42P01') { // table does not exist
+          console.error('Table activation_codes does not exist. Run the migration SQL first.');
+          return res.status(500).json({ error: 'Database tabel ontbreekt. Voer de migratie SQL uit in Supabase.' });
+        }
         console.error('Error creating activation codes:', insertError);
-        return res.status(500).json({ error: 'Kon codes niet aanmaken' });
+        return res.status(500).json({ error: 'Kon codes niet aanmaken', details: insertError.message });
       }
 
       return res.status(201).json({

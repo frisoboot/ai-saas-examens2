@@ -2,6 +2,15 @@
 -- Maakt het mogelijk om via activatiecodes een abonnement te activeren
 -- zonder betaling via Mollie.
 
+-- Zorg dat de updated_at trigger functie bestaat
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ language 'plpgsql';
+
 -- Tabel voor activatiecodes
 CREATE TABLE IF NOT EXISTS activation_codes (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -65,13 +74,16 @@ CREATE INDEX IF NOT EXISTS idx_activation_code_usages_email ON activation_code_u
 ALTER TABLE activation_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE activation_code_usages ENABLE ROW LEVEL SECURITY;
 
--- Service role kan alles
+-- Service role kan alles (nodig voor API endpoints)
+DROP POLICY IF EXISTS "Service role full access activation_codes" ON activation_codes;
 CREATE POLICY "Service role full access activation_codes" ON activation_codes
-    FOR ALL USING (true);
+    FOR ALL USING (true) WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Service role full access activation_code_usages" ON activation_code_usages;
 CREATE POLICY "Service role full access activation_code_usages" ON activation_code_usages
-    FOR ALL USING (true);
+    FOR ALL USING (true) WITH CHECK (true);
 
 -- Trigger voor updated_at
+DROP TRIGGER IF EXISTS update_activation_codes_updated_at ON activation_codes;
 CREATE TRIGGER update_activation_codes_updated_at BEFORE UPDATE ON activation_codes
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

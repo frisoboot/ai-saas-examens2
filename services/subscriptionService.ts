@@ -233,7 +233,14 @@ export async function getActivationCodes(token: string): Promise<{
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error('Invalid JSON response:', text.substring(0, 200));
+      return { success: false, message: `Server fout (${response.status})` };
+    }
 
     if (!response.ok) {
       return { success: false, message: data.error || 'Kon codes niet ophalen' };
@@ -242,7 +249,7 @@ export async function getActivationCodes(token: string): Promise<{
     return data;
   } catch (error) {
     console.error('Get activation codes error:', error);
-    return { success: false, message: 'Netwerk fout' };
+    return { success: false, message: 'Netwerk fout - controleer je verbinding' };
   }
 }
 
@@ -271,7 +278,14 @@ export async function createActivationCodes(
       body: JSON.stringify(options)
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error('Invalid JSON response:', text.substring(0, 200));
+      return { success: false, message: `Server fout (${response.status})` };
+    }
 
     if (!response.ok) {
       return { success: false, message: data.error || 'Kon codes niet aanmaken' };
@@ -280,7 +294,7 @@ export async function createActivationCodes(
     return data;
   } catch (error) {
     console.error('Create activation codes error:', error);
-    return { success: false, message: 'Netwerk fout' };
+    return { success: false, message: 'Netwerk fout - controleer je verbinding' };
   }
 }
 
@@ -302,7 +316,14 @@ export async function updateActivationCode(
       body: JSON.stringify({ id, ...updates })
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error('Invalid JSON response:', text.substring(0, 200));
+      return { success: false, message: `Server fout (${response.status})` };
+    }
 
     if (!response.ok) {
       return { success: false, message: data.error || 'Kon code niet bijwerken' };
@@ -311,7 +332,7 @@ export async function updateActivationCode(
     return data;
   } catch (error) {
     console.error('Update activation code error:', error);
-    return { success: false, message: 'Netwerk fout' };
+    return { success: false, message: 'Netwerk fout - controleer je verbinding' };
   }
 }
 
@@ -328,7 +349,14 @@ export async function deleteActivationCode(
       headers: { 'Authorization': `Bearer ${token}` }
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      console.error('Invalid JSON response:', text.substring(0, 200));
+      return { success: false, message: `Server fout (${response.status})` };
+    }
 
     if (!response.ok) {
       return { success: false, message: data.error || 'Kon code niet verwijderen' };
@@ -337,7 +365,7 @@ export async function deleteActivationCode(
     return data;
   } catch (error) {
     console.error('Delete activation code error:', error);
-    return { success: false, message: 'Netwerk fout' };
+    return { success: false, message: 'Netwerk fout - controleer je verbinding' };
   }
 }
 
