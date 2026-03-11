@@ -439,7 +439,12 @@ async function generateLookalikeExamQuestions(
     }
   }
 
-  const questionsData = JSON.parse(jsonText);
+  let questionsData;
+  try {
+    questionsData = JSON.parse(jsonText);
+  } catch (parseError) {
+    throw new Error("AI response bevatte ongeldig JSON. Probeer het opnieuw.");
+  }
   if (!Array.isArray(questionsData) || questionsData.length === 0) {
     throw new Error("AI genereerde geen examenvragen.");
   }

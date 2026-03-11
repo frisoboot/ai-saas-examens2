@@ -57,8 +57,8 @@ export const calculateProgress = (
     const firstHalf = chronologicalResults.slice(0, mid);
     const secondHalf = chronologicalResults.slice(mid);
 
-    const firstAvg = firstHalf.reduce((sum, r) => sum + (r.score / r.totalQuestions), 0) / firstHalf.length;
-    const secondAvg = secondHalf.reduce((sum, r) => sum + (r.score / r.totalQuestions), 0) / secondHalf.length;
+    const firstAvg = firstHalf.reduce((sum, r) => sum + (r.totalQuestions > 0 ? r.score / r.totalQuestions : 0), 0) / firstHalf.length;
+    const secondAvg = secondHalf.reduce((sum, r) => sum + (r.totalQuestions > 0 ? r.score / r.totalQuestions : 0), 0) / secondHalf.length;
 
     improvementRate = firstAvg > 0 ? ((secondAvg - firstAvg) / firstAvg) * 100 : 0;
   }

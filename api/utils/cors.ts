@@ -46,9 +46,9 @@ export function setCorsHeaders(
     res.setHeader('Access-Control-Allow-Origin', origin!);
     res.setHeader('Access-Control-Allow-Credentials', 'true');
   }
-  // Als origin niet toegestaan is, sturen we geen Access-Control-Allow-Origin header
+    res.setHeader('Access-Control-Allow-Methods', methods);
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+  }
+  // Als origin niet toegestaan is, sturen we geen CORS headers
   // Dit zorgt ervoor dat de browser de request blokkeert
-
-  res.setHeader('Access-Control-Allow-Methods', methods);
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
 }

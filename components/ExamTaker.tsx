@@ -113,7 +113,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
     } else {
       setShowingCoachFeedback(false);
     }
-  }, [activeQuestionIdx, currentQuestion]);
+  }, [activeQuestionIdx, currentQuestion, isCoachMode, coachCheckedQuestions]);
 
   // Close zoomed image on ESC key
   useEffect(() => {

@@ -4,6 +4,12 @@ export type StudentLevel = 'VMBO-TL' | 'HAVO' | 'VWO';
 
 export type ExamType = 'practice' | 'official_exam';
 
+// ExamResult tracks how the exam was taken (subject practice vs full year exam)
+export type ExamResultType = 'subject_practice' | 'year_exam';
+
+// ExamSession tracks the session context (subject practice, year exam, AI-generated, or official)
+export type ExamSessionType = 'subject_practice' | 'year_exam' | 'ai_practice' | 'official_exam';
+
 export type ImportType = 'csv' | 'json' | 'ai_pdf';
 
 export type ExamMode = 'BY_SUBJECT' | 'BY_YEAR';
@@ -78,7 +84,7 @@ export interface ExamResult {
 
   // Year and type tracking
   examYear?: number;
-  examType?: 'subject_practice' | 'year_exam';
+  examType?: ExamResultType;
   durationSeconds?: number;
   level?: StudentLevel; // Student level at time of exam
 
@@ -107,7 +113,7 @@ export interface ExamSession {
 
   // Year-based exam tracking
   examYear?: number;
-  examType: 'subject_practice' | 'year_exam' | 'ai_practice' | 'official_exam';
+  examType: ExamSessionType;
   startTime?: number; // Timestamp when exam started
   timeLimit?: number; // Time limit in minutes (0 = no limit)
 

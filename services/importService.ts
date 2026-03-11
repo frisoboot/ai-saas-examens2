@@ -84,7 +84,7 @@ let importCounter = 0;
 const convertToQuestion = (q: BulkImportQuestion, questionIndex: number): Question => {
   // Fix: Use counter to prevent ID collisions during rapid bulk imports
   const timestamp = Date.now();
-  const random = Math.random().toString(36).substr(2, 9);
+  const random = Math.random().toString(36).substring(2, 11);
   const counter = importCounter++;
 
   // Generate structured ID if tijdvak is available (matches ExamBuilder format)

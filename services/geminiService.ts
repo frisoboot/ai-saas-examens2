@@ -305,7 +305,7 @@ export const streamLookalikeExamQuestions = async (
 
       // Parse SSE events from the buffer
       const lines = buffer.split('\n');
-      buffer = lines.pop()!; // Keep the last (potentially incomplete) line
+      buffer = lines.pop() ?? ''; // Keep the last (potentially incomplete) line
 
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;

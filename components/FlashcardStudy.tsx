@@ -158,7 +158,7 @@ export const FlashcardStudy: React.FC<FlashcardStudyProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentIndex, isFlipped, isComplete]);
+  }, [currentIndex, isFlipped, isComplete, knownCards, unknownCards, currentCard, cardsToStudy.length, studyMode, session.cards.length]);
 
   // Complete screen
   if (isComplete) {

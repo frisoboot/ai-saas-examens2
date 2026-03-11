@@ -267,7 +267,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const plan = (metadata.plan as string) || 'monthly';
       const trialDays = Number(metadata.trialDays) || 5;
       const subscriptionAmountCents = Number(metadata.subscriptionAmountCents) || 995;
-      const subscriptionAmountStr = (subscriptionAmountCents / 100).toFixed(2);
+      const euros = Math.floor(subscriptionAmountCents / 100);
+      const cents = subscriptionAmountCents % 100;
+      const subscriptionAmountStr = `${euros}.${cents.toString().padStart(2, '0')}`;
 
       const now = new Date();
       const trialEnd = new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000);
