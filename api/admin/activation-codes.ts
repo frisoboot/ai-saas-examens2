@@ -12,8 +12,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from '../utils/cors';
-import crypto from 'crypto';
+import { setCorsHeaders } from '../utils/cors.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -38,8 +37,7 @@ function generateCode(): string {
   for (let s = 0; s < segments; s++) {
     let segment = '';
     for (let i = 0; i < segmentLength; i++) {
-      const randomIndex = crypto.randomInt(0, chars.length);
-      segment += chars[randomIndex];
+      segment += chars[Math.floor(Math.random() * chars.length)];
     }
     parts.push(segment);
   }
