@@ -62,24 +62,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Even geduld...</p>
+          <p className="text-slate-600">Even geduld...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <SEO
         title="Inloggen"
         description="Log in bij AI Examentrainer om te oefenen voor je eindexamen met AI-gegenereerde vragen en flashcards."
         noindex={true}
       />
       {/* Header */}
-      <nav className="bg-white border-b border-gray-100" role="navigation" aria-label="Hoofdnavigatie">
+      <nav className="bg-white border-b border-slate-100" role="navigation" aria-label="Hoofdnavigatie">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <button
@@ -89,11 +89,11 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center">
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
-              <span className="font-bold text-xl text-gray-900">AI Examentrainer</span>
+              <span className="font-bold text-xl text-slate-900">AI Examentrainer</span>
             </button>
             <button
               onClick={onLanding}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm"
+              className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors text-sm"
             >
               <ArrowLeft className="w-4 h-4" />
               Terug naar home
@@ -105,10 +105,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
       {/* Login Form */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
             <div className="text-center mb-8">
-              <h1 className="text-2xl font-bold text-gray-900 mb-2">Welkom terug</h1>
-              <p className="text-gray-600">Log in om verder te gaan met oefenen</p>
+              <h1 className="text-2xl font-bold text-slate-900 mb-2">Welkom terug</h1>
+              <p className="text-slate-600">Log in om verder te gaan met oefenen</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
@@ -125,19 +125,19 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
               {/* Email Field */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
                   Email
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Mail className="w-5 h-5 text-gray-400" />
+                    <Mail className="w-5 h-5 text-slate-400" />
                   </div>
                   <input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="jouw@email.nl"
                     autoComplete="email"
                     disabled={isSubmitting}
@@ -148,7 +148,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               {/* Password Field */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                  <label htmlFor="password" className="block text-sm font-medium text-slate-700">
                     Wachtwoord
                   </label>
                   <button
@@ -161,14 +161,14 @@ export const LoginPage: React.FC<LoginPageProps> = ({
                 </div>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <Lock className="w-5 h-5 text-gray-400" />
+                    <Lock className="w-5 h-5 text-slate-400" />
                   </div>
                   <input
                     id="password"
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                    className="w-full pl-12 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
                     placeholder="Je wachtwoord"
                     autoComplete="current-password"
                     disabled={isSubmitting}
@@ -200,10 +200,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({
             {/* Divider */}
             <div className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-200"></div>
+                <div className="w-full border-t border-slate-200"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-4 bg-white text-gray-500">Nog geen account?</span>
+                <span className="px-4 bg-white text-slate-500">Nog geen account?</span>
               </div>
             </div>
 
@@ -219,7 +219,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({
           </div>
 
           {/* Footer Text */}
-          <p className="text-center text-gray-500 text-sm mt-6">
+          <p className="text-center text-slate-500 text-sm mt-6">
             Problemen met inloggen?{' '}
             <a href="mailto:info@ai-examentrainer.nl" className="text-blue-600 hover:underline">
               Neem contact op
