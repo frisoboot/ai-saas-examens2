@@ -662,7 +662,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             </div>
 
             <div className="flex items-center gap-8 text-slate-400">
-              <a href="mailto:info@ai-examentrainer.nl" className="hover:text-white transition-colors">Contact</a>
               <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="/voorwaarden" className="hover:text-white transition-colors">Voorwaarden</a>
             </div>
@@ -670,6 +669,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             <p className="text-slate-500">
               © {new Date().getFullYear()} AI Examentrainer
             </p>
+          </div>
+          <div className="mt-8 text-center">
+            <a href="mailto:bedrijfboot@gmail.com" className="text-slate-500 hover:text-white transition-colors text-sm">
+              bedrijfboot@gmail.com
+            </a>
           </div>
         </div>
       </footer>
