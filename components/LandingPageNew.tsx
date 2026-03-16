@@ -671,6 +671,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               © {new Date().getFullYear()} AI Examentrainer
             </p>
           </div>
+          <div className="mt-8 text-center">
+            <a href="mailto:bedrijfboot@gmail.com" className="text-slate-500 hover:text-white transition-colors text-sm">
+              bedrijfboot@gmail.com
+            </a>
+          </div>
         </div>
       </footer>
     </div>
