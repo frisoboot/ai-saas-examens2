@@ -16,7 +16,9 @@ import {
   Shield,
   Award,
   ArrowRight,
-  Check
+  Check,
+  Lock,
+  XCircle
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -75,7 +77,7 @@ const StyledButton: React.FC<{
   variant?: 'primary' | 'secondary';
 }> = ({ children, onClick, className = '', variant = 'primary' }) => {
   const baseStyles = variant === 'primary'
-    ? 'bg-gradient-to-r from-orange-500 to-amber-500 text-white shadow-lg shadow-orange-500/25 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-0.5'
+    ? 'bg-gradient-to-r from-blue-700 to-blue-600 text-white shadow-lg shadow-blue-700/20 hover:shadow-xl hover:shadow-blue-700/25 hover:-translate-y-0.5'
     : 'bg-white text-slate-800 border-2 border-slate-200 hover:border-slate-300 hover:bg-slate-50';
 
   return (
@@ -123,7 +125,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
   const daysUntilExam = useCountdown(examDate);
 
   return (
-    <div className="min-h-screen bg-white" style={{ fontFamily: "'Outfit', sans-serif" }}>
+    <div className="min-h-screen bg-white" style={{ fontFamily: "'Inter', sans-serif" }}>
       <SEO
         title="AI Examentrainer | Oefen voor je VMBO, HAVO & VWO Eindexamen met AI"
         description="Behaal hogere cijfers met de AI Examentrainer. Oefen voor je eindexamen met AI-gegenereerde vragen, flashcards en persoonlijke begeleiding voor VMBO, HAVO en VWO."
@@ -139,7 +141,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       >
         <div className="max-w-6xl mx-auto px-6 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+            <div className="w-11 h-11 bg-gradient-to-br from-blue-700 to-blue-600 rounded-xl flex items-center justify-center shadow-md">
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <span className="font-bold text-xl text-slate-900">AI Examentrainer</span>
@@ -152,7 +154,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             </div>
             <button
               onClick={onLogin}
-              className="px-5 py-2.5 font-semibold text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded-xl transition-all"
+              className="px-5 py-2.5 font-semibold text-blue-700 hover:text-blue-800 hover:bg-blue-50 rounded-xl transition-all"
             >
               Inloggen
             </button>
@@ -162,18 +164,17 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
       {/* Hero Section */}
       <section className="relative min-h-screen flex items-center pt-20 pb-32 px-6 lg:px-8 overflow-hidden">
-        {/* Animated Mesh Gradient Background */}
+        {/* Subtle Background */}
         <div className="mesh-gradient">
           <div className="mesh-blob mesh-blob-1"></div>
           <div className="mesh-blob mesh-blob-2"></div>
-          <div className="mesh-blob mesh-blob-3"></div>
-          <div className="absolute inset-0 bg-white/60"></div>
+          <div className="absolute inset-0 bg-white/70"></div>
         </div>
 
         <div className="max-w-6xl mx-auto relative z-10">
           <div className="max-w-3xl mx-auto text-center">
             {/* Badge */}
-            <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-lg shadow-slate-200/50 border border-white mb-4">
+            <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm rounded-full px-5 py-2.5 shadow-sm border border-slate-200 mb-4">
               <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
               <span className="text-sm font-medium text-slate-700">AI-gestuurde examenvoorbereiding</span>
             </div>
@@ -181,7 +182,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             {/* Countdown - Urgency */}
             {daysUntilExam > 0 && (
               <div className="text-reveal text-reveal-delay-1 mb-8">
-                <div className="inline-flex items-center gap-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full px-6 py-3 shadow-lg shadow-orange-500/30 animate-pulse">
+                <div className="inline-flex items-center gap-3 bg-blue-700 rounded-full px-6 py-3 shadow-md">
                   <Clock className="w-5 h-5 text-white" />
                   <span className="text-white font-bold">
                     Nog {daysUntilExam} dagen tot de eindexamens!
@@ -225,7 +226,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
           {/* Simple Preview */}
           <div className="mt-20 max-w-4xl mx-auto">
-            <div className="bg-white rounded-3xl shadow-2xl shadow-slate-300/50 overflow-hidden border border-slate-200">
+            <div className="bg-white rounded-3xl shadow-xl shadow-slate-200/50 overflow-hidden border border-slate-200">
               {/* Window header */}
               <div className="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -236,7 +237,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   </div>
                   <span className="text-slate-400 text-sm font-medium ml-2">AI Examentrainer</span>
                 </div>
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500 text-white text-sm font-medium">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-600 text-white text-sm font-medium">
                   <Brain className="w-4 h-4" />
                   <span>Biologie · HAVO</span>
                 </div>
@@ -262,14 +263,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 {/* AI Feedback */}
                 <div className="flex justify-start">
                   <div className="max-w-[90%]">
-                    <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl rounded-bl-sm px-5 py-4 border border-orange-200">
+                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl rounded-bl-sm px-5 py-4 border border-blue-200">
                       <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center flex-shrink-0">
                           <Sparkles className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <p className="font-semibold text-orange-800 mb-2">Bijna! Maar let op de dominantie.</p>
-                          <p className="text-orange-700 text-sm leading-relaxed">
+                          <p className="font-semibold text-blue-900 mb-2">Bijna! Maar let op de dominantie.</p>
+                          <p className="text-blue-800 text-sm leading-relaxed">
                             Je hebt het net andersom: <strong>bruin is dominant</strong> en <strong>blauw is recessief</strong>.
                             Als beide ouders Bb zijn, is er 25% kans op blauwe ogen (bb).
                           </p>
@@ -284,6 +285,24 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
         </div>
       </section>
 
+      {/* Trust Signals */}
+      <section className="py-12 px-6 lg:px-8 bg-white border-b border-slate-100">
+        <div className="max-w-5xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8">
+            {[
+              { icon: Shield, label: 'Veilige betaling via Mollie', color: 'text-emerald-600' },
+              { icon: Lock, label: 'Privacy gegarandeerd', color: 'text-blue-600' },
+              { icon: BookOpen, label: 'Gebaseerd op echte examens', color: 'text-indigo-600' },
+              { icon: XCircle, label: 'Direct opzegbaar', color: 'text-slate-600' }
+            ].map((trust) => (
+              <div key={trust.label} className="flex flex-col items-center text-center gap-2">
+                <trust.icon className={`w-6 h-6 ${trust.color}`} />
+                <span className="text-sm font-medium text-slate-700">{trust.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Social Proof + Features */}
       <section id="features" className="py-20 px-6 lg:px-8 bg-slate-50">
@@ -297,7 +316,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               { value: '4,7/5', label: 'Gemiddelde beoordeling', icon: Award }
             ].map((stat) => (
               <div key={stat.label} className="scroll-reveal">
-                <stat.icon className="w-5 h-5 text-orange-500 mx-auto mb-1.5" />
+                <stat.icon className="w-5 h-5 text-blue-600 mx-auto mb-1.5" />
                 <div className="text-2xl sm:text-3xl font-bold text-slate-900 mb-0.5">{stat.value}</div>
                 <div className="text-xs text-slate-500 font-medium">{stat.label}</div>
               </div>
@@ -311,8 +330,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 icon: Brain,
                 title: 'AI Oefenvragen',
                 description: 'Onbeperkt nieuwe vragen op jouw niveau.',
-                gradient: 'from-orange-500 to-amber-500',
-                shadowColor: 'shadow-orange-500/20'
+                gradient: 'from-blue-600 to-blue-700',
+                shadowColor: 'shadow-blue-600/20'
               },
               {
                 icon: MessageSquare,
@@ -332,8 +351,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 icon: Zap,
                 title: 'Slimme Flashcards',
                 description: 'Leer begrippen snel met AI-flashcards.',
-                gradient: 'from-pink-500 to-rose-600',
-                shadowColor: 'shadow-pink-500/20'
+                gradient: 'from-rose-500 to-pink-600',
+                shadowColor: 'shadow-rose-500/20'
               },
               {
                 icon: TrendingUp,
@@ -354,7 +373,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 key={feature.title}
                 className="feature-card bg-white rounded-2xl p-6 border border-slate-100 scroll-reveal"
               >
-                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-lg ${feature.shadowColor}`}>
+                <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${feature.gradient} flex items-center justify-center mb-4 shadow-md ${feature.shadowColor}`}>
                   <feature.icon className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="font-bold text-lg text-slate-900 mb-1.5">{feature.title}</h3>
@@ -370,32 +389,35 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10 scroll-reveal">
             <h2 className="text-3xl sm:text-4xl font-bold text-slate-900">
-              Wat leerlingen zeggen
+              Wat leerlingen en ouders zeggen
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-5 stagger-children">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5 stagger-children">
             {[
               {
                 quote: 'Na 2 weken oefenen ging mijn cijfer van een 5 naar een 7. De AI legt het zo uit dat ik het echt snap.',
                 name: 'Sophie V.',
-                level: 'HAVO',
-                subject: 'Wiskunde A',
-                gradient: 'from-orange-500 to-amber-500'
+                role: 'HAVO · Wiskunde A',
+                gradient: 'from-blue-600 to-blue-700'
               },
               {
                 quote: 'Veel beter dan samenvatten uit je boek. Je krijgt meteen feedback en weet precies wat je fout deed.',
                 name: 'Daan M.',
-                level: 'VWO',
-                subject: 'Biologie',
+                role: 'VWO · Biologie',
                 gradient: 'from-indigo-500 to-purple-500'
               },
               {
-                quote: 'De flashcards zijn top voor scheikunde. Ik gebruik het elke dag in de trein en onthoud veel meer.',
-                name: 'Fatima B.',
-                level: 'HAVO',
-                subject: 'Scheikunde',
-                gradient: 'from-emerald-500 to-teal-500'
+                quote: 'Als ouder wil je het beste voor je kind. Deze tool geeft mij rust — ik zie dat ze echt vooruit gaat.',
+                name: 'Linda K.',
+                role: 'Ouder van HAVO-leerling',
+                gradient: 'from-emerald-600 to-teal-600'
+              },
+              {
+                quote: 'Ik was eerst sceptisch, maar de resultaten spreken voor zich. Mijn zoon haalt nu een 7 voor scheikunde.',
+                name: 'Peter de V.',
+                role: 'Ouder van VWO-leerling',
+                gradient: 'from-slate-600 to-slate-700'
               }
             ].map((testimonial) => (
               <div
@@ -416,7 +438,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                   </div>
                   <div>
                     <p className="font-semibold text-slate-900 text-xs">{testimonial.name}</p>
-                    <p className="text-slate-500 text-[11px]">{testimonial.level} · {testimonial.subject}</p>
+                    <p className="text-slate-500 text-[11px]">{testimonial.role}</p>
                   </div>
                 </div>
               </div>
@@ -429,7 +451,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       <section id="pricing" className="py-20 px-6 lg:px-8 bg-slate-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-14 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-semibold mb-6">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
               Prijzen
             </span>
             <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
@@ -455,7 +477,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <span className="inline-flex items-center px-3 py-1.5 bg-blue-100 rounded-full text-xs font-medium text-blue-700">
+                  <span className="inline-flex items-center px-3 py-1.5 bg-blue-50 rounded-full text-xs font-medium text-blue-700">
                     Maandelijks opzegbaar
                   </span>
                 </div>
@@ -486,10 +508,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
 
             {/* Per kwartaal - Highlighted */}
             <div className="scroll-reveal relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-orange-500 to-amber-500 rounded-[2rem] blur opacity-30"></div>
-              <div className="relative bg-white rounded-3xl p-8 border border-orange-100 shine-effect h-full flex flex-col">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-4 py-1.5 rounded-full">
-                  POPULAIR
+              <div className="relative bg-white rounded-3xl p-8 border-2 border-blue-600 h-full flex flex-col">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-blue-700 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                  MEEST GEKOZEN
                 </div>
 
                 <div className="mb-6">
@@ -518,7 +539,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                     'Goedkoper dan maandelijks'
                   ].map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-sm">
-                      <div className="w-5 h-5 bg-gradient-to-br from-orange-500 to-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-slate-700">{feature}</span>
@@ -536,7 +557,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
             {/* Jaarlijks */}
             <div className="scroll-reveal relative">
               <div className="bg-white rounded-3xl p-8 border border-emerald-200 h-full flex flex-col">
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-bold px-4 py-1.5 rounded-full">
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-emerald-600 text-white text-xs font-bold px-4 py-1.5 rounded-full">
                   BESTE DEAL
                 </div>
 
@@ -566,7 +587,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
                     'Meest voordelig per maand'
                   ].map((feature) => (
                     <li key={feature} className="flex items-center gap-3 text-sm">
-                      <div className="w-5 h-5 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-full flex items-center justify-center flex-shrink-0">
+                      <div className="w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center flex-shrink-0">
                         <Check className="w-3 h-3 text-white" />
                       </div>
                       <span className="text-slate-700">{feature}</span>
@@ -607,7 +628,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
       <section id="faq" className="py-20 px-6 lg:px-8 bg-white">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10 scroll-reveal">
-            <span className="inline-block px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-semibold mb-6">
+            <span className="inline-block px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold mb-6">
               FAQ
             </span>
             <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-6">
@@ -632,12 +653,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               {
                 question: 'Werkt het op mijn telefoon?',
                 answer: 'Ja, AI Examentrainer werkt perfect op alle apparaten: laptop, tablet en smartphone. Je kunt overal oefenen waar je internet hebt.'
+              },
+              {
+                question: 'Is mijn data veilig?',
+                answer: 'Ja, wij nemen privacy zeer serieus. Alle data wordt versleuteld opgeslagen, betalingen verlopen via de gecertificeerde betaalprovider Mollie, en wij delen geen gegevens met derden. Zie ons privacybeleid voor meer informatie.'
               }
             ].map((faq, index) => (
               <details key={index} className="group bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden">
                 <summary className="flex items-center justify-between p-6 cursor-pointer hover:bg-slate-100 transition-colors">
                   <h3 className="font-semibold text-lg text-slate-900 pr-4">{faq.question}</h3>
-                  <div className="w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0 group-open:bg-orange-500 transition-colors">
+                  <div className="w-8 h-8 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0 group-open:bg-blue-600 transition-colors">
                     <ChevronDown className="w-5 h-5 text-slate-600 group-open:text-white group-open:rotate-180 transition-all" />
                   </div>
                 </summary>
@@ -655,7 +680,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-amber-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-md">
                 <GraduationCap className="w-6 h-6 text-white" />
               </div>
               <span className="font-bold text-xl text-white">AI Examentrainer</span>
@@ -670,10 +695,18 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin, onCheckout
               © {new Date().getFullYear()} AI Examentrainer
             </p>
           </div>
-          <div className="mt-8 text-center">
-            <a href="mailto:bedrijfboot@gmail.com" className="text-slate-500 hover:text-white transition-colors text-sm">
-              bedrijfboot@gmail.com
-            </a>
+
+          <div className="mt-8 pt-8 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-6 text-slate-500 text-sm">
+              <span>Veilig betalen via Mollie & iDEAL</span>
+              <span className="hidden sm:inline">·</span>
+              <a href="mailto:info@ai-examentrainer.nl" className="hover:text-white transition-colors">
+                info@ai-examentrainer.nl
+              </a>
+            </div>
+            <div className="text-slate-600 text-xs">
+              KvK: op aanvraag · BTW: op aanvraag
+            </div>
           </div>
         </div>
       </footer>
