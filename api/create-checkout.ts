@@ -171,7 +171,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.',
+            existingAccount: true
           });
         }
       }
@@ -181,7 +182,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : null;
         if (periodEnd && periodEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.',
+            existingAccount: true
           });
         }
       }
