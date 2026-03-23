@@ -189,22 +189,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Existing subscription with status:', existingSubscription.status, '- allowing re-subscription for:', email);
     }
 
-    // Check of er al een bestaand account is (student profile)
-    // Sta her-abonneren toe als het abonnement verlopen is
-    const { data: existingProfile } = await supabase
-      .from('student_profiles')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+    // Check of er al een bestaand Supabase Auth account is voor dit email
+    // Als dat zo is, moet de gebruiker inloggen (of wachtwoord resetten) in plaats van opnieuw registreren
+    const { data: existingAuthUsers, error: authListError } = await supabase.auth.admin.listUsers();
+    const existingAuthUser = !authListError && existingAuthUsers?.users
+      ? existingAuthUsers.users.find((u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase())
+      : null;
 
-    const isResubscription = !!existingProfile;
-
-    if (existingProfile && !existingSubscription) {
-      // Profiel bestaat maar geen subscription record → sta toe (edge case)
-      console.log('Existing profile without subscription, allowing checkout for:', email);
-    } else if (existingProfile && existingSubscription) {
-      // Profiel + verlopen subscription → sta her-abonneren toe (actieve subs zijn al geblokkeerd hierboven)
-      console.log('Re-subscription flow for existing user:', email);
+    if (existingAuthUser) {
+      console.log('Existing auth account found for:', email, '- blocking re-registration');
+      return res.status(409).json({
+        error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" om je wachtwoord te herstellen.',
+        existingAccount: true
+      });
     }
 
     // Verwijder oude pending registrations voor dit email

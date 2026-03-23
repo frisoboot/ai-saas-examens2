@@ -110,6 +110,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
   const [level, setLevel] = useState<StudentLevel>('HAVO');
   const [plan, setPlan] = useState<PlanType>(validPlan);
   const [error, setError] = useState('');
+  const [isExistingAccount, setIsExistingAccount] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const currentPlan = PLAN_INFO[plan];
@@ -124,6 +125,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setIsExistingAccount(false);
 
     // Validatie
     if (!email || !password) {
@@ -176,6 +178,7 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
 
       if (!result.success) {
         setError(result.message || 'Er ging iets mis');
+        setIsExistingAccount(result.existingAccount || false);
         setStep('form');
         setIsLoading(false);
         return;
@@ -379,7 +382,25 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
               {error && (
                 <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100 flex items-start gap-3">
                   <Lock className="w-5 h-5 flex-shrink-0 mt-0.5" />
-                  <span>{error}</span>
+                  <div>
+                    <span>{error}</span>
+                    {isExistingAccount && (
+                      <div className="mt-3 flex flex-col sm:flex-row gap-2">
+                        <a
+                          href="/login"
+                          className="inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Inloggen
+                        </a>
+                        <a
+                          href="/forgot-password"
+                          className="inline-flex items-center justify-center px-4 py-2 bg-white text-blue-600 text-sm font-medium rounded-lg border border-blue-200 hover:bg-blue-50 transition-colors"
+                        >
+                          Wachtwoord vergeten
+                        </a>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 

@@ -21,6 +21,7 @@ export interface CheckoutResponse {
   checkoutUrl?: string;
   paymentId?: string;
   message?: string;
+  existingAccount?: boolean;
   subscription?: {
     status: string;
     trialEndsAt?: string;
@@ -89,7 +90,8 @@ export async function createCheckout(
     if (!response.ok) {
       return {
         success: false,
-        message: data.error || data.details || `Server error: ${response.status}`
+        message: data.error || data.details || `Server error: ${response.status}`,
+        existingAccount: data.existingAccount || false
       };
     }
 
