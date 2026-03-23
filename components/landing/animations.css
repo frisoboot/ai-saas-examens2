@@ -3,20 +3,20 @@
    ============================================ */
 
 /* Import distinctive fonts */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap');
 
 /* ============================================
    CSS Custom Properties
    ============================================ */
 :root {
-  --landing-primary: #f97316;
-  --landing-primary-dark: #ea580c;
-  --landing-accent: #6366f1;
-  --landing-accent-light: #818cf8;
-  --landing-dark: #0f172a;
-  --landing-dark-soft: #1e293b;
-  --landing-light: #fff7ed;
-  --landing-warm: #fef3c7;
+  --landing-primary: #1a3a6b;
+  --landing-primary-dark: #122d55;
+  --landing-accent: #b8973a;
+  --landing-accent-light: #d4af5a;
+  --landing-dark: #0d1f3c;
+  --landing-dark-soft: #1a3a6b;
+  --landing-light: #eef2f8;
+  --landing-warm: #faf6ed;
 }
 
 /* ============================================
@@ -69,14 +69,14 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(80px);
-  opacity: 0.6;
+  opacity: 0.35;
   will-change: transform;
 }
 
 .mesh-blob-1 {
   width: 600px;
   height: 600px;
-  background: linear-gradient(135deg, #fbbf24 0%, #f97316 100%);
+  background: linear-gradient(135deg, #c8d9f0 0%, #a8c0e0 100%);
   top: -200px;
   right: -100px;
   animation: meshFloat 20s ease-in-out infinite;
@@ -85,7 +85,7 @@
 .mesh-blob-2 {
   width: 500px;
   height: 500px;
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #dce8f5 0%, #b8d0e8 100%);
   bottom: -150px;
   left: -100px;
   animation: meshFloat2 25s ease-in-out infinite;
@@ -94,7 +94,7 @@
 .mesh-blob-3 {
   width: 400px;
   height: 400px;
-  background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+  background: linear-gradient(135deg, #e8f0f8 0%, #d4e4f4 100%);
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -241,7 +241,7 @@
   content: '';
   position: absolute;
   inset: -2px;
-  background: linear-gradient(135deg, #f97316, #fbbf24, #f97316);
+  background: linear-gradient(135deg, #1a3a6b, #2a5298, #1a3a6b);
   border-radius: inherit;
   z-index: -1;
   opacity: 0;
@@ -258,14 +258,14 @@
    ============================================ */
 @keyframes glowPulse {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(249, 115, 22, 0.3),
-                0 0 40px rgba(249, 115, 22, 0.2),
-                0 0 60px rgba(249, 115, 22, 0.1);
+    box-shadow: 0 0 20px rgba(26, 58, 107, 0.3),
+                0 0 40px rgba(26, 58, 107, 0.2),
+                0 0 60px rgba(26, 58, 107, 0.1);
   }
   50% {
-    box-shadow: 0 0 30px rgba(249, 115, 22, 0.4),
-                0 0 60px rgba(249, 115, 22, 0.3),
-                0 0 90px rgba(249, 115, 22, 0.2);
+    box-shadow: 0 0 30px rgba(26, 58, 107, 0.4),
+                0 0 60px rgba(26, 58, 107, 0.3),
+                0 0 90px rgba(26, 58, 107, 0.2);
   }
 }
 
@@ -293,7 +293,7 @@
 }
 
 .glass-card-dark {
-  background: rgba(15, 23, 42, 0.8);
+  background: rgba(13, 31, 60, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -314,7 +314,7 @@
   inset: 0;
   border-radius: inherit;
   padding: 2px;
-  background: linear-gradient(135deg, transparent, rgba(249, 115, 22, 0.3), transparent);
+  background: linear-gradient(135deg, transparent, rgba(26, 58, 107, 0.25), transparent);
   -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   -webkit-mask-composite: xor;
@@ -325,7 +325,7 @@
 
 .feature-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 25px 50px -12px rgba(249, 115, 22, 0.15);
+  box-shadow: 0 25px 50px -12px rgba(26, 58, 107, 0.12);
 }
 
 .feature-card:hover::before {
@@ -387,24 +387,24 @@
    Navbar Scroll Effect
    ============================================ */
 .navbar-scrolled {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 30px rgba(26, 58, 107, 0.08);
 }
 
 /* ============================================
    Gradient Text
    ============================================ */
 .gradient-text {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 50%, #dc2626 100%);
+  background: linear-gradient(135deg, #1a3a6b 0%, #2a5298 50%, #b8973a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-text-accent {
-  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  background: linear-gradient(135deg, #b8973a 0%, #d4af5a 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -414,7 +414,7 @@
    Dot Grid Pattern
    ============================================ */
 .dot-pattern {
-  background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+  background-image: radial-gradient(circle, #d1dff0 1px, transparent 1px);
   background-size: 24px 24px;
 }
 
@@ -481,7 +481,7 @@
 @media (max-width: 768px) {
   .mesh-blob {
     filter: blur(60px);
-    opacity: 0.4;
+    opacity: 0.25;
   }
 
   .mesh-blob-1 {
