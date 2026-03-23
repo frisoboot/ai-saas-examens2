@@ -15,6 +15,11 @@ import { createClient, User } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient } from '@mollie/api-client';
 import crypto from 'crypto';
+import {
+  sendWelcomeEmail,
+  sendSubscriptionRenewedEmail,
+  sendPaymentFailedEmail,
+} from './utils/emailService';
 
 /**
  * Decrypt een versleuteld wachtwoord
@@ -378,6 +383,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Deleted pending registration for trial:', email);
       }
 
+      // Stuur welcome email
+      try {
+        await sendWelcomeEmail(email, metadata.level || 'HAVO', trialEnd);
+        console.log('Welcome email sent to:', email);
+      } catch (emailError) {
+        console.error('Failed to send welcome email (non-fatal):', emailError);
+      }
+
       console.log('Trial activation complete for:', email, 'trial until:', trialEnd.toISOString());
     }
 
@@ -550,6 +563,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         console.log('Deleted pending registration');
       }
 
+      // Stuur welcome email
+      try {
+        await sendWelcomeEmail(email, metadata.level || 'HAVO', periodEnd);
+        console.log('Welcome email sent to:', email);
+      } catch (emailError) {
+        console.error('Failed to send welcome email (non-fatal):', emailError);
+      }
+
       console.log('Account activation complete for:', email);
     }
 
@@ -678,6 +699,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       if (pending) {
         await supabase.from('pending_registrations').delete().eq('id', pending.id);
         console.log('Deleted pending registration');
+      }
+
+      // Stuur welcome email
+      try {
+        await sendWelcomeEmail(email, metadata.level || 'HAVO', periodEnd);
+        console.log('Welcome email sent to:', email);
+      } catch (emailError) {
+        console.error('Failed to send welcome email (non-fatal):', emailError);
       }
 
       console.log('One-time purchase activation complete for:', email, 'plan:', plan, 'active until:', periodEnd.toISOString());
@@ -825,6 +854,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
+      // Stuur bevestigingsmail
+      try {
+        await sendSubscriptionRenewedEmail(email, plan, periodEnd);
+        console.log('Subscription renewed email sent to:', email);
+      } catch (emailError) {
+        console.error('Failed to send renewal email (non-fatal):', emailError);
+      }
+
       console.log('Resubscription complete for:', email, 'plan:', plan);
     }
 
@@ -900,6 +937,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             paid_at: payment.paidAt || new Date().toISOString()
           });
 
+        // Stuur verlengingsmail
+        try {
+          await sendSubscriptionRenewedEmail(subscription.user_email, subscription.plan_type, periodEnd);
+          console.log('Subscription renewed email sent to:', subscription.user_email);
+        } catch (emailError) {
+          console.error('Failed to send renewal email (non-fatal):', emailError);
+        }
+
         console.log('Subscription payment processed for:', subscription.user_email, 'new period end:', periodEnd.toISOString());
       } else {
         console.error('No subscription found for mollie_subscription_id:', subscriptionId);
@@ -936,6 +981,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             is_active: false
           })
           .eq('email', subscription.user_email);
+
+        // Stuur betaling mislukt email
+        try {
+          await sendPaymentFailedEmail(subscription.user_email);
+          console.log('Payment failed email sent to:', subscription.user_email);
+        } catch (emailError) {
+          console.error('Failed to send payment failed email (non-fatal):', emailError);
+        }
 
         console.log('Subscription marked as failed for:', subscription.user_email);
       }
@@ -1005,6 +1058,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           is_active: false
         })
         .eq('email', metadata.email);
+
+      // Stuur betaling mislukt email
+      try {
+        await sendPaymentFailedEmail(metadata.email!);
+        console.log('Payment failed email sent to:', metadata.email);
+      } catch (emailError) {
+        console.error('Failed to send payment failed email (non-fatal):', emailError);
+      }
     }
 
     // Mollie verwacht een 200 response
