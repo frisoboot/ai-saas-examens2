@@ -9,10 +9,10 @@
    CSS Custom Properties
    ============================================ */
 :root {
-  --lp-primary: #931964;
-  --lp-primary-dark: #7a1452;
-  --lp-primary-light: #f5e8f0;
-  --lp-secondary: #0074a7;
+  --lp-primary: #1a56db;
+  --lp-primary-dark: #1442b5;
+  --lp-primary-light: #eff6ff;
+  --lp-secondary: #0369a1;
   --lp-secondary-dark: #005f8a;
   --lp-text: #222222;
   --lp-text-muted: #767676;

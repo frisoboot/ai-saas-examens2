@@ -107,7 +107,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         <div className="max-w-6xl mx-auto px-6 lg:px-8 flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: '#931964' }}>
+            <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: '#1a56db' }}>
               <GraduationCap className="w-5 h-5 text-white" />
             </div>
             <span className="font-bold text-lg text-gray-900">AI Examentrainer</span>
@@ -123,9 +123,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             <button
               onClick={onLogin}
               className="text-sm font-medium px-4 py-2 border rounded transition-colors"
-              style={{ borderColor: '#931964', color: '#931964' }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#931964'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = '#931964'; }}
+              style={{ borderColor: '#1a56db', color: '#1a56db' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#1a56db'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = '#1a56db'; }}
             >
               Inloggen
             </button>
@@ -140,7 +140,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Left: text */}
             <div>
               {daysUntilExam > 0 && (
-                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-medium mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#f5e8f0', color: '#931964' }}>
+                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-medium mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#eff6ff', color: '#1a56db' }}>
                   <Clock className="w-4 h-4" />
                   Eindexamens over {daysUntilExam} dagen
                 </div>
@@ -163,9 +163,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 <button
                   onClick={() => handleStartTrial()}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white font-medium rounded transition-colors"
-                  style={{ backgroundColor: '#931964' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#7a1452')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#931964')}
+                  style={{ backgroundColor: '#1a56db' }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
                 >
                   Start vandaag — 5 dagen voor €2
                   <ArrowRight className="w-4 h-4" />
@@ -181,15 +181,15 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               {/* Trust row */}
               <div className="text-reveal text-reveal-delay-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
-                  <Shield className="w-4 h-4" style={{ color: '#931964' }} />
+                  <Shield className="w-4 h-4" style={{ color: '#1a56db' }} />
                   Direct opzegbaar
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-4 h-4" style={{ color: '#931964' }} />
+                  <Check className="w-4 h-4" style={{ color: '#1a56db' }} />
                   Veilige betaling via Mollie
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-4 h-4" style={{ color: '#931964' }} />
+                  <Check className="w-4 h-4" style={{ color: '#1a56db' }} />
                   Geen verrassingsfactuur
                 </span>
               </div>
@@ -225,14 +225,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   </div>
 
                   <div className="flex justify-start">
-                    <div className="max-w-[90%] rounded-lg px-4 py-3 border" style={{ backgroundColor: '#f5e8f0', borderColor: '#e8c4d8' }}>
+                    <div className="max-w-[90%] rounded-lg px-4 py-3 border" style={{ backgroundColor: '#eff6ff', borderColor: '#bfdbfe' }}>
                       <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#931964' }}>
+                        <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 mt-0.5" style={{ backgroundColor: '#1a56db' }}>
                           <Sparkles className="w-4 h-4 text-white" />
                         </div>
                         <div>
-                          <p className="text-sm font-semibold mb-1" style={{ color: '#7a1452' }}>Bijna goed — let op de volgorde</p>
-                          <p className="text-sm leading-relaxed" style={{ color: '#931964' }}>
+                          <p className="text-sm font-semibold mb-1" style={{ color: '#1442b5' }}>Bijna goed — let op de volgorde</p>
+                          <p className="text-sm leading-relaxed" style={{ color: '#1a56db' }}>
                             <strong>Bruin is dominant</strong>, blauw is recessief. Als beide ouders Bb zijn, is er 25% kans op bb (blauwe ogen).
                           </p>
                         </div>
@@ -253,7 +253,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
             ].map((s) => (
               <div key={s.label} className="text-center scroll-reveal">
-                <div className="text-2xl font-bold mb-1" style={{ color: '#931964' }}>{s.value}</div>
+                <div className="text-2xl font-bold mb-1" style={{ color: '#1a56db' }}>{s.value}</div>
                 <div className="text-sm text-gray-500">{s.label}</div>
               </div>
             ))}
@@ -279,37 +279,37 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 icon: Brain,
                 title: 'AI Oefenvragen',
                 description: 'Onbeperkt oefenen met vragen op het exacte niveau van jouw kind — VMBO-TL, HAVO of VWO.',
-                color: '#931964',
+                color: '#1a56db',
               },
               {
                 icon: MessageSquare,
                 title: 'Persoonlijke AI-tutor',
                 description: 'Een geduldig AI-tutor die altijd beschikbaar is, ook laat op de avond voor een tentamen.',
-                color: '#0074a7',
+                color: '#0369a1',
               },
               {
                 icon: Target,
                 title: 'Echte CITO-examens',
                 description: 'Oefen met officiële examens zodat de opbouw en moeilijkheidsgraad geen verrassing zijn.',
-                color: '#931964',
+                color: '#1a56db',
               },
               {
                 icon: Zap,
                 title: 'Slimme Flashcards',
                 description: 'Begrippen inslijpen met AI-flashcards — ideaal voor onderweg of korte oefenmomenten.',
-                color: '#0074a7',
+                color: '#0369a1',
               },
               {
                 icon: TrendingUp,
                 title: 'Voortgang bijhouden',
                 description: 'Jouw kind ziet direct per vak waar verbetering nodig is. Transparant en motiverend.',
-                color: '#931964',
+                color: '#1a56db',
               },
               {
                 icon: Clock,
                 title: 'Tijdsoefeningen',
                 description: 'Oefenen onder tijdsdruk zodat de examenstress zo laag mogelijk blijft op de grote dag.',
-                color: '#0074a7',
+                color: '#0369a1',
               },
             ].map((f) => (
               <div key={f.title} className="feature-card bg-white border border-gray-200 rounded-lg p-6">
@@ -408,10 +408,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
 
             {/* Per kwartaal — popular */}
-            <div className="relative border-2 rounded-lg p-7 flex flex-col shine-effect scroll-reveal" style={{ borderColor: '#931964' }}>
+            <div className="relative border-2 rounded-lg p-7 flex flex-col shine-effect scroll-reveal" style={{ borderColor: '#1a56db' }}>
               <div
                 className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-4 py-1 rounded-full"
-                style={{ backgroundColor: '#931964' }}
+                style={{ backgroundColor: '#1a56db' }}
               >
                 POPULAIR
               </div>
@@ -422,13 +422,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 <span className="text-gray-500 text-sm ml-1">/ maand</span>
               </div>
               <p className="text-sm text-gray-500 mb-1">€24,95 per kwartaal</p>
-              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded mb-5" style={{ backgroundColor: '#f5e8f0', color: '#931964' }}>
+              <span className="inline-block text-xs font-semibold px-2 py-0.5 rounded mb-5" style={{ backgroundColor: '#eff6ff', color: '#1a56db' }}>
                 Bespaar 16%
               </span>
               <ul className="space-y-3 mb-8 flex-grow">
                 {['Alle 16 vakken', 'Onbeperkt AI-oefenvragen', 'Persoonlijke AI-tutor', 'Flashcards & echte examens', 'Goedkoper dan maandelijks'].map((f) => (
                   <li key={f} className="flex items-start gap-2.5 text-sm text-gray-700">
-                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#931964' }} />
+                    <Check className="w-4 h-4 mt-0.5 flex-shrink-0" style={{ color: '#1a56db' }} />
                     {f}
                   </li>
                 ))}
@@ -436,9 +436,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <button
                 onClick={() => handleStartTrial('quarterly')}
                 className="w-full py-3 rounded text-white font-medium text-sm transition-colors"
-                style={{ backgroundColor: '#931964' }}
-                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#7a1452')}
-                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#931964')}
+                style={{ backgroundColor: '#1a56db' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
                 Kies per kwartaal
               </button>
@@ -449,7 +449,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             <div className="border border-gray-200 rounded-lg p-7 flex flex-col scroll-reveal">
               <div
                 className="inline-block text-white text-xs font-bold px-3 py-0.5 rounded-full mb-3 self-start"
-                style={{ backgroundColor: '#0074a7' }}
+                style={{ backgroundColor: '#0369a1' }}
               >
                 BESTE DEAL
               </div>
@@ -474,7 +474,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <button
                 onClick={() => handleStartTrial('yearly')}
                 className="w-full py-3 rounded border font-medium text-sm transition-colors hover:bg-gray-50"
-                style={{ borderColor: '#0074a7', color: '#0074a7' }}
+                style={{ borderColor: '#0369a1', color: '#0369a1' }}
               >
                 Kies jaarlijks
               </button>
@@ -491,7 +491,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             <button
               onClick={() => window.location.href = 'mailto:info@ai-examentrainer.nl'}
               className="flex-shrink-0 px-5 py-2.5 rounded border font-medium text-sm transition-colors hover:bg-gray-50 whitespace-nowrap"
-              style={{ borderColor: '#931964', color: '#931964' }}
+              style={{ borderColor: '#1a56db', color: '#1a56db' }}
             >
               Neem contact op
             </button>
@@ -536,7 +536,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   <h3 className="font-medium text-gray-900 pr-4 text-sm leading-snug">{faq.question}</h3>
                   <ChevronDown
                     className="w-5 h-5 flex-shrink-0 transition-transform group-open:rotate-180"
-                    style={{ color: '#931964' }}
+                    style={{ color: '#1a56db' }}
                   />
                 </summary>
                 <div className="px-6 pb-5 pt-1">
@@ -549,7 +549,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
       </section>
 
       {/* ── CTA Banner ── */}
-      <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#931964' }}>
+      <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#1a56db' }}>
         <div className="max-w-3xl mx-auto text-center scroll-reveal">
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
             Klaar om jouw kind een vliegende start te geven?
@@ -560,7 +560,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <button
             onClick={() => handleStartTrial()}
             className="inline-flex items-center gap-2 bg-white font-semibold px-7 py-3.5 rounded transition-colors hover:bg-gray-100"
-            style={{ color: '#931964' }}
+            style={{ color: '#1a56db' }}
           >
             Begin vandaag
             <ArrowRight className="w-4 h-4" />
@@ -573,7 +573,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: '#931964' }}>
+              <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: '#1a56db' }}>
                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
               <span className="font-bold text-white">AI Examentrainer</span>
