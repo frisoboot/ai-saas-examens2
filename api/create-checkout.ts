@@ -191,10 +191,48 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Check of er al een bestaand Supabase Auth account is voor dit email
     // Als dat zo is, moet de gebruiker inloggen (of wachtwoord resetten) in plaats van opnieuw registreren
-    const { data: existingAuthUsers, error: authListError } = await supabase.auth.admin.listUsers();
-    const existingAuthUser = !authListError && existingAuthUsers?.users
-      ? existingAuthUsers.users.find((u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase())
-      : null;
+    // Pagineer door alle users om te voorkomen dat accounts op latere pagina's worden gemist
+    let existingAuthUser = null;
+    const perPage = 1000;
+    let page = 1;
+    const maxPages = 50; // Safety limit om oneindige loops te voorkomen
+    let authLookupFailed = false;
+
+    while (page <= maxPages) {
+      const { data: usersPage, error: authListError } = await supabase.auth.admin.listUsers({
+        page,
+        perPage,
+      });
+
+      if (authListError) {
+        console.error('Auth listUsers failed on page', page, ':', authListError.message);
+        authLookupFailed = true;
+        break;
+      }
+
+      const users = usersPage?.users || [];
+      const match = users.find((u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase());
+
+      if (match) {
+        existingAuthUser = match;
+        break;
+      }
+
+      // Geen users meer → we hebben alle pagina's doorlopen
+      if (users.length < perPage) {
+        break;
+      }
+
+      page++;
+    }
+
+    // Fail closed: als de auth lookup faalde, blokkeer de registratie
+    // Dit voorkomt dat een tijdelijke fout leidt tot dubbele accounts
+    if (authLookupFailed) {
+      return res.status(500).json({
+        error: 'Kon niet controleren of er al een account bestaat. Probeer het later opnieuw.'
+      });
+    }
 
     if (existingAuthUser) {
       console.log('Existing auth account found for:', email, '- blocking re-registration');
