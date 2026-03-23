@@ -171,7 +171,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const trialEnd = new Date(existingSubscription.trial_ends_at);
         if (trialEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.',
+            existingAccount: true
           });
         }
       }
@@ -181,7 +182,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : null;
         if (periodEnd && periodEnd > new Date()) {
           return res.status(400).json({
-            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+            error: 'Er bestaat al een account met dit e-mailadres met een actief abonnement. Log in met je bestaande account of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.',
+            existingAccount: true
           });
         }
       }
@@ -189,22 +191,57 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       console.log('Existing subscription with status:', existingSubscription.status, '- allowing re-subscription for:', email);
     }
 
-    // Check of er al een bestaand account is (student profile)
-    // Sta her-abonneren toe als het abonnement verlopen is
-    const { data: existingProfile } = await supabase
-      .from('student_profiles')
-      .select('id')
-      .eq('email', email.toLowerCase())
-      .maybeSingle();
+    // Check of er al een bestaand Supabase Auth account is voor dit email
+    // Als dat zo is, moet de gebruiker inloggen (of wachtwoord resetten) in plaats van opnieuw registreren
+    // Pagineer door alle users om te voorkomen dat accounts op latere pagina's worden gemist
+    let existingAuthUser = null;
+    const perPage = 1000;
+    let page = 1;
+    const maxPages = 50; // Safety limit om oneindige loops te voorkomen
+    let authLookupFailed = false;
 
-    const isResubscription = !!existingProfile;
+    while (page <= maxPages) {
+      const { data: usersPage, error: authListError } = await supabase.auth.admin.listUsers({
+        page,
+        perPage,
+      });
 
-    if (existingProfile && !existingSubscription) {
-      // Profiel bestaat maar geen subscription record → sta toe (edge case)
-      console.log('Existing profile without subscription, allowing checkout for:', email);
-    } else if (existingProfile && existingSubscription) {
-      // Profiel + verlopen subscription → sta her-abonneren toe (actieve subs zijn al geblokkeerd hierboven)
-      console.log('Re-subscription flow for existing user:', email);
+      if (authListError) {
+        console.error('Auth listUsers failed on page', page, ':', authListError.message);
+        authLookupFailed = true;
+        break;
+      }
+
+      const users = usersPage?.users || [];
+      const match = users.find((u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase());
+
+      if (match) {
+        existingAuthUser = match;
+        break;
+      }
+
+      // Geen users meer → we hebben alle pagina's doorlopen
+      if (users.length < perPage) {
+        break;
+      }
+
+      page++;
+    }
+
+    // Fail closed: als de auth lookup faalde, blokkeer de registratie
+    // Dit voorkomt dat een tijdelijke fout leidt tot dubbele accounts
+    if (authLookupFailed) {
+      return res.status(500).json({
+        error: 'Kon niet controleren of er al een account bestaat. Probeer het later opnieuw.'
+      });
+    }
+
+    if (existingAuthUser) {
+      console.log('Existing auth account found for:', email, '- blocking re-registration');
+      return res.status(409).json({
+        error: 'Er bestaat al een account met dit e-mailadres. Log in met je bestaande account of gebruik "Wachtwoord vergeten" om je wachtwoord te herstellen.',
+        existingAccount: true
+      });
     }
 
     // Verwijder oude pending registrations voor dit email

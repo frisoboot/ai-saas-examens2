@@ -182,9 +182,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (authError.message?.includes('already') || authError.message?.includes('exists') ||
             authError.message?.includes('duplicate') || authError.status === 422) {
           console.log('Auth user already exists for:', email);
-          const { data: userList, error: listError } = await supabase.auth.admin.listUsers();
-          const users = (!listError && userList?.users ? userList.users : []) as User[];
-          const existingUser = users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+          // Pagineer door alle users om het bestaande account te vinden
+          let existingUser: User | undefined;
+          let searchPage = 1;
+          const searchPerPage = 1000;
+
+          while (searchPage <= 50) {
+            const { data: userList, error: listError } = await supabase.auth.admin.listUsers({
+              page: searchPage,
+              perPage: searchPerPage,
+            });
+
+            if (listError || !userList?.users) break;
+
+            existingUser = (userList.users as User[]).find(u => u.email?.toLowerCase() === email.toLowerCase());
+            if (existingUser) break;
+            if (userList.users.length < searchPerPage) break;
+            searchPage++;
+          }
 
           if (existingUser) {
             authUserId = existingUser.id;
