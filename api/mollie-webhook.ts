@@ -165,6 +165,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       if (!userPassword) {
         console.error('CRITICAL: Could not retrieve user password for:', email);
+        console.error('Possible cause: PASSWORD_ENCRYPTION_KEY was rotated after registration, or pending_registration has no password_hash.');
         return { success: false, email, error: 'Password decryption failed' };
       }
 
@@ -400,10 +401,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (metadata.type === 'trial' &&
         (payment.status === 'failed' || payment.status === 'canceled' || payment.status === 'expired')) {
       console.log('Trial payment failed/cancelled for:', metadata.email);
-      await supabase
+
+      // Verwijder pending registration op payment ID
+      const { count: deletedByPid } = await supabase
         .from('pending_registrations')
         .delete()
-        .eq('mollie_payment_id', paymentId);
+        .eq('mollie_payment_id', paymentId)
+        .select('id', { count: 'exact', head: true });
+
+      // Fallback: verwijder ook op email als payment ID niet matcht
+      // (kan voorkomen als payment ID update in create-checkout faalde)
+      if (!deletedByPid && metadata.email) {
+        await supabase
+          .from('pending_registrations')
+          .delete()
+          .eq('email', metadata.email.toLowerCase())
+          .eq('status', 'pending');
+        console.log('Cleaned up pending registration by email fallback for:', metadata.email);
+      }
     }
 
     // ========================================================================

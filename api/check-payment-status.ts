@@ -166,11 +166,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
       case 'canceled':
         status = 'canceled';
-        message = 'Je betaling is geannuleerd.';
+        message = 'Je betaling is geannuleerd. Je kunt opnieuw registreren met hetzelfde e-mailadres.';
         break;
       case 'expired':
         status = 'expired';
-        message = 'Je betaling is verlopen. Probeer het opnieuw.';
+        message = 'Je betaling is verlopen. Je kunt opnieuw registreren met hetzelfde e-mailadres.';
         break;
       default:
         status = 'failed';

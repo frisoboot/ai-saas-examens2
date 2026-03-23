@@ -352,6 +352,26 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
                     {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {password.length > 0 && (
+                  <div className="mt-2 space-y-1 text-xs ml-1">
+                    <p className={password.length >= 8 ? 'text-green-600' : 'text-gray-400'}>
+                      {password.length >= 8 ? <CheckCircle2 className="w-3 h-3 inline mr-1" /> : <span className="inline-block w-3 h-3 mr-1">-</span>}
+                      Minimaal 8 tekens
+                    </p>
+                    <p className={/[A-Z]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      {/[A-Z]/.test(password) ? <CheckCircle2 className="w-3 h-3 inline mr-1" /> : <span className="inline-block w-3 h-3 mr-1">-</span>}
+                      Minimaal 1 hoofdletter
+                    </p>
+                    <p className={/[a-z]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      {/[a-z]/.test(password) ? <CheckCircle2 className="w-3 h-3 inline mr-1" /> : <span className="inline-block w-3 h-3 mr-1">-</span>}
+                      Minimaal 1 kleine letter
+                    </p>
+                    <p className={/[0-9]/.test(password) ? 'text-green-600' : 'text-gray-400'}>
+                      {/[0-9]/.test(password) ? <CheckCircle2 className="w-3 h-3 inline mr-1" /> : <span className="inline-block w-3 h-3 mr-1">-</span>}
+                      Minimaal 1 cijfer
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>
