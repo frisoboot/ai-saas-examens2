@@ -40,14 +40,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Missing payment_id parameter' });
     }
 
-    // Basis format-validatie: Mollie payment IDs beginnen met 'tr_'
-    if (!paymentId.startsWith('tr_')) {
-      return res.status(400).json({
-        success: false,
-        error: 'Ongeldig betaling ID formaat'
-      });
-    }
-
     // Environment variables check
     const mollieApiKey = process.env.MOLLIE_API_KEY;
     const supabaseUrl = process.env.VITE_SUPABASE_URL;
@@ -72,17 +64,47 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
+    // Als de pid een Mollie customer ID is (cst_xxx) ipv een payment ID (tr_xxx),
+    // zoek het echte payment ID op via pending_registrations
+    let resolvedPaymentId = paymentId;
+    if (paymentId.startsWith('cst_')) {
+      const { data: pendingByCustomer } = await supabase
+        .from('pending_registrations')
+        .select('mollie_payment_id')
+        .eq('mollie_customer_id', paymentId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingByCustomer && pendingByCustomer.mollie_payment_id && pendingByCustomer.mollie_payment_id !== 'pending') {
+        resolvedPaymentId = pendingByCustomer.mollie_payment_id;
+      } else {
+        return res.status(400).json({
+          success: false,
+          error: 'Betaling wordt nog verwerkt. Probeer het over een paar seconden opnieuw.'
+        });
+      }
+    }
+
+    // Basis format-validatie: Mollie payment IDs beginnen met 'tr_'
+    if (!resolvedPaymentId.startsWith('tr_')) {
+      return res.status(400).json({
+        success: false,
+        error: 'Ongeldig betaling ID formaat'
+      });
+    }
+
     // Check of payment bekend is in ons systeem (pending_registrations of payments)
     const { data: knownPayment } = await supabase
       .from('pending_registrations')
       .select('id, email')
-      .eq('mollie_payment_id', paymentId)
+      .eq('mollie_payment_id', resolvedPaymentId)
       .maybeSingle();
 
     const { data: paymentRecord } = await supabase
       .from('payments')
       .select('id')
-      .eq('mollie_payment_id', paymentId)
+      .eq('mollie_payment_id', resolvedPaymentId)
       .maybeSingle();
 
     const isKnownInDb = !!(knownPayment || paymentRecord);
@@ -91,7 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // We doen dit altijd, ook als DB record ontbreekt (kan door race condition of insert-fout)
     let payment;
     try {
-      payment = await mollie.payments.get(paymentId);
+      payment = await mollie.payments.get(resolvedPaymentId);
     } catch (mollieError) {
       console.error('Mollie payment fetch error:', mollieError);
       return res.status(404).json({
