@@ -248,7 +248,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-14 pt-10 border-t border-gray-200">
             {[
               { value: '2.500+', label: 'Leerlingen geholpen' },
-              { value: '150.000+', label: 'Oefenvragen gemaakt' },
+              { value: '1.500+', label: 'Vragen beantwoord' },
               { value: '16', label: 'Vakken beschikbaar' },
               { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
             ].map((s) => (
@@ -408,9 +408,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
 
             {/* Per kwartaal — popular */}
-            <div className="relative border-2 rounded-lg p-7 flex flex-col shine-effect scroll-reveal" style={{ borderColor: '#1a56db' }}>
+            <div className="relative pt-5 scroll-reveal">
+            <div className="border-2 rounded-lg p-7 flex flex-col shine-effect h-full" style={{ borderColor: '#1a56db' }}>
               <div
-                className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-4 py-1 rounded-full"
+                className="absolute top-1.5 left-1/2 -translate-x-1/2 text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap"
                 style={{ backgroundColor: '#1a56db' }}
               >
                 POPULAIR
@@ -443,6 +444,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 Kies per kwartaal
               </button>
               <p className="text-xs text-gray-400 text-center mt-3">5 dagen proberen voor €2</p>
+            </div>
             </div>
 
             {/* Jaarlijks */}
