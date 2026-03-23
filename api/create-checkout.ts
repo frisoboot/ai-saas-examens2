@@ -193,15 +193,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Sta her-abonneren toe als het abonnement verlopen is
     const { data: existingProfile } = await supabase
       .from('student_profiles')
-      .select('id')
+      .select('id, auth_user_id')
       .eq('email', email.toLowerCase())
       .maybeSingle();
 
     const isResubscription = !!existingProfile;
 
-    if (existingProfile && !existingSubscription) {
-      // Profiel bestaat maar geen subscription record → sta toe (edge case)
-      console.log('Existing profile without subscription, allowing checkout for:', email);
+    // Als er een profiel + auth user bestaat maar GEEN actieve subscription,
+    // adviseer de gebruiker om in te loggen en via instellingen opnieuw te abonneren
+    if (existingProfile && existingProfile.auth_user_id && !existingSubscription) {
+      console.log('Existing profile+auth without subscription, suggesting login for:', email);
+      return res.status(400).json({
+        error: 'Er bestaat al een account met dit e-mailadres. Log in en activeer je abonnement via de instellingen, of gebruik "Wachtwoord vergeten" als je je wachtwoord kwijt bent.'
+      });
+    }
+
+    if (existingProfile && !existingProfile.auth_user_id && !existingSubscription) {
+      // Profiel zonder auth user → orphaned profile, sta registratie toe
+      console.log('Existing profile without auth user, allowing checkout for:', email);
     } else if (existingProfile && existingSubscription) {
       // Profiel + verlopen subscription → sta her-abonneren toe (actieve subs zijn al geblokkeerd hierboven)
       console.log('Re-subscription flow for existing user:', email);
@@ -214,13 +223,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .delete()
       .eq('email', email.toLowerCase());
 
-    // Verwijder ook verlopen 'pending' placeholder records van andere emails
+    // Verwijder verlopen 'pending' placeholder records van andere emails
     // die de UNIQUE constraint op mollie_payment_id kunnen blokkeren
     await supabase
       .from('pending_registrations')
       .delete()
       .eq('mollie_payment_id', 'pending')
       .lt('created_at', new Date(Date.now() - 60 * 60 * 1000).toISOString());
+
+    // Verwijder alle verlopen pending registrations (ouder dan 24 uur)
+    // Dit voorkomt ophoping van versleutelde wachtwoorden in de database
+    await supabase
+      .from('pending_registrations')
+      .delete()
+      .lt('expires_at', new Date().toISOString());
 
     // Maak Mollie customer aan (gebruik email als naam)
     const customer = await mollie.customers.create({

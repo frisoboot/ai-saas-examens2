@@ -124,9 +124,10 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
     checkStatus();
   }, [pendingCheckCount, urlPaymentId, state]);
 
-  // Bij success: check of account klaar is (max 30 seconden wachten)
+  // Bij success: check of account klaar is (max 60 seconden wachten)
   const [accountCheckCount, setAccountCheckCount] = useState(0);
-  const maxAccountChecks = 15; // 15 checks x 2 sec = 30 seconden max
+  const [accountTimedOut, setAccountTimedOut] = useState(false);
+  const maxAccountChecks = 30; // 30 checks x 2 sec = 60 seconden max
   useEffect(() => {
     if (state === 'paid' && !accountReady && accountCheckCount < maxAccountChecks) {
       // Gebruik de ref in plaats van localStorage (die is al verwijderd na paid status)
@@ -149,9 +150,9 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
         return () => clearTimeout(timer);
       }
     }
-    // Na max wachttijd: toon login knop toch (account is waarschijnlijk aangemaakt)
+    // Na max wachttijd: toon login knop met waarschuwing (account is mogelijk nog niet klaar)
     if (state === 'paid' && !accountReady && accountCheckCount >= maxAccountChecks) {
-      setAccountReady(true);
+      setAccountTimedOut(true);
     }
   }, [state, accountReady, accountCheckCount]);
 
@@ -215,11 +216,33 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
             </p>
 
             <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 mb-6">
-              {!accountReady ? (
+              {!accountReady && !accountTimedOut ? (
                 <div className="text-center">
                   <Loader2 className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
                   <p className="text-gray-600">Je account wordt aangemaakt...</p>
                   <p className="text-gray-400 text-sm mt-2">Dit kan tot een minuut duren</p>
+                </div>
+              ) : accountTimedOut && !accountReady ? (
+                <div className="text-center">
+                  <AlertTriangle className="w-8 h-8 text-amber-500 mx-auto mb-4" />
+                  <p className="text-gray-700 font-medium mb-2">Je account wordt nog aangemaakt</p>
+                  <p className="text-gray-500 text-sm mb-4">
+                    Dit duurt langer dan verwacht. Je betaling is geslaagd - je account wordt automatisch aangemaakt.
+                    Probeer over een paar minuten in te loggen.
+                  </p>
+                  <Button
+                    onClick={() => onLogin()}
+                    className="w-full justify-center h-14 text-lg font-semibold shadow-lg shadow-blue-600/20"
+                    size="lg"
+                  >
+                    Naar inlogpagina
+                    <ArrowRight className="w-5 h-5 ml-2" />
+                  </Button>
+                  {email && (
+                    <p className="text-sm text-gray-400 mt-3">
+                      Log in met: <span className="font-medium text-gray-600">{email}</span>
+                    </p>
+                  )}
                 </div>
               ) : (
                 <>
