@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { GraduationCap, Mail, ArrowRight, AlertCircle, Loader2, ArrowLeft, CheckCircle } from 'lucide-react';
 import { SEO } from './SEO';
 import { Button } from './Button';
-import { auth } from '../services/supabaseService';
 
 interface ForgotPasswordPageProps {
   onBack: () => void;
@@ -36,12 +35,21 @@ export const ForgotPasswordPage: React.FC<ForgotPasswordPageProps> = ({
 
     setIsSubmitting(true);
 
-    const result = await auth.resetPasswordForEmail(email);
+    try {
+      const response = await fetch('/api/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
 
-    if (result.error) {
-      setError(translateError(result.error));
-    } else {
-      setIsSuccess(true);
+      if (!response.ok) {
+        const data = await response.json();
+        setError(translateError(data.error || 'Er ging iets mis'));
+      } else {
+        setIsSuccess(true);
+      }
+    } catch {
+      setError('Er ging iets mis. Probeer het opnieuw.');
     }
 
     setIsSubmitting(false);
