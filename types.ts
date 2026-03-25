@@ -10,6 +10,11 @@ export type ExamMode = 'BY_SUBJECT' | 'BY_YEAR';
 
 export type FeedbackMode = 'coach' | 'exam';
 
+export interface ExamLink {
+  title: string;
+  url: string;
+}
+
 export interface Question {
   id: string;
   type: QuestionType;
@@ -60,6 +65,9 @@ export interface Question {
   // Kaartboekje PDF (for exams with a separate maps booklet, e.g. Aardrijkskunde)
   examKaartUrl?: string;     // URL to kaartboekje PDF in Supabase Storage - shared across all questions in one exam
   kaartPdfPage?: number;     // Specific page number in the kaartboekje PDF to show for this question
+
+  // External links (e.g., online atlas for Aardrijkskunde) - shared across all questions in one exam
+  examLinks?: ExamLink[];
 }
 
 export interface Answer {
@@ -119,6 +127,9 @@ export interface ExamSession {
 
   // Kaartboekje PDF URL (extracted from questions for the entire exam)
   kaartUrl?: string;
+
+  // External links (e.g., online atlas for Aardrijkskunde)
+  examLinks?: ExamLink[];
 
   // Feedback mode: 'coach' = instant feedback after each question, 'exam' = all at the end
   feedbackMode?: FeedbackMode;
@@ -196,6 +207,9 @@ export interface BulkImportQuestion {
   // Kaartboekje PDF (for exams with a separate maps booklet, e.g. Aardrijkskunde)
   examKaartUrl?: string;
   kaartPdfPage?: number;
+
+  // External links (e.g., online atlas)
+  examLinks?: ExamLink[];
 }
 
 export interface ImportResult {

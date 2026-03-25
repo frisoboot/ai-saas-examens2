@@ -4,7 +4,7 @@ import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
 import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../services/geminiService';
 import { Button } from './Button';
-import { CheckCircle, Home, ChevronLeft, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
+import { CheckCircle, Home, ChevronLeft, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2, ExternalLink } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { examMarkdownComponents, examRemarkPlugins, examRehypePlugins } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
@@ -718,6 +718,20 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
             </span>
           )}
 
+          {/* Exam links (e.g., online atlas for AK) */}
+          {session.examLinks && session.examLinks.length > 0 && session.examLinks.map((link, idx) => (
+            <a
+              key={idx}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-cyan-50 text-cyan-700 hover:bg-cyan-100 transition"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              {link.title}
+            </a>
+          ))}
+
           {/* Mobile PDF toggle button */}
           {(hasPdf || hasBijlage || hasKaart) && (
             <button
@@ -751,6 +765,24 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
           </button>
         </div>
       </div>
+
+      {/* Mobile exam links bar */}
+      {session.examLinks && session.examLinks.length > 0 && (
+        <div className="sm:hidden flex items-center gap-2 px-4 py-2 bg-cyan-50 border-b border-cyan-100 overflow-x-auto flex-shrink-0">
+          <ExternalLink className="w-4 h-4 text-cyan-600 flex-shrink-0" />
+          {session.examLinks.map((link, idx) => (
+            <a
+              key={idx}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-shrink-0 px-3 py-1 rounded-full text-xs font-medium bg-white text-cyan-700 border border-cyan-200 hover:bg-cyan-100 transition"
+            >
+              {link.title}
+            </a>
+          ))}
+        </div>
+      )}
 
       {/* Main Content Split */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">

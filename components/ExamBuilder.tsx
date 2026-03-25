@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Question, QuestionType, StudentLevel } from '../types';
+import { Question, QuestionType, StudentLevel, ExamLink } from '../types';
 import { saveQuestion, getQuestions } from '../services/storageService';
 import { Button } from './Button';
-import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown } from 'lucide-react';
+import { Plus, Save, Trash2, FileText, ArrowLeft, Eye, AlertCircle, CheckCircle, Minus, Keyboard, RefreshCw, Upload, Download, Pencil, X, Image as ImageIcon, FileDown, Link2 } from 'lucide-react';
 import { worksheetStorage } from '../services/worksheetStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -14,6 +14,7 @@ interface ExamMetadata {
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
   examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
   examKaartUrl?: string; // Kaartboekje PDF URL for the entire exam
+  examLinks?: ExamLink[]; // External links for the entire exam
 }
 
 interface QuestionDraft extends Partial<Question> {
@@ -98,6 +99,7 @@ const generateJsonTemplate = (): string => {
         "examPdfUrl": "OPTIONEEL - URL naar een PDF met de opdrachten/tekstboekje dat bij het hele examen hoort. Wordt als split-screen naast de vragen getoond.",
         "examBijlageUrl": "OPTIONEEL - URL naar een bijlage-PDF die bij het hele examen hoort (bijv. Binas, atlas, bronnenboekje). Wordt als tab naast de opdrachten-PDF getoond.",
         "examKaartUrl": "OPTIONEEL - URL naar een kaartboekje-PDF die bij het hele examen hoort (bijv. Aardrijkskunde kaartboekje). Wordt als aparte tab naast de andere PDFs getoond.",
+        "examLinks": "OPTIONEEL - Array van externe links die bij het examen horen (bijv. online atlas voor Aardrijkskunde). Elke link is een object met 'title' (naam) en 'url' (volledige URL). Voorbeeld: [{\"title\": \"Bosatlas Online\", \"url\": \"https://www.bosatlas.nl\"}]",
         "questions": "VERPLICHT - Array van vraag-objecten (zie fieldExplanations_question)"
       },
       fieldExplanations_question: {
@@ -124,6 +126,7 @@ const generateJsonTemplate = (): string => {
         with_pdf: "Examen met tekstboekje: voeg examPdfUrl toe op top-level, en optioneel pdfPage per vraag",
         with_bijlage: "Examen met bijlage: voeg examBijlageUrl toe op top-level, en optioneel bijlagePdfPage per vraag",
         with_kaart: "Examen met kaartboekje (Aardrijkskunde): voeg examKaartUrl toe op top-level, en optioneel kaartPdfPage per vraag",
+        with_links: "Examen met externe links (bijv. online atlas): voeg examLinks toe op top-level als array van {title, url} objecten",
         with_image: "Vraag met afbeelding: voeg imageUrl toe (base64 of URL), of zet hasImage=true om later toe te voegen"
       }
     },
@@ -135,6 +138,7 @@ const generateJsonTemplate = (): string => {
     examPdfUrl: "",
     examBijlageUrl: "",
     examKaartUrl: "",
+    examLinks: [],
 
     questions: [
       {
@@ -507,6 +511,10 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       if (data.examKaartUrl) {
         setExamMeta(prev => ({ ...prev, examKaartUrl: data.examKaartUrl }));
       }
+      // Import exam links if provided
+      if (data.examLinks && Array.isArray(data.examLinks)) {
+        setExamMeta(prev => ({ ...prev, examLinks: data.examLinks }));
+      }
 
       // Convert JSON questions to QuestionDraft format
       const importedQuestions: QuestionDraft[] = data.questions.map((q, index) => ({
@@ -699,6 +707,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           bijlagePdfPage: draft.bijlagePdfPage,
           examKaartUrl: examMeta.examKaartUrl,
           kaartPdfPage: draft.kaartPdfPage,
+          examLinks: examMeta.examLinks,
           ...(draft.type === 'MULTIPLE_CHOICE' ? {
             options: validOptions,
             correctIndex: draft.correctIndex
@@ -948,6 +957,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
   "level": "HAVO",
   "examPdfUrl": "(optioneel) URL naar opdrachten PDF",
   "examBijlageUrl": "(optioneel) URL naar bijlage PDF",
+  "examLinks": [{"title": "Bosatlas", "url": "https://..."}],
   "questions": [
     {
       "questionNumber": 1,
@@ -974,6 +984,7 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                   <p><strong>examPdfUrl:</strong> PDF met opdrachten (wordt links getoond in split-screen).</p>
                   <p><strong>examBijlageUrl:</strong> Bijlage-PDF (bijv. Binas, atlas). Schakelen via tabs.</p>
                   <p><strong>pdfPage / bijlagePdfPage:</strong> Pagina in de PDF die automatisch getoond wordt bij die vraag.</p>
+                  <p><strong>examLinks:</strong> Externe links (bijv. online atlas). Array van {`{title, url}`} objecten.</p>
                   <p><strong>hasImage:</strong> Zet op true om later een afbeelding toe te voegen via preview.</p>
                 </div>
               </div>
@@ -1278,6 +1289,62 @@ export const ExamBuilder: React.FC<{ onBack: () => void }> = ({ onBack }) => {
                       className="w-full p-2 border border-gray-300 rounded-lg text-sm"
                     />
                   )}
+                </div>
+
+                {/* External Links */}
+                <div className="pt-4 border-t">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Link2 className="w-4 h-4 inline mr-1" />
+                    Externe links (optioneel)
+                  </label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Voeg links toe die studenten tijdens het examen kunnen openen (bijv. online atlas)
+                  </p>
+                  {(examMeta.examLinks || []).map((link, idx) => (
+                    <div key={idx} className="flex items-center gap-2 mb-2">
+                      <input
+                        type="text"
+                        placeholder="Titel"
+                        value={link.title}
+                        onChange={(e) => {
+                          const updated = [...(examMeta.examLinks || [])];
+                          updated[idx] = { ...updated[idx], title: e.target.value };
+                          setExamMeta({ ...examMeta, examLinks: updated });
+                        }}
+                        className="flex-1 p-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                      <input
+                        type="url"
+                        placeholder="https://..."
+                        value={link.url}
+                        onChange={(e) => {
+                          const updated = [...(examMeta.examLinks || [])];
+                          updated[idx] = { ...updated[idx], url: e.target.value };
+                          setExamMeta({ ...examMeta, examLinks: updated });
+                        }}
+                        className="flex-[2] p-2 border border-gray-300 rounded-lg text-sm"
+                      />
+                      <button
+                        onClick={() => {
+                          const updated = (examMeta.examLinks || []).filter((_, i) => i !== idx);
+                          setExamMeta({ ...examMeta, examLinks: updated.length > 0 ? updated : undefined });
+                        }}
+                        className="p-1.5 bg-red-100 text-red-600 rounded hover:bg-red-200"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => {
+                      const updated = [...(examMeta.examLinks || []), { title: '', url: '' }];
+                      setExamMeta({ ...examMeta, examLinks: updated });
+                    }}
+                    className="flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Link toevoegen
+                  </button>
                 </div>
 
                 <div className="pt-4 border-t">

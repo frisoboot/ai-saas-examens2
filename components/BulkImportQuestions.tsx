@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { BulkImportQuestion, ImportResult, QuestionType, StudentLevel } from '../types';
+import { BulkImportQuestion, ImportResult, QuestionType, StudentLevel, ExamLink } from '../types';
 import { parseCSV, parseJSON, bulkImportQuestions, generateCSVTemplate, validateFileType, readFileAsText } from '../services/importService';
 import { compressImage } from '../utils/imageUtils';
 import { worksheetStorage } from '../services/worksheetStorageService';
 import { Button } from './Button';
-import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Pencil, Trash2, Save, X, Image as ImageIcon, Loader2, BookOpen, Paperclip } from 'lucide-react';
+import { Upload, Download, FileText, CheckCircle, XCircle, AlertCircle, Pencil, Trash2, Save, X, Image as ImageIcon, Loader2, BookOpen, Paperclip, Link2, Plus } from 'lucide-react';
 
 export const BulkImportQuestions: React.FC = () => {
   const [fileType, setFileType] = useState<'csv' | 'json'>('csv');
@@ -18,6 +18,7 @@ export const BulkImportQuestions: React.FC = () => {
   const [examPdfUrl, setExamPdfUrl] = useState<string | undefined>(undefined);
   const [examBijlageUrl, setExamBijlageUrl] = useState<string | undefined>(undefined);
   const [examKaartUrl, setExamKaartUrl] = useState<string | undefined>(undefined);
+  const [examLinks, setExamLinks] = useState<ExamLink[]>([]);
   const [uploadingPdf, setUploadingPdf] = useState(false);
   const [uploadingBijlage, setUploadingBijlage] = useState(false);
   const [uploadingKaart, setUploadingKaart] = useState(false);
@@ -56,6 +57,7 @@ export const BulkImportQuestions: React.FC = () => {
         if (parsed[0].examPdfUrl) setExamPdfUrl(parsed[0].examPdfUrl);
         if (parsed[0].examBijlageUrl) setExamBijlageUrl(parsed[0].examBijlageUrl);
         if (parsed[0].examKaartUrl) setExamKaartUrl(parsed[0].examKaartUrl);
+        if (parsed[0].examLinks && Array.isArray(parsed[0].examLinks)) setExamLinks(parsed[0].examLinks);
       }
     } catch (err) {
       setError('Fout bij lezen van bestand');
@@ -118,6 +120,7 @@ export const BulkImportQuestions: React.FC = () => {
         examPdfUrl: q.examPdfUrl || examPdfUrl,
         examBijlageUrl: q.examBijlageUrl || examBijlageUrl,
         examKaartUrl: q.examKaartUrl || examKaartUrl,
+        examLinks: q.examLinks || (examLinks.length > 0 ? examLinks : undefined),
       }));
       const result = await bulkImportQuestions(questionsWithPdfs);
       setImportResult(result);
@@ -131,6 +134,7 @@ export const BulkImportQuestions: React.FC = () => {
           setExamPdfUrl(undefined);
           setExamBijlageUrl(undefined);
           setExamKaartUrl(undefined);
+          setExamLinks([]);
         }, 5000);
       } else if (result.failedCount > 0 && result.importedCount === 0) {
         // Alles mislukt
@@ -433,6 +437,54 @@ export const BulkImportQuestions: React.FC = () => {
                 </label>
               )}
               <p className="text-xs text-slate-500 mt-1">Kaartboekje (bijv. Aardrijkskunde). Gebruik <code className="bg-slate-200 px-1 rounded">kaartPdfPage</code> per vraag.</p>
+            </div>
+
+            {/* External Links */}
+            <div>
+              <label className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+                <Link2 className="w-4 h-4 text-cyan-600" />
+                Externe links
+              </label>
+              {examLinks.map((link, idx) => (
+                <div key={idx} className="flex items-center gap-2 mb-2">
+                  <input
+                    type="text"
+                    placeholder="Titel"
+                    value={link.title}
+                    onChange={(e) => {
+                      const updated = [...examLinks];
+                      updated[idx] = { ...updated[idx], title: e.target.value };
+                      setExamLinks(updated);
+                    }}
+                    className="flex-1 p-2 border border-slate-300 rounded-lg text-sm"
+                  />
+                  <input
+                    type="url"
+                    placeholder="https://..."
+                    value={link.url}
+                    onChange={(e) => {
+                      const updated = [...examLinks];
+                      updated[idx] = { ...updated[idx], url: e.target.value };
+                      setExamLinks(updated);
+                    }}
+                    className="flex-[2] p-2 border border-slate-300 rounded-lg text-sm"
+                  />
+                  <button
+                    onClick={() => setExamLinks(examLinks.filter((_, i) => i !== idx))}
+                    className="p-1.5 text-red-500 hover:bg-red-100 rounded"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={() => setExamLinks([...examLinks, { title: '', url: '' }])}
+                className="flex items-center gap-1.5 text-sm text-cyan-600 hover:text-cyan-700 font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Link toevoegen
+              </button>
+              <p className="text-xs text-slate-500 mt-1">Externe links (bijv. online atlas). Worden als knoppen in de examenweergave getoond.</p>
             </div>
           </div>
 

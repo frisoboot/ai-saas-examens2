@@ -234,6 +234,8 @@ const AppContent: React.FC = () => {
       const examBijlageUrl = sortedQuestions.find(q => q.examBijlageUrl)?.examBijlageUrl;
       // Extract kaartboekje PDF URL from questions (shared across all questions in one exam)
       const examKaartUrl = sortedQuestions.find(q => q.examKaartUrl)?.examKaartUrl;
+      // Extract exam links from questions (shared across all questions in one exam)
+      const examLinks = sortedQuestions.find(q => q.examLinks && q.examLinks.length > 0)?.examLinks;
 
       setCurrentExamSession({
         studentName: currentProfile.name,
@@ -247,6 +249,7 @@ const AppContent: React.FC = () => {
         pdfUrl: examPdfUrl,
         bijlageUrl: examBijlageUrl,
         kaartUrl: examKaartUrl,
+        examLinks,
         feedbackMode: feedbackMode || 'exam'
       });
       navigate('/exam');
