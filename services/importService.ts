@@ -124,6 +124,8 @@ const convertToQuestion = (q: BulkImportQuestion, questionIndex: number): Questi
     // Kaartboekje PDF
     examKaartUrl: q.examKaartUrl,
     kaartPdfPage: q.kaartPdfPage,
+    // External links
+    examLinks: q.examLinks,
     // Worksheet
     worksheetUrl: q.worksheetUrl,
     worksheetLabel: q.worksheetLabel,
@@ -288,6 +290,7 @@ export const parseJSON = (jsonText: string): BulkImportQuestion[] => {
       if (data.examPdfUrl) metadata.examPdfUrl = data.examPdfUrl;
       if (data.examBijlageUrl) metadata.examBijlageUrl = data.examBijlageUrl;
       if (data.examKaartUrl) metadata.examKaartUrl = data.examKaartUrl;
+      if (data.examLinks && Array.isArray(data.examLinks)) metadata.examLinks = data.examLinks;
 
       // Map questions and inherit metadata where not specified
       return data.questions.map((q: any) => ({
