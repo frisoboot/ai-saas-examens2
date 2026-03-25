@@ -117,27 +117,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const initAuth = async () => {
-      const { session } = await auth.getSession();
-
-      if (session?.user && mounted) {
-        const needsSubscriptionCheck = !isAdminEmail(session.user.email) && !!session.user.email;
-        setState(prev => ({
-          ...prev,
-          user: session.user,
-          session,
-          isAuthenticated: true,
-          isAdmin: isAdminEmail(session.user.email),
-          isLoading: false,
-          // Voorkom race condition: zet subscriptionLoading alvast op true
-          // zodat SubscriptionRoute de loading screen toont tot de check klaar is
-          subscriptionLoading: needsSubscriptionCheck
-        }));
-        loadUserProfile(session.user);
-        if (session.user.email) {
-          loadSubscriptionStatus(session.user.email);
+      // Timeout zodat de login pagina niet oneindig blijft laden
+      // als getSession hangt (bijv. door een verlopen token in localStorage)
+      const timeout = setTimeout(() => {
+        if (mounted) {
+          console.warn('[AuthContext] Session check timeout - clearing stale session data');
+          // Wis mogelijke corrupte/verlopen Supabase localStorage data
+          try {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const key = localStorage.key(i);
+              if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+                localStorage.removeItem(key);
+              }
+            }
+          } catch (e) {
+            // localStorage niet beschikbaar, geen probleem
+          }
+          setState(prev => ({ ...prev, isLoading: false }));
         }
-      } else if (mounted) {
-        setState(prev => ({ ...prev, isLoading: false }));
+      }, 5000);
+
+      try {
+        const { session } = await auth.getSession();
+
+        clearTimeout(timeout);
+
+        if (session?.user && mounted) {
+          const needsSubscriptionCheck = !isAdminEmail(session.user.email) && !!session.user.email;
+          setState(prev => ({
+            ...prev,
+            user: session.user,
+            session,
+            isAuthenticated: true,
+            isAdmin: isAdminEmail(session.user.email),
+            isLoading: false,
+            // Voorkom race condition: zet subscriptionLoading alvast op true
+            // zodat SubscriptionRoute de loading screen toont tot de check klaar is
+            subscriptionLoading: needsSubscriptionCheck
+          }));
+          loadUserProfile(session.user);
+          if (session.user.email) {
+            loadSubscriptionStatus(session.user.email);
+          }
+        } else if (mounted) {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
+      } catch (error) {
+        clearTimeout(timeout);
+        console.error('[AuthContext] Session check failed:', error);
+        // Wis localStorage zodat een corrupte sessie niet blijft hangen
+        try {
+          for (let i = localStorage.length - 1; i >= 0; i--) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {
+          // localStorage niet beschikbaar
+        }
+        if (mounted) {
+          setState(prev => ({ ...prev, isLoading: false }));
+        }
       }
     };
 
