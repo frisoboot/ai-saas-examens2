@@ -398,14 +398,25 @@ export const ExamLibrary: React.FC<ExamLibraryProps> = ({ onEditQuestion }) => {
                             <Calendar className="w-4 h-4 text-green-500" />
                             <span className="font-medium text-slate-700 flex-1">{yearLabel}</span>
 
-                            {/* Tijdvak badges */}
-                            {yearGroup.tijdvakken.length > 1 && (
+                            {/* Tijdvak badges - show all tijdvakken with present/missing status */}
+                            {yearGroup.year > 0 && (
                               <div className="flex gap-1 mr-2">
-                                {yearGroup.tijdvakken.map(tv => (
-                                  <span key={tv.tijdvak} className="text-xs font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-100">
-                                    T{tv.tijdvak}: {tv.questions.length}
-                                  </span>
-                                ))}
+                                {[1, 2, 3].map(tvNum => {
+                                  const found = yearGroup.tijdvakken.find(tv => tv.tijdvak === tvNum);
+                                  const label = tvNum === 3 ? 'H' : `T${tvNum}`;
+                                  if (found) {
+                                    return (
+                                      <span key={tvNum} className="text-xs font-medium px-1.5 py-0.5 rounded bg-green-50 text-green-700 border border-green-200">
+                                        {label}: {found.questions.length}
+                                      </span>
+                                    );
+                                  }
+                                  return (
+                                    <span key={tvNum} className="text-xs font-medium px-1.5 py-0.5 rounded bg-red-50 text-red-400 border border-red-100">
+                                      {label}: –
+                                    </span>
+                                  );
+                                })}
                               </div>
                             )}
 
