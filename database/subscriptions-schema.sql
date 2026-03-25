@@ -74,14 +74,24 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
 -- Subscriptions: users kunnen alleen hun eigen subscription zien
 CREATE POLICY "Users can view own subscription" ON subscriptions
-    FOR SELECT USING (true); -- Voor nu publiek, later auth toevoegen
+    FOR SELECT USING (auth.jwt()->>'email' = user_email);
 
--- Service role kan alles (voor webhooks)
+-- Service role kan alles (voor webhooks en admin endpoints)
 CREATE POLICY "Service role full access subscriptions" ON subscriptions
-    FOR ALL USING (true);
+    FOR ALL USING (auth.role() = 'service_role');
+
+-- Payments: users kunnen alleen hun eigen betalingen zien
+CREATE POLICY "Users can view own payments" ON payments
+    FOR SELECT USING (
+        EXISTS (
+            SELECT 1 FROM subscriptions s
+            WHERE s.id = payments.subscription_id
+            AND s.user_email = auth.jwt()->>'email'
+        )
+    );
 
 CREATE POLICY "Service role full access payments" ON payments
-    FOR ALL USING (true);
+    FOR ALL USING (auth.role() = 'service_role');
 
 -- Functie om te checken of een user een actieve subscription heeft
 CREATE OR REPLACE FUNCTION has_active_subscription(check_email TEXT)
@@ -148,7 +158,7 @@ CREATE INDEX IF NOT EXISTS idx_pending_expires ON pending_registrations(expires_
 ALTER TABLE pending_registrations ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Service role full access pending" ON pending_registrations
-    FOR ALL USING (true);
+    FOR ALL USING (auth.role() = 'service_role');
 
 -- Automatische cleanup van verlopen registraties (optioneel, kan via cron job)
 -- DELETE FROM pending_registrations WHERE expires_at < NOW();
