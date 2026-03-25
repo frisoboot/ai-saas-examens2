@@ -6,7 +6,7 @@ import { getExplanation, generateExamSummary, gradeOpenQuestion } from '../servi
 import { Button } from './Button';
 import { CheckCircle, Home, ChevronLeft, ChevronRight, X, Clock, Download, SkipForward, ZoomIn, FileText, BookOpen, Flag, AlertTriangle, Sparkles, Paperclip, Loader2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { examMarkdownComponents, examRemarkPlugins } from '../utils/markdownComponents';
+import { examMarkdownComponents, compactMarkdownComponents, examRemarkPlugins } from '../utils/markdownComponents';
 import { ExamSubmitting, QuestionReviewCard, ExamSummaryCard, ExamScoreCards, OpenQuestionGrade } from './exam';
 import { useAuth } from '../contexts/AuthContext';
 import { PdfViewer } from './PdfViewer';
@@ -1149,7 +1149,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
                           <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
                         </div>
                         <div className="text-sm text-slate-700 prose prose-sm max-w-none prose-p:my-1">
-                          <ReactMarkdown>{aiExplanations[currentQuestion.id]}</ReactMarkdown>
+                          <ReactMarkdown components={compactMarkdownComponents}>{aiExplanations[currentQuestion.id]}</ReactMarkdown>
                         </div>
                       </div>
                     )}
