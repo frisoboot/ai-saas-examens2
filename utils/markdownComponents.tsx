@@ -1,14 +1,20 @@
 import React from 'react';
 import type { Components } from 'react-markdown';
 import remarkBreaks from 'remark-breaks';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 /**
  * Shared ReactMarkdown component overrides for consistent list and text styling.
  * Use these as the `components` prop on <ReactMarkdown>.
  */
 
-/** Remark plugins that convert single newlines to <br> (used for long question texts). */
-export const examRemarkPlugins = [remarkBreaks];
+/** Remark plugins that convert single newlines to <br> and parse math notation. */
+export const examRemarkPlugins = [remarkBreaks, remarkMath];
+
+/** Rehype plugins that render math notation with KaTeX. */
+export const examRehypePlugins = [rehypeKatex];
 
 /** Default markdown components for exam content (questions, context, section intros). */
 export const examMarkdownComponents: Components = {

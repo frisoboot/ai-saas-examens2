@@ -4,6 +4,7 @@ import { createSubjectChat } from '../services/geminiService';
 import { Button } from './Button';
 import { Send, ArrowLeft, Bot, User, Sparkles } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { examRemarkPlugins, examRehypePlugins } from '../utils/markdownComponents';
 import { sanitizeText } from '../utils/sanitize';
 
 // Chat interface returned by createSubjectChat (server-side wrapper)
@@ -110,6 +111,8 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
                     ol: ({children}) => <ol className="list-decimal pl-4 mb-2">{children}</ol>,
                     strong: ({children}) => <strong className="font-bold">{children}</strong>,
                   }}
+                  remarkPlugins={examRemarkPlugins}
+                  rehypePlugins={examRehypePlugins}
                   skipHtml={true}
                 >
                   {msg.text}
