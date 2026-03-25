@@ -23,6 +23,7 @@
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "katex": "^0.16.42",
     "lucide-react": "^0.562.0",
     "openai": "^6.16.0",
     "react": "^19.2.3",
@@ -30,7 +31,9 @@
     "react-helmet-async": "^2.0.5",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.12.0",
+    "rehype-katex": "^7.0.1",
     "remark-breaks": "^4.0.0",
+    "remark-math": "^6.0.0",
     "resend": "^6.9.4",
     "zod": "^4.3.6"
   },

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Question } from '../../types';
 import { CheckCircle, XCircle, MinusCircle, ChevronDown, Sparkles, Flag } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { compactMarkdownComponents } from '../../utils/markdownComponents';
+import { compactMarkdownComponents, examRemarkPlugins, examRehypePlugins } from '../../utils/markdownComponents';
 
 export type OpenQuestionGrade = 'correct' | 'partial' | 'incorrect' | null;
 
@@ -170,7 +170,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
             <span className="inline-flex items-center justify-center w-7 h-7 rounded-full bg-indigo-600 text-white text-xs font-bold flex-shrink-0 mt-0.5">
               {questionIndex + 1}
             </span>
-            <p className="text-slate-900 font-medium whitespace-pre-line">{question.text}</p>
+            <div className="text-slate-900 font-medium"><ReactMarkdown components={{ p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p> }} remarkPlugins={examRemarkPlugins} rehypePlugins={examRehypePlugins}>{question.text}</ReactMarkdown></div>
           </div>
 
           {isSkipped ? (
@@ -223,7 +223,7 @@ export const QuestionReviewCard: React.FC<QuestionReviewCardProps> = ({
                 <span className="text-xs font-medium text-indigo-700 uppercase tracking-wide">AI Feedback</span>
               </div>
               <div className="text-sm text-slate-700 prose prose-sm max-w-none">
-                <ReactMarkdown components={compactMarkdownComponents}>{aiExplanation}</ReactMarkdown>
+                <ReactMarkdown components={compactMarkdownComponents} remarkPlugins={examRemarkPlugins} rehypePlugins={examRehypePlugins}>{aiExplanation}</ReactMarkdown>
               </div>
             </div>
           ) : (
