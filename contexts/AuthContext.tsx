@@ -67,10 +67,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Initialiseer auth en luister naar changes
   useEffect(() => {
     let mounted = true;
+    let timedOut = false;
+    let authTimeout: ReturnType<typeof setTimeout> | null = null;
+
+    const clearSupabaseStorage = () => {
+      try {
+        for (let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+            localStorage.removeItem(key);
+          }
+        }
+      } catch (e) {
+        // localStorage niet beschikbaar, geen probleem
+      }
+    };
 
     const loadUserProfile = async (user: User) => {
       const profile = await userProfile.getCurrentProfile();
-      if (mounted) {
+      if (mounted && !timedOut) {
         setState(prev => ({ ...prev, profile }));
       }
     };
@@ -78,7 +93,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const loadSubscriptionStatus = async (email: string) => {
       // Admins hoeven geen subscription check
       if (isAdminEmail(email)) {
-        if (mounted) {
+        if (mounted && !timedOut) {
           setState(prev => ({
             ...prev,
             subscriptionStatus: null,
@@ -89,13 +104,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return;
       }
 
-      if (mounted) {
+      if (mounted && !timedOut) {
         setState(prev => ({ ...prev, subscriptionLoading: true }));
       }
 
       try {
         const status = await checkSubscription(email);
-        if (mounted) {
+        if (mounted && !timedOut) {
           setState(prev => ({
             ...prev,
             subscriptionStatus: status,
@@ -105,7 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (error) {
         console.error('[AuthContext] Subscription check failed:', error);
-        if (mounted) {
+        if (mounted && !timedOut) {
           setState(prev => ({
             ...prev,
             subscriptionStatus: null,
@@ -119,20 +134,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const initAuth = async () => {
       // Timeout zodat de login pagina niet oneindig blijft laden
       // als getSession hangt (bijv. door een verlopen token in localStorage)
-      const timeout = setTimeout(() => {
+      authTimeout = setTimeout(() => {
         if (mounted) {
+          timedOut = true;
           console.warn('[AuthContext] Session check timeout - clearing stale session data');
-          // Wis mogelijke corrupte/verlopen Supabase localStorage data
-          try {
-            for (let i = localStorage.length - 1; i >= 0; i--) {
-              const key = localStorage.key(i);
-              if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-                localStorage.removeItem(key);
-              }
-            }
-          } catch (e) {
-            // localStorage niet beschikbaar, geen probleem
-          }
+          clearSupabaseStorage();
           setState(prev => ({ ...prev, isLoading: false }));
         }
       }, 5000);
@@ -140,9 +146,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { session } = await auth.getSession();
 
-        clearTimeout(timeout);
+        if (authTimeout) clearTimeout(authTimeout);
+        authTimeout = null;
 
-        if (session?.user && mounted) {
+        // Bail out als de timeout al heeft gefired
+        if (timedOut || !mounted) return;
+
+        if (session?.user) {
           const needsSubscriptionCheck = !isAdminEmail(session.user.email) && !!session.user.email;
           setState(prev => ({
             ...prev,
@@ -151,34 +161,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isAuthenticated: true,
             isAdmin: isAdminEmail(session.user.email),
             isLoading: false,
-            // Voorkom race condition: zet subscriptionLoading alvast op true
-            // zodat SubscriptionRoute de loading screen toont tot de check klaar is
             subscriptionLoading: needsSubscriptionCheck
           }));
           loadUserProfile(session.user);
           if (session.user.email) {
             loadSubscriptionStatus(session.user.email);
           }
-        } else if (mounted) {
+        } else {
           setState(prev => ({ ...prev, isLoading: false }));
         }
       } catch (error) {
-        clearTimeout(timeout);
+        if (authTimeout) clearTimeout(authTimeout);
+        authTimeout = null;
+
+        if (timedOut || !mounted) return;
+
         console.error('[AuthContext] Session check failed:', error);
-        // Wis localStorage zodat een corrupte sessie niet blijft hangen
-        try {
-          for (let i = localStorage.length - 1; i >= 0; i--) {
-            const key = localStorage.key(i);
-            if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
-              localStorage.removeItem(key);
-            }
-          }
-        } catch (e) {
-          // localStorage niet beschikbaar
-        }
-        if (mounted) {
-          setState(prev => ({ ...prev, isLoading: false }));
-        }
+        clearSupabaseStorage();
+        setState(prev => ({ ...prev, isLoading: false }));
       }
     };
 
@@ -220,6 +220,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      if (authTimeout) clearTimeout(authTimeout);
       subscription.unsubscribe();
     };
   }, []);
