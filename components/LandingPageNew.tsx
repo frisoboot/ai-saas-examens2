@@ -93,7 +93,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Roboto', Helvetica, Arial, sans-serif" }}>
       <SEO
         title="AI Examentrainer | Geef jouw kind de beste kans op slagen"
-        description="Meer dan 2.500 leerlingen bereidden zich voor op hun VMBO, HAVO en VWO eindexamen met AI Examentrainer. Echte examenvragen, directe AI-uitleg. Probeer 5 dagen voor €2."
+        description="Meer dan 250 vragen beantwoord door leerlingen op VMBO, HAVO en VWO met AI Examentrainer. Echte examenvragen, directe AI-uitleg. Probeer 5 dagen voor €2."
         canonical="https://ai-examentrainer.nl/"
       />
 
@@ -247,8 +247,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           {/* Stats below hero */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-14 pt-10 border-t border-gray-200">
             {[
-              { value: '2.500+', label: 'Leerlingen geholpen' },
-              { value: '1.500+', label: 'Vragen beantwoord' },
+              { value: '250+', label: 'Vragen beantwoord' },
               { value: '16', label: 'Vakken beschikbaar' },
               { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
             ].map((s) => (
