@@ -24,7 +24,7 @@ interface ExamSummary {
 }
 
 export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, onFinish }) => {
-  const { user } = useAuth();
+  const { user, session: authSession } = useAuth();
   const [session, setSession] = useState(initialSession);
   const [isFinished, setIsFinished] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -379,6 +379,24 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
       }
       
       setIsFinished(true);
+
+      // Send motivation email (fire-and-forget, don't block the UI)
+      if (authSession?.access_token) {
+        fetch('/api/send-exam-motivation-email', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authSession.access_token}`,
+          },
+          body: JSON.stringify({
+            studentName: session.studentName,
+            subject: session.subject,
+            score: correctCount,
+            totalQuestions: totalQuestionCount,
+            level: session.questions[0]?.level,
+          }),
+        }).catch(err => console.error('Motivation email failed:', err));
+      }
 
       if (!examSummary && !loadingSummary) {
         setLoadingSummary(true);
