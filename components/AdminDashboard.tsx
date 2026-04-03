@@ -8,9 +8,10 @@ import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
 import { ImageOverview } from './ImageOverview';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound, MessageSquarePlus } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound, MessageSquarePlus, BarChart2 } from 'lucide-react';
 import { AdminActivationCodes } from './AdminActivationCodes';
 import { AdminFeedback } from './AdminFeedback';
+import { AdminApiUsage } from './AdminApiUsage';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -19,7 +20,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images' | 'activation-codes' | 'user-feedback';
+type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images' | 'activation-codes' | 'user-feedback' | 'api-usage';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('library');
@@ -365,6 +366,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
             <MessageSquarePlus className="w-4 h-4" />
             Gebruikersfeedback
           </button>
+          <button
+            onClick={() => { setActiveTab('api-usage'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'api-usage' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <BarChart2 className="w-4 h-4" />
+            API Verbruik
+          </button>
         </div>
       )}
 
@@ -483,6 +493,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <MessageSquarePlus className="w-4 h-4" />
                   Gebruikersfeedback
                 </button>
+                <button
+                  onClick={() => setActiveTab('api-usage')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'api-usage'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <BarChart2 className="w-4 h-4" />
+                  API Verbruik
+                </button>
              </div>
          </div>
 
@@ -587,6 +608,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
            <div className="flex-1 overflow-y-auto p-6">
              <h2 className="text-xl font-bold text-slate-900 mb-6">Gebruikersfeedback</h2>
              <AdminFeedback />
+           </div>
+        ) : activeTab === 'api-usage' ? (
+           <div className="flex-1 overflow-y-auto">
+             <AdminApiUsage />
            </div>
         ) : (
           <>
