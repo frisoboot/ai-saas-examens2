@@ -1,8 +1,31 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
+import { createClient } from '@supabase/supabase-js';
 import { setCorsHeaders } from './utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
+
+// Fire-and-forget: logt een AI call naar api_usage_logs (non-blocking)
+function logApiUsage(data: {
+  action: string;
+  model: string;
+  user_email?: string;
+  subject?: string;
+  level?: string;
+  duration_ms: number;
+}): void {
+  const supabaseUrl = process.env.VITE_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) return;
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { autoRefreshToken: false, persistSession: false }
+  });
+
+  supabase.from('api_usage_logs').insert(data).then(({ error }) => {
+    if (error) console.error('[Usage Log] Insert failed:', error.message);
+  });
+}
 
 /**
  * Gemini API Endpoint - Server-side AI calls via Vercel AI Gateway
@@ -120,6 +143,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-RateLimit-Remaining', String(rateLimitResult.remaining));
   res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
 
+  // Haal user email op voor logging (non-critical, niet-blokkerend)
+  let userEmail: string | undefined;
+  try {
+    const authHeader = req.headers.authorization;
+    if (authHeader?.startsWith('Bearer ') && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const token = authHeader.substring(7);
+      const supabaseAdmin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
+        auth: { autoRefreshToken: false, persistSession: false }
+      });
+      const { data: { user } } = await supabaseAdmin.auth.getUser(token);
+      userEmail = user?.email ?? undefined;
+    }
+  } catch { /* logging is non-critical */ }
+
   try {
     const { action, payload } = req.body;
 
@@ -138,6 +175,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const MAX_TEXT_LENGTH = 10000;
     const MAX_QUESTION_COUNT = 50;
 
+    const startTime = Date.now();
+
     switch (action) {
       case 'getExplanation': {
         const { question, studentAnswer } = payload;
@@ -148,6 +187,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Vraagtekst te lang' });
         }
         const result = await generateExplanation(question, studentAnswer);
+        const modelId = (question.subject && question.level && EXACT_SUBJECTS.includes(question.subject) && PRO_LEVELS.includes(question.level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
+        logApiUsage({ action, model: modelId, user_email: userEmail, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -161,6 +202,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
         const result = await generateLookalikeExamQuestions(subject, level, safeCount, topic, examStyle);
+        const modelId = (EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
+        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -173,6 +216,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Ongeldige score gegevens' });
         }
         const result = await generateExamSummary(questions, answers, score, totalQuestions, studentName, subject);
+        const level = questions[0]?.level;
+        const modelId = (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
+        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -186,6 +232,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
         const result = await generateFlashcards(subject, level, safeCount, topic);
+        const modelId = (EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
+        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -198,6 +246,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Bericht te lang' });
         }
         const result = await chat(message, systemInstruction);
+        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_email: userEmail, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -210,6 +259,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Ongeldig antwoord' });
         }
         const result = await gradeOpenQuestion(question, studentAnswer);
+        const modelId = (question.subject && question.level && EXACT_SUBJECTS.includes(question.subject) && PRO_LEVELS.includes(question.level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
+        logApiUsage({ action, model: modelId, user_email: userEmail, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -222,6 +273,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Ongeldig niveau' });
         }
         const result = await generateStudyFeedback(studentName, level, subjectAnalyses, overallProgress);
+        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_email: userEmail, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
