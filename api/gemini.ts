@@ -9,7 +9,7 @@ import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js'
 function logApiUsage(data: {
   action: string;
   model: string;
-  user_email?: string;
+  user_id?: string;
   subject?: string;
   level?: string;
   duration_ms: number;
@@ -143,8 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('X-RateLimit-Remaining', String(rateLimitResult.remaining));
   res.setHeader('X-RateLimit-Reset', String(Math.ceil(rateLimitResult.resetTime / 1000)));
 
-  // Haal user email op voor logging (non-critical, niet-blokkerend)
-  let userEmail: string | undefined;
+  // Haal user ID op voor logging (non-critical, niet-blokkerend)
+  let userId: string | undefined;
   try {
     const authHeader = req.headers.authorization;
     if (authHeader?.startsWith('Bearer ') && process.env.VITE_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
@@ -153,7 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         auth: { autoRefreshToken: false, persistSession: false }
       });
       const { data: { user } } = await supabaseAdmin.auth.getUser(token);
-      userEmail = user?.email ?? undefined;
+      userId = user?.id ?? undefined;
     }
   } catch { /* logging is non-critical */ }
 
@@ -188,7 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const result = await generateExplanation(question, studentAnswer);
         const modelId = (question.subject && question.level && EXACT_SUBJECTS.includes(question.subject) && PRO_LEVELS.includes(question.level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
-        logApiUsage({ action, model: modelId, user_email: userEmail, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: modelId, user_id: userId, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
         const result = await generateLookalikeExamQuestions(subject, level, safeCount, topic, examStyle);
         const modelId = (EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
-        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: modelId, user_id: userId, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -218,7 +218,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const result = await generateExamSummary(questions, answers, score, totalQuestions, studentName, subject);
         const level = questions[0]?.level;
         const modelId = (subject && level && EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
-        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: modelId, user_id: userId, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -233,7 +233,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const safeCount = typeof count === 'number' ? Math.min(Math.max(1, count), MAX_QUESTION_COUNT) : 10;
         const result = await generateFlashcards(subject, level, safeCount, topic);
         const modelId = (EXACT_SUBJECTS.includes(subject) && PRO_LEVELS.includes(level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
-        logApiUsage({ action, model: modelId, user_email: userEmail, subject, level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: modelId, user_id: userId, subject, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -246,7 +246,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Bericht te lang' });
         }
         const result = await chat(message, systemInstruction);
-        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_email: userEmail, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_id: userId, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -260,7 +260,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
         const result = await gradeOpenQuestion(question, studentAnswer);
         const modelId = (question.subject && question.level && EXACT_SUBJECTS.includes(question.subject) && PRO_LEVELS.includes(question.level)) ? GEMINI_MODEL_PRO : GEMINI_MODEL_FLASH;
-        logApiUsage({ action, model: modelId, user_email: userEmail, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: modelId, user_id: userId, subject: question.subject, level: question.level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 
@@ -273,7 +273,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           return res.status(400).json({ error: 'Ongeldig niveau' });
         }
         const result = await generateStudyFeedback(studentName, level, subjectAnalyses, overallProgress);
-        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_email: userEmail, level, duration_ms: Date.now() - startTime });
+        logApiUsage({ action, model: GEMINI_MODEL_FLASH, user_id: userId, level, duration_ms: Date.now() - startTime });
         return res.status(200).json({ result });
       }
 

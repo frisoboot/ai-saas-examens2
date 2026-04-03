@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS api_usage_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   action TEXT NOT NULL,              -- 'chat', 'gradeOpenQuestion', 'generateFlashcards', etc.
   model TEXT NOT NULL,               -- 'google/gemini-2.0-flash' of pro variant
-  user_email TEXT,                   -- welke gebruiker (optioneel, uit auth token)
+  user_id UUID,                        -- welke gebruiker (optioneel, Supabase auth UUID)
   subject TEXT,                      -- vak (indien van toepassing)
   level TEXT,                        -- niveau VMBO-TL/HAVO/VWO (indien van toepassing)
   prompt_tokens INTEGER,

@@ -58,7 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const { data: rows, error } = await supabaseAdmin
       .from('api_usage_logs')
-      .select('action, model, user_email, subject, level, duration_ms, created_at')
+      .select('action, model, user_id, subject, level, duration_ms, created_at')
       .gte('created_at', since)
       .order('created_at', { ascending: false })
       .limit(5000);
@@ -94,7 +94,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Unieke gebruikers
-    const uniqueUsers = new Set(logs.map(r => r.user_email).filter(Boolean)).size;
+    const uniqueUsers = new Set(logs.map(r => r.user_id).filter(Boolean)).size;
 
     // Top vakken
     const bySubject: Record<string, number> = {};
