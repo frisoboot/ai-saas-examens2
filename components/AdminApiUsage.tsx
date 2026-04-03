@@ -70,9 +70,9 @@ export const AdminApiUsage: React.FC = () => {
 
   if (!stats) return null;
 
-  const sortedActions = Object.entries(stats.by_action).sort((a, b) => b[1] - a[1]);
-  const sortedSubjects = Object.entries(stats.by_subject).sort((a, b) => b[1] - a[1]).slice(0, 8);
-  const sortedDays = Object.entries(stats.by_day).sort((a, b) => a[0].localeCompare(b[0])).slice(-14);
+  const sortedActions = (Object.entries(stats.by_action) as [string, number][]).sort((a, b) => b[1] - a[1]);
+  const sortedSubjects = (Object.entries(stats.by_subject) as [string, number][]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+  const sortedDays = (Object.entries(stats.by_day) as [string, number][]).sort((a, b) => a[0].localeCompare(b[0])).slice(-14);
   const maxDayCount = Math.max(...sortedDays.map(([, v]) => v), 1);
 
   return (
@@ -161,7 +161,7 @@ export const AdminApiUsage: React.FC = () => {
         <div className="bg-white border border-slate-200 rounded-xl p-4">
           <h3 className="text-sm font-medium text-slate-600 mb-3">Calls per model</h3>
           <div className="space-y-2">
-            {Object.entries(stats.by_model).sort((a, b) => b[1] - a[1]).map(([model, count]) => (
+            {(Object.entries(stats.by_model) as [string, number][]).sort((a, b) => b[1] - a[1]).map(([model, count]) => (
               <div key={model} className="flex items-center gap-2">
                 <span className="text-sm text-slate-700 flex-1 truncate">{model}</span>
                 <div className="flex items-center gap-2">
