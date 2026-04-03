@@ -19,6 +19,7 @@ import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
 import { FeedbackPage } from './components/FeedbackPage';
+import { FeedbackWidget } from './components/FeedbackWidget';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { ActivationCodeForm } from './components/ActivationCodeForm';
@@ -561,6 +562,9 @@ const AppContent: React.FC = () => {
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {/* Feedback widget - zichtbaar voor ingelogde gebruikers op alle pagina's */}
+      {isAuthenticated && <FeedbackWidget />}
     </div>
   );
 };

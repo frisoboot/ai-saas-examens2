@@ -8,8 +8,9 @@ import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
 import { ImageOverview } from './ImageOverview';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound, MessageSquarePlus } from 'lucide-react';
 import { AdminActivationCodes } from './AdminActivationCodes';
+import { AdminFeedback } from './AdminFeedback';
 import { imageStorage } from '../services/imageStorageService';
 import { SUBJECTS, isValidSubject } from '../constants/subjects';
 
@@ -18,7 +19,7 @@ interface AdminDashboardProps {
   adminUsername?: string;
 }
 
-type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images' | 'activation-codes';
+type AdminTab = 'library' | 'questions' | 'students' | 'import' | 'exam-builder' | 'health-check' | 'images' | 'activation-codes' | 'user-feedback';
 
 export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUsername = 'admin' }) => {
   const [activeTab, setActiveTab] = useState<AdminTab>('library');
@@ -355,6 +356,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
             <KeyRound className="w-4 h-4" />
             Activatiecodes
           </button>
+          <button
+            onClick={() => { setActiveTab('user-feedback'); setMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
+              activeTab === 'user-feedback' ? 'bg-indigo-600 text-white' : 'text-slate-600 hover:bg-slate-50'
+            }`}
+          >
+            <MessageSquarePlus className="w-4 h-4" />
+            Gebruikersfeedback
+          </button>
         </div>
       )}
 
@@ -462,6 +472,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
                   <KeyRound className="w-4 h-4" />
                   Activatiecodes
                 </button>
+                <button
+                  onClick={() => setActiveTab('user-feedback')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === 'user-feedback'
+                      ? 'bg-indigo-600 text-white'
+                      : 'text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <MessageSquarePlus className="w-4 h-4" />
+                  Gebruikersfeedback
+                </button>
              </div>
          </div>
 
@@ -561,6 +582,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
         ) : activeTab === 'activation-codes' ? (
            <div className="flex-1 overflow-y-auto p-6">
              <AdminActivationCodes />
+           </div>
+        ) : activeTab === 'user-feedback' ? (
+           <div className="flex-1 overflow-y-auto p-6">
+             <h2 className="text-xl font-bold text-slate-900 mb-6">Gebruikersfeedback</h2>
+             <AdminFeedback />
            </div>
         ) : (
           <>
