@@ -17,7 +17,8 @@ import {
   Award,
   ArrowRight,
   Check,
-  Star
+  Star,
+  ThumbsUp
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -114,7 +115,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           </div>
 
           {/* Nav links + login */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
             <div className="hidden md:flex items-center gap-7">
               <button onClick={() => scrollTo('features')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Hoe het werkt</button>
               <button onClick={() => scrollTo('pricing')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Prijzen</button>
@@ -122,13 +123,26 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
             <button
               onClick={onLogin}
-              className="text-sm font-medium px-4 py-2 border rounded transition-colors"
+              className="hidden md:block text-sm font-medium px-4 py-2 border rounded transition-colors"
               style={{ borderColor: '#1a56db', color: '#1a56db' }}
               onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = '#1a56db'; (e.currentTarget as HTMLButtonElement).style.color = '#fff'; }}
               onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.backgroundColor = 'transparent'; (e.currentTarget as HTMLButtonElement).style.color = '#1a56db'; }}
             >
               Inloggen
             </button>
+            {/* Sticky CTA — zichtbaar zodra je scrollt */}
+            {isNavScrolled && (
+              <button
+                onClick={() => handleStartTrial()}
+                className="inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded transition-colors"
+                style={{ backgroundColor: '#1a56db' }}
+                onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
+                onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
+              >
+                Start voor €2
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
         </div>
       </nav>
@@ -140,9 +154,9 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Left: text */}
             <div>
               {daysUntilExam > 0 && (
-                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-medium mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#eff6ff', color: '#1a56db' }}>
+                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
                   <Clock className="w-4 h-4" />
-                  Eindexamens over {daysUntilExam} dagen
+                  ⚠️ Nog {daysUntilExam} dagen tot de eindexamens — begin nu
                 </div>
               )}
 
@@ -150,29 +164,45 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 className="text-reveal text-reveal-delay-2 font-bold text-gray-900 leading-tight mb-5"
                 style={{ fontFamily: "'Merriweather', Georgia, serif", fontSize: 'clamp(2rem, 3vw + 1rem, 3rem)' }}
               >
-                Geef jouw kind de beste kans op slagen
+                De AI-examenhulp die bijles vervangt — voor minder dan €10 per maand
               </h1>
 
-              <p className="text-reveal text-reveal-delay-3 text-gray-600 leading-relaxed mb-8" style={{ fontSize: '1.1rem' }}>
-                AI Examentrainer helpt leerlingen op VMBO-TL, HAVO en VWO dagelijks te oefenen
-                met echte examenvragen — met directe uitleg van een AI-tutor.
-                Vertrouwd door meer dan 2.500 families.
+              <p className="text-reveal text-reveal-delay-3 text-gray-600 leading-relaxed mb-6" style={{ fontSize: '1.1rem' }}>
+                Echte CITO-vragen, persoonlijke AI-uitleg en slimme flashcards — afgestemd op het
+                niveau van jouw kind (VMBO-TL, HAVO of VWO). Duizenden leerlingen gingen je voor.
               </p>
 
-              <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-8">
+              {/* Social proof bar */}
+              <div className="text-reveal text-reveal-delay-3 flex items-center gap-3 mb-6 p-3 rounded-lg border border-gray-100 bg-white" style={{ maxWidth: 'fit-content' }}>
+                <div className="flex -space-x-2">
+                  {['M', 'P', 'F', 'S'].map((l, i) => (
+                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: ['#1a56db','#0369a1','#7c3aed','#059669'][i] }}>
+                      {l}
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">Vertrouwd door ouders in heel Nederland</p>
+                </div>
+              </div>
+
+              <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-6">
                 <button
                   onClick={() => handleStartTrial()}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white font-medium rounded transition-colors"
+                  className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-white font-semibold rounded transition-colors text-base"
                   style={{ backgroundColor: '#1a56db' }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
                 >
-                  Start vandaag — 5 dagen voor €2
+                  Probeer 5 dagen voor €2
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => scrollTo('features')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 font-medium rounded border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-medium rounded border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Bekijk hoe het werkt
                 </button>
@@ -189,8 +219,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   Veilige betaling via Mollie
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <Check className="w-4 h-4" style={{ color: '#1a56db' }} />
-                  Geen verrassingsfactuur
+                  <ThumbsUp className="w-4 h-4" style={{ color: '#1a56db' }} />
+                  Niet tevreden? Geld terug
                 </span>
               </div>
             </div>
@@ -247,9 +277,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           {/* Stats below hero */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-14 pt-10 border-t border-gray-200">
             {[
-              { value: '250+', label: 'Vragen beantwoord' },
               { value: '16', label: 'Vakken beschikbaar' },
+              { value: '€9,95', label: 'Per maand — vs €50/uur bijles' },
               { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
+              { value: '100%', label: 'Geld terug als je niet tevreden bent' },
             ].map((s) => (
               <div key={s.label} className="text-center scroll-reveal">
                 <div className="text-2xl font-bold mb-1" style={{ color: '#1a56db' }}>{s.value}</div>
@@ -338,26 +369,32 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid md:grid-cols-3 gap-6 stagger-children">
             {[
               {
-                quote: 'Ik maakte me zorgen of Lisa het eindexamen zou halen. Na twee maanden AI Examentrainer zag ik haar zelfvertrouwen groeien. Ze is geslaagd met een 7 voor biologie.',
+                quote: 'Lisa haalde een 4 voor biologie in haar proefexamen. Na 6 weken AI Examentrainer stond ze op een 7 voor het eindexamen. Ik had nooit gedacht dat zoiets kon voor €10 per maand.',
                 name: 'Marieke de Vries',
                 role: 'Moeder van Lisa, HAVO',
+                result: 'Biologie: 4 → 7',
               },
               {
-                quote: 'Als ouder weet je nooit of ze thuis echt oefenen. Met AI Examentrainer kan Tom oefenen wanneer het hem uitkomt — en ik zie dat het werkt aan zijn cijfers.',
+                quote: 'Tom twijfelde of hij VWO aankon. De AI-tutor legt stap voor stap uit waar hij de fout in gaat — geduldig, altijd beschikbaar. Zijn wiskunde ging van een 5,5 naar een 7,8.',
                 name: 'Peter Janssen',
                 role: 'Vader van Tom, VWO',
+                result: 'Wiskunde: 5,5 → 7,8',
               },
               {
-                quote: 'We konden ons geen bijles veroorloven. AI Examentrainer was het beste alternatief: betaalbaar, effectief, en Youssef gebruikt het écht elke dag.',
+                quote: 'Bijles kost hier €45 per uur — dat konden we niet volhouden. AI Examentrainer doet hetzelfde voor €10 per maand. Youssef is iedere dag bezig en heeft zijn diploma gehaald.',
                 name: 'Fatima El-Amrani',
                 role: 'Moeder van Youssef, VMBO-TL',
+                result: 'Geslaagd — bespaard: €400+',
               },
             ].map((t) => (
               <div key={t.name} className="bg-white border border-gray-200 rounded-lg p-6 scroll-reveal">
-                <div className="flex gap-0.5 mb-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star key={i} className="w-4 h-4 fill-current" style={{ color: '#f59e0b' }} />
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex gap-0.5">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" style={{ color: '#f59e0b' }} />
+                    ))}
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-0.5 rounded" style={{ backgroundColor: '#dcfce7', color: '#166534' }}>{t.result}</span>
                 </div>
                 <p className="text-gray-700 text-sm leading-relaxed mb-5 italic">"{t.quote}"</p>
                 <div className="border-t border-gray-100 pt-4">
@@ -375,9 +412,15 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12 scroll-reveal">
             <h2 className="text-3xl font-bold text-gray-900 mb-3" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
-              Een investering in de toekomst van jouw kind
+              Minder dan één uur bijles. Voor de hele maand.
             </h2>
-            <p className="text-gray-500">Minder dan een les bijles per maand. Direct opzegbaar.</p>
+            <p className="text-gray-500 mb-4">Bijles kost gemiddeld €45–60 per uur. AI Examentrainer kost €9,95 per maand — onbeperkt beschikbaar.</p>
+            {daysUntilExam > 0 && (
+              <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+                <Clock className="w-4 h-4" />
+                Nog {daysUntilExam} dagen — elk dag telt
+              </div>
+            )}
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-10">
@@ -483,6 +526,17 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
+          {/* Geld-terug-garantie */}
+          <div className="flex items-center gap-4 p-5 rounded-lg mb-6 scroll-reveal" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#dcfce7' }}>
+              <Shield className="w-6 h-6" style={{ color: '#166534' }} />
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 text-sm">Tevreden of geld terug</p>
+              <p className="text-sm text-gray-600">Probeer 5 dagen voor €2. Niet tevreden? Je krijgt je geld terug — geen vragen gesteld. Na de proefperiode kun je maandelijks opzeggen.</p>
+            </div>
+          </div>
+
           {/* Schoollicentie */}
           <div className="border border-gray-200 rounded-lg p-6 flex flex-col sm:flex-row items-center justify-between gap-5 scroll-reveal">
             <div>
@@ -531,6 +585,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 question: 'Voor welke vakken kan mijn kind oefenen?',
                 answer: 'Er zijn 16 vakken beschikbaar: Wiskunde A/B/C, Nederlands, Engels, Duits, Frans, Biologie, Scheikunde, Natuurkunde, Geschiedenis, Aardrijkskunde, Economie en meer.',
               },
+              {
+                question: 'Wat is het verschil met bijles?',
+                answer: 'Bijles kost gemiddeld €45–60 per uur en is beschikbaar op vaste momenten. AI Examentrainer is 24/7 beschikbaar voor €9,95 per maand — ook op zondagavond voor een tentamen de volgende dag. De AI stelt vragen, geeft uitleg op maat en past het niveau automatisch aan. Geen reistijd, geen inplannen, altijd beschikbaar.',
+              },
             ].map((faq, i) => (
               <details key={i} className="group bg-white border border-gray-200 rounded-lg overflow-hidden">
                 <summary className="flex items-center justify-between px-6 py-5 cursor-pointer hover:bg-gray-50 transition-colors list-none">
@@ -552,20 +610,27 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
       {/* ── CTA Banner ── */}
       <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#1a56db' }}>
         <div className="max-w-3xl mx-auto text-center scroll-reveal">
+          {daysUntilExam > 0 && (
+            <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+              <Clock className="w-4 h-4" />
+              Nog {daysUntilExam} dagen — elke dag oefening telt
+            </div>
+          )}
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
-            Klaar om jouw kind een vliegende start te geven?
+            Jouw kind verdiend de beste voorbereiding
           </h2>
-          <p className="text-white/80 mb-8">
-            Probeer AI Examentrainer 5 dagen voor slechts €2. Geen verplichtingen, direct opzegbaar.
+          <p className="text-white/80 mb-3">
+            Start vandaag en oefen meteen met echte examenvragen. 5 dagen proberen voor €2.
           </p>
+          <p className="text-white/60 text-sm mb-8">Niet tevreden? Je krijgt je €2 terug. Direct opzegbaar.</p>
           <button
             onClick={() => handleStartTrial()}
-            className="inline-flex items-center gap-2 bg-white font-semibold px-7 py-3.5 rounded transition-colors hover:bg-gray-100"
+            className="inline-flex items-center gap-2 bg-white font-semibold px-8 py-4 rounded transition-colors hover:bg-gray-100 text-base"
             style={{ color: '#1a56db' }}
           >
-            Begin vandaag
-            <ArrowRight className="w-4 h-4" />
+            Ja, ik wil jouw kind laten oefenen →
           </button>
+          <p className="text-white/50 text-xs mt-4">Geen verplichtingen · Direct opzegbaar · Veilige betaling via Mollie</p>
         </div>
       </section>
 
