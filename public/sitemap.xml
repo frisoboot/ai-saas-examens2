@@ -2,9 +2,29 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://ai-examentrainer.nl/</loc>
-    <lastmod>2026-01-25</lastmod>
+    <lastmod>2026-04-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+  </url>
+
+  <!-- Blog artikelen -->
+  <url>
+    <loc>https://ai-examentrainer.nl/blog/eindexamen-tips-2026/</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ai-examentrainer.nl/blog/hoe-oefen-je-eindexamen/</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://ai-examentrainer.nl/blog/bijles-vs-ai-examentrainer/</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
   </url>
 
   <!-- Vak pagina's -->

@@ -93,8 +93,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Roboto', Helvetica, Arial, sans-serif" }}>
       <SEO
-        title="AI Examentrainer | Geef jouw kind de beste kans op slagen"
-        description="Meer dan 250 vragen beantwoord door leerlingen op VMBO, HAVO en VWO met AI Examentrainer. Echte examenvragen, directe AI-uitleg. Probeer 5 dagen voor €2."
+        title="Eindexamen 2026 Oefenen | AI Examentrainer — VMBO, HAVO & VWO"
+        description="Oefen onbeperkt eindexamenvragen met directe AI-feedback. Alle vakken, alle niveaus. Al 1000+ leerlingen gaan je voor. Probeer 5 dagen voor €2."
         canonical="https://ai-examentrainer.nl/"
       />
 
