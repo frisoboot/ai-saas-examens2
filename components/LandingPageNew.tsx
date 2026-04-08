@@ -120,6 +120,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <button onClick={() => scrollTo('features')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Hoe het werkt</button>
               <button onClick={() => scrollTo('pricing')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Prijzen</button>
               <button onClick={() => scrollTo('faq')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">FAQ</button>
+              <a href="/blog/" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Blog</a>
             </div>
             <button
               onClick={onLogin}
@@ -607,6 +608,55 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         </div>
       </section>
 
+      {/* ── Artikelen / Blog ── */}
+      <section id="blog" className="py-20 px-6 lg:px-8 bg-white">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-12 scroll-reveal">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
+              Lees onze tips & gidsen
+            </h2>
+            <p className="text-gray-600 max-w-xl mx-auto text-sm">Praktische artikelen om jouw kind zo goed mogelijk voor te bereiden op het eindexamen.</p>
+          </div>
+          <div className="grid md:grid-cols-3 gap-6 scroll-reveal">
+            {[
+              {
+                href: '/blog/eindexamen-tips-2026/',
+                title: '15 Bewezen Eindexamen Tips voor 2026 die Écht Werken',
+                description: 'Wil je hoger scoren op je eindexamen 2026? Ontdek 15 bewezen tips van leerlingen die al geslaagd zijn. Van plannen tot oefenen — alles wat werkt.',
+                tag: 'Tips',
+              },
+              {
+                href: '/blog/hoe-oefen-je-eindexamen/',
+                title: 'Hoe Oefen Je Effectief voor je Eindexamen? (Stappenplan)',
+                description: 'Leer hoe je het meeste haalt uit je eindexamenvoorbereiding. Stappenplan met bewezen oefenmethodes voor VMBO, HAVO en VWO leerlingen.',
+                tag: 'Stappenplan',
+              },
+              {
+                href: '/blog/bijles-vs-ai-examentrainer/',
+                title: 'Bijles of AI Examentrainer: wat is beter voor jouw eindexamen?',
+                description: 'Bijles kost al snel €30–50 per uur. Maar is het beter dan AI-gestuurde examentraining? Een eerlijke vergelijking voor VMBO, HAVO en VWO leerlingen.',
+                tag: 'Vergelijking',
+              },
+            ].map((article, i) => (
+              <a
+                key={i}
+                href={article.href}
+                className="group flex flex-col border border-gray-200 rounded-xl p-6 hover:shadow-md transition-shadow"
+              >
+                <span className="text-xs font-semibold uppercase tracking-wide mb-3 px-2 py-0.5 rounded self-start" style={{ backgroundColor: '#eff6ff', color: '#1a56db' }}>
+                  {article.tag}
+                </span>
+                <h3 className="font-bold text-gray-900 mb-3 leading-snug group-hover:text-blue-700 transition-colors" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
+                  {article.title}
+                </h3>
+                <p className="text-sm text-gray-600 leading-relaxed flex-1">{article.description}</p>
+                <span className="mt-4 text-sm font-medium" style={{ color: '#1a56db' }}>Lees artikel →</span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── CTA Banner ── */}
       <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#1a56db' }}>
         <div className="max-w-3xl mx-auto text-center scroll-reveal">
@@ -645,6 +695,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <span className="font-bold text-white">AI Examentrainer</span>
             </div>
             <div className="flex items-center gap-8 text-sm text-gray-400">
+              <a href="/blog/" className="hover:text-white transition-colors">Blog</a>
               <a href="/privacy" className="hover:text-white transition-colors">Privacy</a>
               <a href="/voorwaarden" className="hover:text-white transition-colors">Voorwaarden</a>
               <a href="mailto:bedrijfboot@gmail.com" className="hover:text-white transition-colors">bedrijfboot@gmail.com</a>

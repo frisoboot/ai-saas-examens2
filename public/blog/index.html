@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Primary Meta Tags -->
+    <title>Blog & Tips voor het Eindexamen | AI Examentrainer</title>
+    <meta name="title" content="Blog & Tips voor het Eindexamen | AI Examentrainer">
+    <meta name="description" content="Praktische artikelen, stappenplannen en tips om je eindexamen beter voor te bereiden. Voor VMBO-TL, HAVO en VWO leerlingen.">
+    <meta name="robots" content="index, follow">
+    <meta name="googlebot" content="index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://ai-examentrainer.nl/blog/">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://ai-examentrainer.nl/blog/">
+    <meta property="og:title" content="Blog & Tips voor het Eindexamen | AI Examentrainer">
+    <meta property="og:description" content="Praktische artikelen, stappenplannen en tips om je eindexamen beter voor te bereiden.">
+    <meta property="og:image" content="https://ai-examentrainer.nl/og-image.png">
+    <meta property="og:locale" content="nl_NL">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Blog & Tips voor het Eindexamen | AI Examentrainer">
+    <meta name="twitter:description" content="Praktische artikelen, stappenplannen en tips om je eindexamen beter voor te bereiden.">
+    <meta name="twitter:image" content="https://ai-examentrainer.nl/og-image.png">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Merriweather:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "CollectionPage",
+        "name": "Blog & Tips voor het Eindexamen",
+        "description": "Praktische artikelen, stappenplannen en tips om je eindexamen beter voor te bereiden.",
+        "url": "https://ai-examentrainer.nl/blog/",
+        "publisher": {
+            "@type": "Organization",
+            "name": "AI Examentrainer",
+            "url": "https://ai-examentrainer.nl"
+        }
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+            {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Home",
+                "item": "https://ai-examentrainer.nl/"
+            },
+            {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Blog",
+                "item": "https://ai-examentrainer.nl/blog/"
+            }
+        ]
+    }
+    </script>
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Inter', sans-serif; color: #111827; background: #f9fafb; line-height: 1.6; }
+        a { color: inherit; text-decoration: none; }
+
+        /* Nav */
+        .nav { background: #fff; border-bottom: 1px solid #e5e7eb; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+        .nav-logo { display: flex; align-items: center; gap: 0.6rem; font-weight: 700; font-size: 1rem; color: #111827; }
+        .nav-logo-icon { width: 36px; height: 36px; background: #1a56db; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 1.1rem; }
+        .nav-links { display: flex; gap: 1.5rem; align-items: center; }
+        .nav-links a { font-size: 0.875rem; font-weight: 500; color: #4b5563; transition: color 0.15s; }
+        .nav-links a:hover, .nav-links a.active { color: #1a56db; }
+        .nav-cta { background: #1a56db; color: #fff !important; padding: 0.45rem 1rem; border-radius: 6px; font-size: 0.875rem; font-weight: 600; transition: background 0.15s !important; }
+        .nav-cta:hover { background: #1442b5 !important; color: #fff !important; }
+
+        /* Hero */
+        .hero { background: #fff; padding: 3.5rem 1.5rem 3rem; text-align: center; border-bottom: 1px solid #e5e7eb; }
+        .hero-breadcrumb { font-size: 0.8rem; color: #6b7280; margin-bottom: 1rem; }
+        .hero-breadcrumb a { color: #1a56db; }
+        .hero h1 { font-family: 'Merriweather', Georgia, serif; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 700; color: #111827; margin-bottom: 1rem; }
+        .hero p { color: #4b5563; font-size: 1rem; max-width: 540px; margin: 0 auto; }
+
+        /* Grid */
+        .container { max-width: 960px; margin: 0 auto; padding: 3rem 1.5rem; }
+        .articles-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+
+        /* Card */
+        .card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1.5rem; display: flex; flex-direction: column; transition: box-shadow 0.2s; }
+        .card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .card-tag { display: inline-block; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; background: #eff6ff; color: #1a56db; padding: 0.2rem 0.6rem; border-radius: 4px; margin-bottom: 0.85rem; }
+        .card h2 { font-family: 'Merriweather', Georgia, serif; font-size: 1rem; font-weight: 700; color: #111827; line-height: 1.4; margin-bottom: 0.75rem; }
+        .card:hover h2 { color: #1a56db; }
+        .card p { font-size: 0.875rem; color: #4b5563; line-height: 1.6; flex: 1; }
+        .card-link { display: inline-block; margin-top: 1.25rem; font-size: 0.875rem; font-weight: 600; color: #1a56db; }
+
+        /* Footer */
+        footer { background: #111827; color: #9ca3af; font-size: 0.8rem; padding: 2rem 1.5rem; text-align: center; }
+        footer a { color: #9ca3af; margin: 0 0.75rem; transition: color 0.15s; }
+        footer a:hover { color: #fff; }
+    </style>
+</head>
+<body>
+
+    <nav class="nav">
+        <a href="/" class="nav-logo">
+            <div class="nav-logo-icon">🎓</div>
+            AI Examentrainer
+        </a>
+        <div class="nav-links">
+            <a href="/#features">Hoe het werkt</a>
+            <a href="/#pricing">Prijzen</a>
+            <a href="/#faq">FAQ</a>
+            <a href="/blog/" class="active">Blog</a>
+            <a href="/login" class="nav-cta">Inloggen</a>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <p class="hero-breadcrumb"><a href="/">Home</a> › Blog</p>
+        <h1>Tips & gidsen voor het eindexamen</h1>
+        <p>Praktische artikelen om jouw kind zo goed mogelijk voor te bereiden op het eindexamen.</p>
+    </div>
+
+    <div class="container">
+        <div class="articles-grid">
+
+            <a href="/blog/eindexamen-tips-2026/" class="card">
+                <span class="card-tag">Tips</span>
+                <h2>15 Bewezen Eindexamen Tips voor 2026 die Écht Werken</h2>
+                <p>Wil je hoger scoren op je eindexamen 2026? Ontdek 15 bewezen tips van leerlingen die al geslaagd zijn. Van plannen tot oefenen — alles wat werkt.</p>
+                <span class="card-link">Lees artikel →</span>
+            </a>
+
+            <a href="/blog/hoe-oefen-je-eindexamen/" class="card">
+                <span class="card-tag">Stappenplan</span>
+                <h2>Hoe Oefen Je Effectief voor je Eindexamen? (Stappenplan)</h2>
+                <p>Leer hoe je het meeste haalt uit je eindexamenvoorbereiding. Stappenplan met bewezen oefenmethodes voor VMBO, HAVO en VWO leerlingen.</p>
+                <span class="card-link">Lees artikel →</span>
+            </a>
+
+            <a href="/blog/bijles-vs-ai-examentrainer/" class="card">
+                <span class="card-tag">Vergelijking</span>
+                <h2>Bijles of AI Examentrainer: wat is beter voor jouw eindexamen?</h2>
+                <p>Bijles kost al snel €30–50 per uur. Maar is het beter dan AI-gestuurde examentraining? Een eerlijke vergelijking voor VMBO, HAVO en VWO leerlingen.</p>
+                <span class="card-link">Lees artikel →</span>
+            </a>
+
+        </div>
+    </div>
+
+    <footer>
+        <a href="/blog/">Blog</a>
+        <a href="/privacy">Privacy</a>
+        <a href="/voorwaarden">Voorwaarden</a>
+        <a href="mailto:bedrijfboot@gmail.com">bedrijfboot@gmail.com</a>
+        <br><br>
+        © 2026 AI Examentrainer. Alle rechten voorbehouden.
+    </footer>
+
+</body>
+</html>
