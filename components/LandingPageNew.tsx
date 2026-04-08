@@ -165,7 +165,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 className="text-reveal text-reveal-delay-2 font-bold text-gray-900 leading-tight mb-5"
                 style={{ fontFamily: "'Merriweather', Georgia, serif", fontSize: 'clamp(2rem, 3vw + 1rem, 3rem)' }}
               >
-                De AI-examenhulp die bijles vervangt — voor minder dan €10 per maand
+                De gratis AI-examenhulp die bijles vervangt — voor minder dan €10 per maand
               </h1>
 
               <p className="text-reveal text-reveal-delay-3 text-gray-600 leading-relaxed mb-6" style={{ fontSize: '1.1rem' }}>
