@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SEO } from './SEO';
 import { useSearchParams } from 'react-router-dom';
 import { ArrowLeft, CreditCard, Calendar, AlertCircle, CheckCircle, XCircle, Loader2, RefreshCw, KeyRound } from 'lucide-react';
 import { checkSubscription, cancelSubscription, resubscribe, activateWithCode, SubscriptionStatus } from '../services/subscriptionService';
@@ -229,6 +230,7 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
 
   return (
     <div className="min-h-screen bg-[#f8fafc]">
+      <SEO title="Abonnementsinstellingen" noindex={true} />
       {/* Header */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">

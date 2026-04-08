@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SEO } from './SEO';
 import { Question, QuestionType, StudentLevel } from '../types';
 import { getQuestions, saveQuestion, deleteQuestion } from '../services/storageService';
 import { AdminStudentManagement } from './AdminStudentManagement';
@@ -256,6 +257,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
 
   return (
     <div className="flex flex-col h-screen bg-[#f8fafc] overflow-hidden">
+      <SEO title="Admin Dashboard" noindex={true} />
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
         <div className="flex items-center gap-3">

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SEO } from './SEO';
 import { useAuth } from '../contexts/AuthContext';
 import { activateWithCode, registerWithCode } from '../services/subscriptionService';
 import { KeyRound, CheckCircle, ArrowLeft, Loader2, AlertCircle, Mail, Lock, GraduationCap, Eye, EyeOff } from 'lucide-react';
@@ -155,6 +156,7 @@ export const ActivationCodeForm: React.FC<ActivationCodeFormProps> = ({ onBack, 
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4">
+      <SEO title="Activatiecode invoeren" noindex={true} />
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm max-w-md w-full p-8">
         <button
           onClick={onBack}
