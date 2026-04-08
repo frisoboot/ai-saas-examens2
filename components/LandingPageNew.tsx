@@ -635,9 +635,56 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
       </section>
 
       {/* ── Footer ── */}
-      <footer className="py-12 px-6 lg:px-8 bg-gray-900">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
+      <footer className="px-6 lg:px-8 bg-gray-900">
+        {/* Vakkenpagina's */}
+        <div className="max-w-6xl mx-auto pt-12 pb-8 border-b border-gray-800">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-500 mb-6">Oefenen per vak</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-x-8 gap-y-2 text-sm text-gray-400">
+            <div>
+              <p className="text-gray-600 text-xs uppercase tracking-wide mb-2">Eindexamen per vak</p>
+              <ul className="space-y-1.5">
+                <li><a href="/wiskunde-eindexamen-oefenen/" className="hover:text-white transition-colors">Wiskunde eindexamen oefenen</a></li>
+                <li><a href="/nederlands-eindexamen-oefenen/" className="hover:text-white transition-colors">Nederlands eindexamen oefenen</a></li>
+                <li><a href="/engels-eindexamen-oefenen/" className="hover:text-white transition-colors">Engels eindexamen oefenen</a></li>
+                <li><a href="/biologie-eindexamen-oefenen/" className="hover:text-white transition-colors">Biologie eindexamen oefenen</a></li>
+                <li><a href="/scheikunde-eindexamen-oefenen/" className="hover:text-white transition-colors">Scheikunde eindexamen oefenen</a></li>
+                <li><a href="/natuurkunde-eindexamen-oefenen/" className="hover:text-white transition-colors">Natuurkunde eindexamen oefenen</a></li>
+                <li><a href="/geschiedenis-eindexamen-oefenen/" className="hover:text-white transition-colors">Geschiedenis eindexamen oefenen</a></li>
+                <li><a href="/aardrijkskunde-eindexamen-oefenen/" className="hover:text-white transition-colors">Aardrijkskunde eindexamen oefenen</a></li>
+                <li><a href="/economie-eindexamen-oefenen/" className="hover:text-white transition-colors">Economie eindexamen oefenen</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-gray-600 text-xs uppercase tracking-wide mb-2">Per niveau</p>
+              <ul className="space-y-1.5">
+                <li><a href="/havo-examen-oefenen/" className="hover:text-white transition-colors">HAVO examen oefenen</a></li>
+                <li><a href="/vwo-examen-oefenen/" className="hover:text-white transition-colors">VWO examen oefenen</a></li>
+                <li><a href="/vmbo-examen-oefenen/" className="hover:text-white transition-colors">VMBO examen oefenen</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-gray-600 text-xs uppercase tracking-wide mb-2">Wiskunde</p>
+              <ul className="space-y-1.5">
+                <li><a href="/wiskunde-a-havo-oefenen/" className="hover:text-white transition-colors">Wiskunde A HAVO oefenen</a></li>
+                <li><a href="/wiskunde-b-havo-oefenen/" className="hover:text-white transition-colors">Wiskunde B HAVO oefenen</a></li>
+                <li><a href="/wiskunde-b-vwo-oefenen/" className="hover:text-white transition-colors">Wiskunde B VWO oefenen</a></li>
+              </ul>
+            </div>
+            <div>
+              <p className="text-gray-600 text-xs uppercase tracking-wide mb-2">Bètavakken &amp; overig</p>
+              <ul className="space-y-1.5">
+                <li><a href="/biologie-havo-oefenen/" className="hover:text-white transition-colors">Biologie HAVO oefenen</a></li>
+                <li><a href="/biologie-vwo-oefenen/" className="hover:text-white transition-colors">Biologie VWO oefenen</a></li>
+                <li><a href="/scheikunde-havo-oefenen/" className="hover:text-white transition-colors">Scheikunde HAVO oefenen</a></li>
+                <li><a href="/economie-havo-oefenen/" className="hover:text-white transition-colors">Economie HAVO oefenen</a></li>
+                <li><a href="/engels-havo-oefenen/" className="hover:text-white transition-colors">Engels HAVO oefenen</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto py-8">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded flex items-center justify-center" style={{ backgroundColor: '#1a56db' }}>
                 <GraduationCap className="w-5 h-5 text-white" />
