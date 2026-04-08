@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SEO } from './SEO';
 import { StudentProfile } from '../types';
 import { createSubjectChat } from '../services/geminiService';
 import { Button } from './Button';
@@ -73,6 +74,7 @@ export const SubjectChat: React.FC<SubjectChatProps> = ({ subject, student, onBa
 
   return (
     <div className="flex flex-col h-screen bg-slate-50">
+      <SEO title="AI Tutoring Chat" noindex={true} />
       {/* Header */}
       <div className="bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between shadow-sm flex-shrink-0 z-10">
         <div className="flex items-center gap-3">

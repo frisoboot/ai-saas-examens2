@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { SEO } from './SEO';
 import { Button } from './Button';
 import {
   CheckCircle2,
@@ -426,6 +427,7 @@ export const PaymentCallback: React.FC<PaymentCallbackProps> = ({ onLogin, onRet
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 relative overflow-hidden">
+      <SEO title="Betaling verwerken" noindex={true} />
       {/* Background Elements */}
       <div className="absolute inset-0 z-0">
         <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] rounded-full blur-3xl opacity-60 ${

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SEO } from './SEO';
 import { Button } from './Button';
 import { ArrowLeft, RotateCcw, Check, X, Sparkles, Trophy, Target, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Flashcard, FlashcardSession, FlashcardProgress, StudentProfile } from '../types';
@@ -250,6 +251,7 @@ export const FlashcardStudy: React.FC<FlashcardStudyProps> = ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50/40 to-pink-50/30 p-4 md:p-8">
+      <SEO title="Flashcards studeren" noindex={true} />
       <div className="max-w-3xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SEO } from './SEO';
 import { Question, ExamSession, ExamResult } from '../types';
 import { saveResult } from '../services/storageService';
 import { updateProgressAfterExam } from '../services/progressService';
@@ -532,6 +533,7 @@ export const ExamTaker: React.FC<ExamTakerProps> = ({ session: initialSession, o
 
     return (
       <div className="min-h-screen bg-slate-50 py-6 px-4">
+        <SEO title="Examen oefenen" noindex={true} />
         <div className="max-w-3xl mx-auto">
           {/* Compact Header */}
           <div className="bg-white rounded-xl border border-slate-200 p-6 mb-6">
