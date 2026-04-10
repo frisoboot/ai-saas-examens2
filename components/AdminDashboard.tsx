@@ -9,7 +9,7 @@ import { ExamBuilder } from './ExamBuilder';
 import { ExamLibrary } from './ExamLibrary';
 import { ImageOverview } from './ImageOverview';
 import { Button } from './Button';
-import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound, MessageSquarePlus } from 'lucide-react';
+import { Trash2, Plus, ArrowLeft, Save, Image as ImageIcon, Upload, X, FileText, Pencil, Search, LayoutGrid, Users, BookOpen, Loader2, Activity, Menu, LogOut, Library, KeyRound, MessageSquarePlus, GraduationCap } from 'lucide-react';
 import { AdminActivationCodes } from './AdminActivationCodes';
 import { AdminFeedback } from './AdminFeedback';
 import { imageStorage } from '../services/imageStorageService';
@@ -260,11 +260,11 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       <SEO title="Admin Dashboard" noindex={true} />
       {/* Mobile Header */}
       <div className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 p-2 rounded-lg">
-            <LayoutGrid className="w-5 h-5 text-white" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
+            <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-slate-800">Beheer</span>
+          <span className="font-bold text-lg text-gray-900">AI Examentrainer</span>
         </div>
         <div className="flex items-center gap-2">
           <button
@@ -374,13 +374,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onBack, adminUse
       {/* Sidebar Navigation - Desktop only */}
       <aside className="w-64 bg-white border-r border-slate-200 flex-col hidden md:flex z-10">
          <div className="p-6 border-b border-slate-100">
-             <div className="flex items-center gap-3 mb-4">
-                <div className="bg-indigo-600 p-2 rounded-lg">
-                   <LayoutGrid className="w-5 h-5 text-white" />
+             <div className="flex items-center gap-2.5 mb-4">
+                <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
+                   <GraduationCap className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <span className="font-bold text-slate-800 block">Beheer</span>
-                  <span className="text-xs text-slate-500">Eindexamens & Leerlingen</span>
+                  <span className="font-bold text-gray-900 block">AI Examentrainer</span>
+                  <span className="text-xs text-slate-500">Beheerpaneel</span>
                 </div>
              </div>
 

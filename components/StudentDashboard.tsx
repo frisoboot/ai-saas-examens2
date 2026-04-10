@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question, FeedbackMode } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3 } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3, GraduationCap } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
@@ -122,6 +122,12 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       {/* Sidebar - Profile & Stats */}
       <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden lg:flex" role="complementary" aria-label="Profiel en voortgang">
+        <div className="px-8 py-5 border-b border-slate-100 flex items-center gap-2.5">
+          <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
+            <GraduationCap className="w-5 h-5 text-white" />
+          </div>
+          <span className="font-bold text-lg text-gray-900">AI Examentrainer</span>
+        </div>
         <div className="p-8 border-b border-slate-100">
            <div className="flex items-center gap-4 mb-6">
               <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-200">
@@ -185,11 +191,11 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
       <main className="flex-1 flex flex-col h-full overflow-hidden">
         {/* Mobile Header */}
         <div className="lg:hidden bg-white border-b border-slate-200 p-4 flex justify-between items-center">
-           <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold">
-                 {student.name.charAt(0).toUpperCase()}
+           <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
+                 <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <span className="font-bold text-slate-800">{student.name}</span>
+              <span className="font-bold text-lg text-gray-900">AI Examentrainer</span>
            </div>
            <div className="flex items-center gap-2">
              {onFeedback && (
