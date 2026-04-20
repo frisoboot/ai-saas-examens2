@@ -771,33 +771,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         </div>
       </section>
 
-      {/* ── CTA Banner ── */}
-      <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#1a56db' }}>
-        <div className="max-w-3xl mx-auto text-center scroll-reveal">
-          {daysUntilExam > 0 && (
-            <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
-              <Clock className="w-4 h-4" />
-              Nog {daysUntilExam} dagen — elke dag oefening telt
-            </div>
-          )}
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
-            Jouw kind verdiend de beste voorbereiding
-          </h2>
-          <p className="text-white/80 mb-3">
-            Start vandaag en oefen meteen met echte examenvragen. 5 dagen proberen voor €2.
-          </p>
-          <p className="text-white/60 text-sm mb-8">Niet tevreden? Je krijgt je €2 terug. Direct opzegbaar.</p>
-          <button
-            onClick={() => handleStartTrial()}
-            className="inline-flex items-center gap-2 bg-white font-semibold px-8 py-4 rounded transition-colors hover:bg-gray-100 text-base"
-            style={{ color: '#1a56db' }}
-          >
-            Ja, ik wil jouw kind laten oefenen →
-          </button>
-          <p className="text-white/50 text-xs mt-4">Geen verplichtingen · Direct opzegbaar · Veilige betaling via Mollie</p>
-        </div>
-      </section>
-
       {/* ── Footer ── */}
       <footer className="py-12 px-6 lg:px-8 bg-gray-900">
         <div className="max-w-6xl mx-auto">
