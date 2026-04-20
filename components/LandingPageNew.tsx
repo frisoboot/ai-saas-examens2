@@ -185,23 +185,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 niveau van jouw kind (VMBO-TL, HAVO of VWO). Duizenden leerlingen gingen je voor.
               </p>
 
-              {/* Social proof bar */}
-              <div className="text-reveal text-reveal-delay-3 flex items-center gap-3 mb-6 p-3 rounded-lg border border-gray-100 bg-white" style={{ maxWidth: 'fit-content' }}>
-                <div className="flex -space-x-2">
-                  {['M', 'P', 'F', 'S'].map((l, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: ['#1a56db','#0369a1','#7c3aed','#059669'][i] }}>
-                      {l}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">Vertrouwd door ouders in heel Nederland</p>
-                </div>
-              </div>
-
               <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-6">
                 <button
                   onClick={() => handleStartTrial()}
@@ -218,16 +201,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-medium rounded border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Bekijk hoe het werkt
-                </button>
-                <button
-                  onClick={() => navigate('/activate')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-semibold rounded text-white transition-colors"
-                  style={{ backgroundColor: '#059669' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#047857')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#059669')}
-                >
-                  <Ticket className="w-4 h-4" />
-                  Code inwisselen
                 </button>
               </div>
 
@@ -297,20 +270,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Stats below hero */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-14 pt-10 border-t border-gray-200">
-            {[
-              { value: '16', label: 'Vakken beschikbaar' },
-              { value: '€9,95', label: 'Per maand — vs €50/uur bijles' },
-              { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
-              { value: '100%', label: 'Geld terug als je niet tevreden bent' },
-            ].map((s) => (
-              <div key={s.label} className="text-center scroll-reveal">
-                <div className="text-2xl font-bold mb-1" style={{ color: '#1a56db' }}>{s.value}</div>
-                <div className="text-sm text-gray-500">{s.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
