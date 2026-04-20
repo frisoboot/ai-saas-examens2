@@ -185,23 +185,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 niveau van jouw kind (VMBO-TL, HAVO of VWO). Duizenden leerlingen gingen je voor.
               </p>
 
-              {/* Social proof bar */}
-              <div className="text-reveal text-reveal-delay-3 flex items-center gap-3 mb-6 p-3 rounded-lg border border-gray-100 bg-white" style={{ maxWidth: 'fit-content' }}>
-                <div className="flex -space-x-2">
-                  {['M', 'P', 'F', 'S'].map((l, i) => (
-                    <div key={i} className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs font-bold text-white" style={{ backgroundColor: ['#1a56db','#0369a1','#7c3aed','#059669'][i] }}>
-                      {l}
-                    </div>
-                  ))}
-                </div>
-                <div>
-                  <div className="flex gap-0.5">
-                    {[...Array(5)].map((_, i) => <Star key={i} className="w-3.5 h-3.5 fill-current" style={{ color: '#f59e0b' }} />)}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5">Vertrouwd door ouders in heel Nederland</p>
-                </div>
-              </div>
-
               <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-6">
                 <button
                   onClick={() => handleStartTrial()}
@@ -218,16 +201,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-medium rounded border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50"
                 >
                   Bekijk hoe het werkt
-                </button>
-                <button
-                  onClick={() => navigate('/activate')}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-semibold rounded text-white transition-colors"
-                  style={{ backgroundColor: '#059669' }}
-                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#047857')}
-                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#059669')}
-                >
-                  <Ticket className="w-4 h-4" />
-                  Code inwisselen
                 </button>
               </div>
 
@@ -297,20 +270,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
           </div>
 
-          {/* Stats below hero */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mt-14 pt-10 border-t border-gray-200">
-            {[
-              { value: '16', label: 'Vakken beschikbaar' },
-              { value: '€9,95', label: 'Per maand — vs €50/uur bijles' },
-              { value: '4,7 / 5', label: 'Gemiddelde beoordeling' },
-              { value: '100%', label: 'Geld terug als je niet tevreden bent' },
-            ].map((s) => (
-              <div key={s.label} className="text-center scroll-reveal">
-                <div className="text-2xl font-bold mb-1" style={{ color: '#1a56db' }}>{s.value}</div>
-                <div className="text-sm text-gray-500">{s.label}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -630,98 +589,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
         </div>
       </section>
 
-      {/* ── Oefen per vak ── */}
-      <section id="vakken" className="py-20 px-6 lg:px-8" style={{ backgroundColor: '#f9fafb' }}>
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12 scroll-reveal">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
-              Oefen gratis per vak
-            </h2>
-            <p className="text-gray-600 max-w-xl mx-auto text-sm">
-              Kies jouw vak en start direct met oefenen. Alle vakken beschikbaar voor VMBO-TL, HAVO en VWO.
-            </p>
-          </div>
-
-          {/* Hoofdvakken */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 scroll-reveal mb-10">
-            {[
-              { href: '/wiskunde-eindexamen-oefenen/', icon: '📐', name: 'Wiskunde', desc: 'VMBO, HAVO & VWO' },
-              { href: '/nederlands-eindexamen-oefenen/', icon: '📖', name: 'Nederlands', desc: 'VMBO, HAVO & VWO' },
-              { href: '/engels-eindexamen-oefenen/', icon: '🇬🇧', name: 'Engels', desc: 'VMBO, HAVO & VWO' },
-              { href: '/biologie-eindexamen-oefenen/', icon: '🧬', name: 'Biologie', desc: 'VMBO, HAVO & VWO' },
-              { href: '/scheikunde-eindexamen-oefenen/', icon: '⚗️', name: 'Scheikunde', desc: 'HAVO & VWO' },
-              { href: '/natuurkunde-eindexamen-oefenen/', icon: '⚛️', name: 'Natuurkunde', desc: 'HAVO & VWO' },
-              { href: '/geschiedenis-eindexamen-oefenen/', icon: '📜', name: 'Geschiedenis', desc: 'VMBO, HAVO & VWO' },
-              { href: '/aardrijkskunde-eindexamen-oefenen/', icon: '🌍', name: 'Aardrijkskunde', desc: 'VMBO, HAVO & VWO' },
-              { href: '/economie-eindexamen-oefenen/', icon: '📈', name: 'Economie', desc: 'VMBO, HAVO & VWO' },
-            ].map((subject, i) => (
-              <a
-                key={i}
-                href={subject.href}
-                className="group flex items-center gap-3 bg-white border border-gray-200 rounded-xl p-4 hover:border-blue-400 hover:shadow-md transition-all"
-              >
-                <span className="text-2xl flex-shrink-0">{subject.icon}</span>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-gray-900 text-sm group-hover:text-blue-700 transition-colors">
-                    {subject.name} eindexamen oefenen
-                  </h3>
-                  <p className="text-xs text-gray-500 mt-0.5">{subject.desc}</p>
-                </div>
-              </a>
-            ))}
-          </div>
-
-          {/* Per niveau */}
-          <div className="scroll-reveal">
-            <h3 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Of kies per niveau
-            </h3>
-            <div className="flex flex-wrap justify-center gap-3 mb-6">
-              {[
-                { href: '/havo-examen-oefenen/', label: '🎓 HAVO examen oefenen' },
-                { href: '/vwo-examen-oefenen/', label: '🎓 VWO examen oefenen' },
-                { href: '/vmbo-examen-oefenen/', label: '🎓 VMBO examen oefenen' },
-              ].map((level, i) => (
-                <a
-                  key={i}
-                  href={level.href}
-                  className="bg-white border border-gray-200 rounded-full px-5 py-2 text-sm font-medium text-gray-700 hover:border-blue-400 hover:text-blue-700 transition-colors"
-                >
-                  {level.label}
-                </a>
-              ))}
-            </div>
-
-            <h3 className="text-center text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">
-              Populair: vak + niveau
-            </h3>
-            <div className="flex flex-wrap justify-center gap-2">
-              {[
-                { href: '/wiskunde-havo-eindexamen-oefenen/', label: 'Wiskunde HAVO' },
-                { href: '/wiskunde-vwo-eindexamen-oefenen/', label: 'Wiskunde VWO' },
-                { href: '/biologie-havo-eindexamen-oefenen/', label: 'Biologie HAVO' },
-                { href: '/wiskunde-a-havo-oefenen/', label: 'Wiskunde A HAVO' },
-                { href: '/wiskunde-b-havo-oefenen/', label: 'Wiskunde B HAVO' },
-                { href: '/wiskunde-b-vwo-oefenen/', label: 'Wiskunde B VWO' },
-                { href: '/biologie-havo-oefenen/', label: 'Biologie HAVO (algemeen)' },
-                { href: '/biologie-vwo-oefenen/', label: 'Biologie VWO' },
-                { href: '/scheikunde-havo-oefenen/', label: 'Scheikunde HAVO' },
-                { href: '/economie-havo-oefenen/', label: 'Economie HAVO' },
-                { href: '/engels-havo-oefenen/', label: 'Engels HAVO' },
-              ].map((combo, i) => (
-                <a
-                  key={i}
-                  href={combo.href}
-                  className="bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-xs font-medium text-gray-600 hover:border-blue-400 hover:text-blue-700 transition-colors"
-                >
-                  {combo.label}
-                </a>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* ── Artikelen / Blog ── */}
       <section id="blog" className="py-20 px-6 lg:px-8 bg-white">
         <div className="max-w-6xl mx-auto">
@@ -768,33 +635,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               </a>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* ── CTA Banner ── */}
-      <section className="py-16 px-6 lg:px-8" style={{ backgroundColor: '#1a56db' }}>
-        <div className="max-w-3xl mx-auto text-center scroll-reveal">
-          {daysUntilExam > 0 && (
-            <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-1.5 rounded-full mb-6" style={{ backgroundColor: 'rgba(255,255,255,0.2)', color: '#fff' }}>
-              <Clock className="w-4 h-4" />
-              Nog {daysUntilExam} dagen — elke dag oefening telt
-            </div>
-          )}
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4" style={{ fontFamily: "'Merriweather', Georgia, serif" }}>
-            Jouw kind verdiend de beste voorbereiding
-          </h2>
-          <p className="text-white/80 mb-3">
-            Start vandaag en oefen meteen met echte examenvragen. 5 dagen proberen voor €2.
-          </p>
-          <p className="text-white/60 text-sm mb-8">Niet tevreden? Je krijgt je €2 terug. Direct opzegbaar.</p>
-          <button
-            onClick={() => handleStartTrial()}
-            className="inline-flex items-center gap-2 bg-white font-semibold px-8 py-4 rounded transition-colors hover:bg-gray-100 text-base"
-            style={{ color: '#1a56db' }}
-          >
-            Ja, ik wil jouw kind laten oefenen →
-          </button>
-          <p className="text-white/50 text-xs mt-4">Geen verplichtingen · Direct opzegbaar · Veilige betaling via Mollie</p>
         </div>
       </section>
 
