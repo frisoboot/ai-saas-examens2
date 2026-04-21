@@ -122,25 +122,13 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
 
       {/* Sidebar - Profile & Stats */}
       <aside className="w-80 bg-white border-r border-slate-200 flex flex-col hidden lg:flex" role="complementary" aria-label="Profiel en voortgang">
-        <div className="px-8 py-5 border-b border-slate-100 flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
-            <GraduationCap className="w-5 h-5 text-white" />
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center gap-2">
+          <div className="w-7 h-7 rounded flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#1a56db' }}>
+            <GraduationCap className="w-4 h-4 text-white" />
           </div>
-          <span className="font-bold text-lg text-gray-900">AI Examentrainer</span>
+          <span className="font-bold text-base text-gray-900">AI Examentrainer</span>
         </div>
         <div className="p-8 border-b border-slate-100">
-           <div className="flex items-center gap-4 mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-indigo-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-200">
-                {student.name.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <h2 className="font-bold text-slate-900 text-lg">{student.name}</h2>
-                <span className="inline-block bg-slate-100 text-slate-600 text-xs px-2 py-0.5 rounded font-medium border border-slate-200">
-                  {student.level} Student
-                </span>
-              </div>
-           </div>
-           
            <div className="space-y-4">
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-100">
                 <div className="flex items-center gap-2 text-xs font-bold text-slate-400 uppercase mb-2">
