@@ -5,7 +5,7 @@
  * Alle AI calls gaan via de /api/gemini endpoint op de server.
  */
 
-import { Question, StudentProfile, Flashcard, StudentLevel, AIStudyFeedback } from "../types";
+import { Question, StudentProfile, Flashcard, StudentLevel, AIStudyFeedback, StudyPlan } from "../types";
 
 // API endpoint for server-side Gemini calls
 const GEMINI_API_ENDPOINT = '/api/gemini';
@@ -262,6 +262,27 @@ export const generateStudyFeedback = async (
   } catch (error) {
     console.error("Fout bij genereren studieadvies:", error);
     throw new Error("Kon geen studieadvies genereren. Probeer het later opnieuw.");
+  }
+};
+
+// Generate an AI study plan for the upcoming week
+export const generateStudyPlan = async (
+  studentName: string,
+  level: StudentLevel,
+  subjects: Array<{ subject: string; averageScore?: number; totalExams?: number; weakTopics?: string[] }>,
+  weekStartDate: string
+): Promise<StudyPlan> => {
+  try {
+    const result = await callGeminiAPI<StudyPlan>('generateStudyPlan', {
+      studentName,
+      level,
+      subjects,
+      weekStartDate,
+    });
+    return result;
+  } catch (error: any) {
+    console.error('Fout bij genereren studyplan:', error);
+    throw new Error(error.message || 'Kon geen studyplanning genereren. Probeer het later opnieuw.');
   }
 };
 

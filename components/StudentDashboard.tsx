@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question, FeedbackMode } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3, GraduationCap } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3, GraduationCap, Calendar } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
@@ -20,6 +20,7 @@ interface StudentDashboardProps {
   onAdminDashboard?: () => void;
   onSettings?: () => void;
   onFeedback?: () => void;
+  onPlanner?: () => void;
 }
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({
@@ -31,7 +32,8 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
   onLogout,
   onAdminDashboard,
   onSettings,
-  onFeedback
+  onFeedback,
+  onPlanner
 }) => {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -166,6 +168,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               <span className="text-sm font-medium">Voortgang & Feedback</span>
             </button>
           )}
+          {onPlanner && (
+            <button
+              onClick={onPlanner}
+              className="flex items-center gap-3 w-full p-3 rounded-xl text-slate-500 hover:bg-indigo-50 hover:text-indigo-700 transition-colors"
+            >
+              <Calendar className="w-5 h-5" />
+              <span className="text-sm font-medium">Studyplanning</span>
+            </button>
+          )}
           {onSettings && (
             <button
               onClick={onSettings}
@@ -205,6 +216,15 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                  title="Voortgang & Feedback"
                >
                  <BarChart3 className="w-5 h-5" />
+               </button>
+             )}
+             {onPlanner && (
+               <button
+                 onClick={onPlanner}
+                 className="p-2 rounded-lg text-slate-500 hover:bg-indigo-100 hover:text-indigo-700 transition-colors"
+                 title="Studyplanning"
+               >
+                 <Calendar className="w-5 h-5" />
                </button>
              )}
              {onSettings && (

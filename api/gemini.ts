@@ -225,6 +225,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ result });
       }
 
+      case 'generateStudyPlan': {
+        const { studentName, level, subjects, weekStartDate } = payload;
+        if (!studentName || typeof studentName !== 'string') {
+          return res.status(400).json({ error: 'Ongeldige leerlingnaam' });
+        }
+        if (!level || !validLevels.includes(level)) {
+          return res.status(400).json({ error: 'Ongeldig niveau' });
+        }
+        if (!Array.isArray(subjects) || subjects.length === 0) {
+          return res.status(400).json({ error: 'Geen vakken opgegeven' });
+        }
+        if (!weekStartDate || typeof weekStartDate !== 'string') {
+          return res.status(400).json({ error: 'Ongeldige weekstartdatum' });
+        }
+        const result = await generateStudyPlan(studentName, level, subjects, weekStartDate);
+        return res.status(200).json({ result });
+      }
+
       default:
         return res.status(400).json({ error: `Unknown action: ${action}` });
     }
@@ -846,4 +864,133 @@ async function gradeOpenQuestion(
   } catch {
     return { grade: 'incorrect', feedback: 'Kon beoordeling niet verwerken.' };
   }
+}
+
+interface SubjectPlanInput {
+  subject: string;
+  averageScore?: number;
+  totalExams?: number;
+  weakTopics?: string[];
+}
+
+async function generateStudyPlan(
+  studentName: string,
+  level: string,
+  subjects: SubjectPlanInput[],
+  weekStartDate: string
+): Promise<object> {
+  const escapedName = escapePromptString(studentName);
+
+  const subjectLines = subjects.map(s => {
+    const score = s.averageScore !== undefined ? `${s.averageScore}% gemiddeld` : 'nog niet geoefend';
+    const exams = s.totalExams ? `, ${s.totalExams} toetsen gemaakt` : '';
+    const weak = s.weakTopics && s.weakTopics.length > 0 ? `, zwakke onderwerpen: ${s.weakTopics.join(', ')}` : '';
+    return `- ${escapePromptString(s.subject)}: ${score}${exams}${weak}`;
+  }).join('\n');
+
+  // Build 7 day labels starting from weekStartDate
+  const startDate = new Date(weekStartDate);
+  const dutchDays = ['Zondag', 'Maandag', 'Dinsdag', 'Woensdag', 'Donderdag', 'Vrijdag', 'Zaterdag'];
+  const dutchMonths = ['januari', 'februari', 'maart', 'april', 'mei', 'juni', 'juli', 'augustus', 'september', 'oktober', 'november', 'december'];
+
+  const days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(startDate);
+    d.setDate(startDate.getDate() + i);
+    const iso = d.toISOString().split('T')[0];
+    const label = `${dutchDays[d.getDay()]} ${d.getDate()} ${dutchMonths[d.getMonth()]}`;
+    return { iso, label, dayOfWeek: d.getDay() };
+  });
+
+  const dayLabels = days.map((d, i) => `Dag ${i + 1}: ${d.label} (${d.iso})`).join('\n');
+
+  const prompt = `
+    Je bent een ervaren studiecoach die een persoonlijk weekrooster maakt voor ${escapedName}, een ${level} leerling.
+
+    VAKKEN EN VOORTGANG:
+    ${subjectLines}
+
+    WEEK: Maak een planning voor deze 7 dagen:
+    ${dayLabels}
+
+    REGELS:
+    - Zaterdag en zondag zijn rustdagen (restDay: true, geen taken)
+    - Op schooldagen: max 2-3 taken per dag, totaal 60-90 minuten
+    - Prioriteer vakken met lage scores of zwakke onderwerpen
+    - Wissel activiteiten af: oefentoets, flashcards, chat (AI tutor), herhaling, theorie
+    - Elke taak heeft een duidelijke beschrijving wat de leerling precies moet doen
+    - Gebruik priority: "hoog" voor vakken onder 55%, "middel" voor 55-70%, "laag" voor boven 70%
+
+    ACTIVITEITEN (gebruik exact deze waarden):
+    - "oefentoets": Maak een oefentoets
+    - "flashcards": Bestudeer flashcards
+    - "chat": Chat met de AI tutor
+    - "herhaling": Herhaal stof/aantekeningen
+    - "theorie": Leer nieuwe theorie
+
+    Geef je antwoord als JSON object:
+    {
+      "studyGoal": "Motiverende weekdoelstelling in 1 zin",
+      "motivation": "Aanmoedigende boodschap voor de leerling (1-2 zinnen)",
+      "days": [
+        {
+          "date": "YYYY-MM-DD",
+          "dayLabel": "Maandag 21 april",
+          "restDay": false,
+          "tasks": [
+            {
+              "id": "task-1",
+              "subject": "Vak naam",
+              "topic": "Specifiek onderwerp (optioneel)",
+              "activity": "oefentoets",
+              "activityLabel": "Oefentoets maken",
+              "durationMinutes": 30,
+              "description": "Wat de leerling precies moet doen",
+              "priority": "hoog",
+              "completed": false
+            }
+          ]
+        }
+      ]
+    }
+
+    Geef ALLEEN de JSON terug, geen uitleg.
+  `;
+
+  const model = getModelForSubject(undefined, undefined);
+
+  const { text: responseText } = await generateText({
+    model,
+    prompt,
+  });
+
+  if (!responseText?.trim()) {
+    throw new Error('AI gaf een lege response terug.');
+  }
+
+  let jsonText = responseText.trim();
+  const codeBlockRegex = /^```(?:json|JSON)?\s*\n?([\s\S]*?)\n?```$/;
+  const match = jsonText.match(codeBlockRegex);
+  if (match) {
+    jsonText = match[1].trim();
+  } else if (jsonText.startsWith('```')) {
+    jsonText = jsonText.replace(/^```[^\n]*\n?/, '').replace(/\n?```$/, '').trim();
+  }
+
+  if (!jsonText.startsWith('{')) {
+    const objectMatch = jsonText.match(/\{[\s\S]*\}/);
+    if (objectMatch) {
+      jsonText = objectMatch[0];
+    }
+  }
+
+  const plan = JSON.parse(jsonText);
+
+  return {
+    id: `plan-${Date.now()}`,
+    generatedAt: new Date().toISOString(),
+    weekStart: weekStartDate,
+    studyGoal: plan.studyGoal || 'Werk deze week gericht aan je examenvoorbereiding.',
+    motivation: plan.motivation || 'Elke dag een klein beetje beter!',
+    days: Array.isArray(plan.days) ? plan.days : [],
+  };
 }

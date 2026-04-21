@@ -19,6 +19,7 @@ import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
 import { FeedbackPage } from './components/FeedbackPage';
+import { PlannerPage } from './components/PlannerPage';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
@@ -475,6 +476,7 @@ const AppContent: React.FC = () => {
               onLogout={handleLogout}
               onSettings={() => navigate('/settings')}
               onFeedback={() => navigate('/feedback')}
+              onPlanner={() => navigate('/planner')}
             />
           </SubscriptionRoute>
         } />
@@ -525,6 +527,15 @@ const AppContent: React.FC = () => {
         <Route path="/feedback" element={
           <SubscriptionRoute>
             <FeedbackPage
+              onBack={() => navigate('/dashboard')}
+            />
+          </SubscriptionRoute>
+        } />
+
+        {/* Planner - AI weekplanning */}
+        <Route path="/planner" element={
+          <SubscriptionRoute>
+            <PlannerPage
               onBack={() => navigate('/dashboard')}
             />
           </SubscriptionRoute>

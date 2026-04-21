@@ -234,6 +234,37 @@ export interface YearExam {
   levels: StudentLevel[];
 }
 
+// AI Study Planner interfaces
+export type PlanTaskActivity = 'oefentoets' | 'flashcards' | 'chat' | 'herhaling' | 'theorie';
+
+export interface StudyPlanTask {
+  id: string;
+  subject: string;
+  topic?: string;
+  activity: PlanTaskActivity;
+  activityLabel: string;
+  durationMinutes: number;
+  description: string;
+  priority: 'hoog' | 'middel' | 'laag';
+  completed: boolean;
+}
+
+export interface StudyPlanDay {
+  date: string; // YYYY-MM-DD
+  dayLabel: string; // e.g. "Maandag 21 april"
+  restDay: boolean;
+  tasks: StudyPlanTask[];
+}
+
+export interface StudyPlan {
+  id: string;
+  generatedAt: string;
+  weekStart: string; // YYYY-MM-DD
+  days: StudyPlanDay[];
+  studyGoal: string;
+  motivation: string;
+}
+
 // Flashcard interfaces
 export interface Flashcard {
   id: string;
