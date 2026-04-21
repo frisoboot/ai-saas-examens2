@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { SEO } from './SEO';
 import { getQuestions } from '../services/storageService';
 import { StudentProfile, Question, FeedbackMode } from '../types';
-import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3, GraduationCap } from 'lucide-react';
+import { BookOpen, Sparkles, MessageCircle, Target, LogOut, Settings, BarChart3, GraduationCap, Eye } from 'lucide-react';
 import { SubjectOptions } from './SubjectOptions';
 import { getSubjectIcon, getSubjectColor } from '../utils/subjectIcons';
 import { sanitizeText } from '../utils/sanitize';
@@ -234,6 +234,24 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
                 <h1 className="text-3xl font-bold text-slate-900 mb-2">Jouw Vakken - {student.level}</h1>
                 <p className="text-slate-500 text-lg">Kies een vak om te starten met leren, oefenen of chatten met de AI-docent.</p>
               </header>
+
+              {/* Coach Modus Tip */}
+              <div className="mb-8 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/60 rounded-2xl p-5">
+                <div className="flex items-start gap-4">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-sm">
+                    <Eye className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="px-2 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded-full">Tip</span>
+                      <h3 className="font-bold text-slate-900 text-sm">Oefen eindexamens in Coach Modus</h3>
+                    </div>
+                    <p className="text-slate-600 text-sm leading-relaxed">
+                      Krijg direct advies en feedback bij iedere vraag terwijl je het examen maakt. Kies een vak → <span className="font-semibold text-slate-700">Eindexamen Oefenen</span> → selecteer <span className="font-semibold text-indigo-700">Coach Modus</span>.
+                    </p>
+                  </div>
+                </div>
+              </div>
 
               <div className="space-y-10">
                 {groupedSubjects.map((group) => (

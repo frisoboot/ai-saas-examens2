@@ -262,17 +262,17 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                 </div>
 
                 {/* Feedback Mode Toggle - Coach Modus vs Examen Modus */}
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className={`rounded-xl p-4 border transition-colors ${feedbackMode === 'coach' ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-3">
-                      <div className={`w-8 h-8 rounded-lg ${feedbackMode === 'coach' ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-100 text-slate-400'} flex items-center justify-center transition-colors`}>
+                      <div className={`w-8 h-8 rounded-lg ${feedbackMode === 'coach' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-400'} flex items-center justify-center transition-colors shadow-sm`}>
                         {feedbackMode === 'coach' ? <Eye className="w-4 h-4" /> : <ClipboardCheck className="w-4 h-4" />}
                       </div>
                       <div className="text-left">
-                        <span className="font-medium text-slate-900 text-sm">Nakijkmodus</span>
-                        <span className="text-slate-500 text-xs ml-2">
-                          {feedbackMode === 'coach' ? 'Coach Modus' : 'Examen Modus'}
-                        </span>
+                        <span className="font-semibold text-slate-900 text-sm">Modus</span>
+                        {feedbackMode === 'coach' && (
+                          <span className="ml-2 px-1.5 py-0.5 bg-indigo-600 text-white text-xs font-bold rounded-full">Aanbevolen</span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -297,8 +297,8 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                       onClick={() => setFeedbackMode('coach')}
                       className={`p-3 rounded-xl font-medium transition-all text-center ${
                         feedbackMode === 'coach'
-                          ? 'bg-indigo-600 text-white shadow-lg'
-                          : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+                          ? 'bg-indigo-600 text-white shadow-lg ring-2 ring-indigo-300'
+                          : 'bg-white text-slate-600 hover:bg-indigo-50 hover:border-indigo-300 border border-slate-200'
                       }`}
                     >
                       <div className="flex items-center justify-center gap-2 text-sm font-semibold">
@@ -306,10 +306,15 @@ export const SubjectOptions: React.FC<SubjectOptionsProps> = ({
                         Coach Modus
                       </div>
                       <div className={`text-xs mt-1 ${feedbackMode === 'coach' ? 'text-indigo-200' : 'text-slate-400'}`}>
-                        Direct feedback per vraag
+                        Direct advies per vraag
                       </div>
                     </button>
                   </div>
+                  {feedbackMode === 'coach' && (
+                    <p className="mt-3 text-xs text-indigo-700 bg-indigo-100 rounded-lg px-3 py-2 leading-relaxed">
+                      Je krijgt direct feedback en advies na elke vraag terwijl je het examen maakt.
+                    </p>
+                  )}
                 </div>
 
                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
