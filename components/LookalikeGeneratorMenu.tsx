@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Button } from './Button';
-import { ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Clock, FileText, GraduationCap, BookOpen } from 'lucide-react';
+import { ArrowLeft, Target, ListChecks, Play, ChevronDown, ChevronUp, Clock, FileText, GraduationCap, BookOpen, AlertTriangle } from 'lucide-react';
 import { StudentLevel } from '../types';
 import { getTopicsForSubject } from '../services/examData';
 import { getSubjectIcon } from '../utils/subjectIcons';
@@ -90,6 +90,14 @@ export const LookalikeGeneratorMenu: React.FC<LookalikeGeneratorMenuProps> = ({
               Authentieke examenvragen die niet te onderscheiden zijn van het centraal examen.
               {isDutch && ' Elke vraag bevat een leestekst met examenvragen over tekstbegrip.'}
               {isLanguageSubject && !isDutch && ' Inclusief Nederlandse bronteksten voor tekstbegrip.'}
+            </p>
+          </div>
+
+          {/* AI disclaimer */}
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+            <p className="text-amber-800 text-sm leading-relaxed">
+              <span className="font-semibold">Let op:</span> deze vragen zijn gegenereerd door AI en kunnen fouten bevatten. Gebruik ze als extra oefenmateriaal en controleer antwoorden altijd met je schoolboek of een officiële antwoordsleutel.
             </p>
           </div>
         </div>
