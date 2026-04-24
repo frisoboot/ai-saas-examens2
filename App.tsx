@@ -14,7 +14,6 @@ import { ExamTaker } from './components/ExamTaker';
 import { SubjectChat } from './components/SubjectChat';
 import { FlashcardStudy } from './components/FlashcardStudy';
 import { LandingPageNew as LandingPage } from './components/LandingPageNew';
-import { CheckoutForm } from './components/CheckoutForm';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCallback } from './components/PaymentCallback';
 import { SubscriptionSettings } from './components/SubscriptionSettings';
@@ -22,9 +21,9 @@ import { FeedbackPage } from './components/FeedbackPage';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
-import { ActivationCodeForm } from './components/ActivationCodeForm';
+import { WaitlistPage } from './components/WaitlistPage';
 import { LoadingScreen } from './components/LoadingScreen';
-import { XCircle, RefreshCw, LogOut, KeyRound } from 'lucide-react';
+import { XCircle, RefreshCw, LogOut, Settings as SettingsIcon } from 'lucide-react';
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -107,23 +106,11 @@ const SubscriptionRoute: React.FC<{ children: React.ReactNode }> = ({ children }
           <p className="text-slate-600 mb-6">{statusMessage}</p>
           <div className="space-y-3">
             <button
-              onClick={() => navigate('/checkout')}
-              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors"
-            >
-              Opnieuw abonneren
-            </button>
-            <button
-              onClick={() => navigate('/activate')}
-              className="w-full px-4 py-3 bg-white text-indigo-600 border border-indigo-200 rounded-xl font-medium hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <KeyRound className="w-4 h-4" />
-              Activatiecode invoeren
-            </button>
-            <button
               onClick={() => navigate('/settings')}
-              className="w-full px-4 py-3 bg-slate-100 text-slate-700 rounded-xl font-medium hover:bg-slate-200 transition-colors"
+              className="w-full px-4 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
             >
-              Instellingen bekijken
+              <SettingsIcon className="w-4 h-4" />
+              Beheer je abonnement
             </button>
             <button
               onClick={refreshSubscription}
@@ -400,7 +387,7 @@ const AppContent: React.FC = () => {
         <Route path="/" element={
           <LandingPage
             onLogin={() => navigate('/login')}
-            onCheckout={() => navigate('/checkout')}
+            onCheckout={() => navigate('/wachtlijst')}
           />
         } />
 
@@ -412,7 +399,7 @@ const AppContent: React.FC = () => {
           ) : (
             <LoginPage
               onLogin={signIn}
-              onCheckout={() => navigate('/checkout')}
+              onCheckout={() => navigate('/wachtlijst')}
               onLanding={() => navigate('/')}
               onForgotPassword={() => navigate('/forgot-password')}
               isLoading={false}
@@ -438,12 +425,16 @@ const AppContent: React.FC = () => {
           />
         } />
 
-        <Route path="/checkout" element={
-          <CheckoutForm
+        <Route path="/wachtlijst" element={
+          <WaitlistPage
             onBack={() => navigate('/')}
-            onSuccess={() => navigate('/login')}
+            onLogin={() => navigate('/login')}
           />
         } />
+
+        {/* Registratie is gesloten — /checkout leidt naar de wachtlijst */}
+        <Route path="/checkout" element={<Navigate to="/wachtlijst" replace />} />
+        <Route path="/activate" element={<Navigate to="/wachtlijst" replace />} />
 
         <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
         <Route path="/voorwaarden" element={<TermsOfService onBack={() => navigate('/')} />} />
@@ -451,7 +442,7 @@ const AppContent: React.FC = () => {
         <Route path="/payment/callback" element={
           <PaymentCallback
             onLogin={() => navigate('/login')}
-            onRetry={() => navigate('/checkout')}
+            onRetry={() => navigate('/wachtlijst')}
             urlPaymentId={urlPaymentId}
           />
         } />
@@ -538,14 +529,6 @@ const AppContent: React.FC = () => {
               onBack={() => navigate('/dashboard')}
             />
           </ProtectedRoute>
-        } />
-
-        {/* Activatiecode - publiek: nieuwe gebruikers kunnen registreren met code */}
-        <Route path="/activate" element={
-          <ActivationCodeForm
-            onBack={() => navigate(-1)}
-            onSuccess={() => navigate('/dashboard')}
-          />
         } />
 
         {/* Admin Routes */}

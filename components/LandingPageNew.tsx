@@ -18,8 +18,7 @@ import {
   ArrowRight,
   Check,
   Star,
-  ThumbsUp,
-  Ticket
+  ThumbsUp
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -80,8 +79,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleStartTrial = (plan = 'quarterly') => {
-    navigate(`/checkout?plan=${plan}`);
+  const handleJoinWaitlist = () => {
+    navigate('/wachtlijst');
   };
 
   const scrollTo = (id: string) => {
@@ -94,8 +93,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Roboto', Helvetica, Arial, sans-serif" }}>
       <SEO
-        title="Eindexamen 2026 Oefenen | AI Examentrainer — VMBO, HAVO & VWO"
-        description="Oefen onbeperkt eindexamenvragen met directe AI-feedback. Alle vakken, alle niveaus. Al 1000+ leerlingen gaan je voor. Probeer 5 dagen voor €2."
+        title="Wachtlijst | AI Examentrainer — VMBO, HAVO & VWO"
+        description="Registratie is tijdelijk gesloten vanwege drukte. Schrijf je in voor de wachtlijst van AI Examentrainer en we laten het weten zodra er weer plek is."
         canonical="https://ai-examentrainer.nl/"
       />
 
@@ -125,16 +124,6 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <a href="/blog/" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Blog</a>
             </div>
             <button
-              onClick={() => navigate('/activate')}
-              className="hidden md:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded transition-colors"
-              style={{ backgroundColor: '#059669', color: '#fff' }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#047857')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#059669')}
-            >
-              <Ticket className="w-4 h-4" />
-              Code inwisselen
-            </button>
-            <button
               onClick={onLogin}
               className="hidden md:block text-sm font-medium px-4 py-2 border rounded transition-colors"
               style={{ borderColor: '#1a56db', color: '#1a56db' }}
@@ -146,13 +135,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Sticky CTA — zichtbaar zodra je scrollt */}
             {isNavScrolled && (
               <button
-                onClick={() => handleStartTrial()}
+                onClick={handleJoinWaitlist}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded transition-colors"
                 style={{ backgroundColor: '#1a56db' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Start voor €2
+                Wachtlijst
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -166,41 +155,40 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: text */}
             <div>
-              {daysUntilExam > 0 && (
-                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
-                  <Clock className="w-4 h-4" />
-                  ⚠️ Nog {daysUntilExam} dagen tot de eindexamens — begin nu
-                </div>
-              )}
+              <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+                <Clock className="w-4 h-4" />
+                Registratie tijdelijk gesloten — schrijf je in voor de wachtlijst
+              </div>
 
               <h1
                 className="text-reveal text-reveal-delay-2 font-bold text-gray-900 leading-tight mb-5"
                 style={{ fontFamily: "'Merriweather', Georgia, serif", fontSize: 'clamp(2rem, 3vw + 1rem, 3rem)' }}
               >
-                De gratis AI-examenhulp die bijles vervangt — voor minder dan €10 per maand
+                De AI-examenhulp die bijles vervangt — binnenkort weer beschikbaar
               </h1>
 
               <p className="text-reveal text-reveal-delay-3 text-gray-600 leading-relaxed mb-6" style={{ fontSize: '1.1rem' }}>
-                Echte CITO-vragen, persoonlijke AI-uitleg en slimme flashcards — afgestemd op het
-                niveau van jouw kind (VMBO-TL, HAVO of VWO). Duizenden leerlingen gingen je voor.
+                Vanwege grote drukte nemen we tijdelijk geen nieuwe aanmeldingen aan. Laat je e-mailadres
+                achter op de wachtlijst en we laten het direct weten zodra er weer plek is. Bestaande gebruikers
+                kunnen gewoon blijven oefenen.
               </p>
 
               <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-6">
                 <button
-                  onClick={() => handleStartTrial()}
+                  onClick={handleJoinWaitlist}
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-white font-semibold rounded transition-colors text-base"
                   style={{ backgroundColor: '#1a56db' }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
                 >
-                  Probeer 5 dagen voor €2
+                  Zet me op de wachtlijst
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => scrollTo('features')}
+                  onClick={onLogin}
                   className="inline-flex items-center justify-center gap-2 px-6 py-3.5 font-medium rounded border border-gray-300 bg-white text-gray-700 transition-colors hover:bg-gray-50"
                 >
-                  Bekijk hoe het werkt
+                  Ik heb al een account
                 </button>
               </div>
 
@@ -208,15 +196,15 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <div className="text-reveal text-reveal-delay-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <Shield className="w-4 h-4" style={{ color: '#1a56db' }} />
-                  Direct opzegbaar
+                  Geen verplichting
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Check className="w-4 h-4" style={{ color: '#1a56db' }} />
-                  Veilige betaling via Mollie
+                  Alleen e-mail nodig
                 </span>
                 <span className="flex items-center gap-1.5">
                   <ThumbsUp className="w-4 h-4" style={{ color: '#1a56db' }} />
-                  Niet tevreden? Geld terug
+                  We mailen je zodra er plek is
                 </span>
               </div>
             </div>
@@ -423,12 +411,12 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={() => handleStartTrial('monthly')}
+                onClick={handleJoinWaitlist}
                 className="w-full py-3 rounded border border-gray-300 text-gray-700 font-medium text-sm transition-colors hover:bg-gray-50"
               >
-                Kies maandelijks
+                Zet me op de wachtlijst
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">5 dagen proberen voor €2</p>
+              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
 
             {/* Per kwartaal — popular */}
@@ -459,15 +447,15 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={() => handleStartTrial('quarterly')}
+                onClick={handleJoinWaitlist}
                 className="w-full py-3 rounded text-white font-medium text-sm transition-colors"
                 style={{ backgroundColor: '#1a56db' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Kies per kwartaal
+                Zet me op de wachtlijst
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">5 dagen proberen voor €2</p>
+              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
             </div>
 
@@ -498,13 +486,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={() => handleStartTrial('yearly')}
+                onClick={handleJoinWaitlist}
                 className="w-full py-3 rounded border font-medium text-sm transition-colors hover:bg-gray-50"
                 style={{ borderColor: '#0369a1', color: '#0369a1' }}
               >
-                Kies jaarlijks
+                Zet me op de wachtlijst
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">5 dagen proberen voor €2</p>
+              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
           </div>
 

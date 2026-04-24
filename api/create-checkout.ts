@@ -77,6 +77,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Registratie is gesloten; belangstellenden kunnen zich inschrijven voor de wachtlijst.
+  return res.status(503).json({
+    error: 'Registratie is tijdelijk gesloten. Schrijf je in voor de wachtlijst op /wachtlijst.',
+    waitlist: true,
+  });
+
   // Rate limiting - prevent registration abuse
   const clientIP = getClientIP(req);
   const rateLimitResult = checkRateLimit(`registration:${clientIP}`, rateLimits.registration);
