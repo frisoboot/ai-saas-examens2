@@ -207,14 +207,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({
               </div>
             </div>
 
-            {/* Checkout Link */}
+            <p className="text-center text-sm text-gray-600 mb-4">
+              Registratie is tijdelijk gesloten. Schrijf je in voor de wachtlijst en we laten het weten zodra er weer plek is.
+            </p>
+
             <Button
               variant="outline"
               className="w-full justify-center"
               size="lg"
               onClick={onCheckout}
             >
-              Account aanmaken
+              Zet me op de wachtlijst
             </Button>
           </div>
 
