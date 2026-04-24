@@ -18,7 +18,8 @@ import {
   ArrowRight,
   Check,
   Star,
-  ThumbsUp
+  ThumbsUp,
+  Ticket
 } from 'lucide-react';
 import './landing/animations.css';
 
@@ -123,6 +124,16 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <button onClick={() => scrollTo('faq')} className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">FAQ</button>
               <a href="/blog/" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">Blog</a>
             </div>
+            <button
+              onClick={() => navigate('/activate')}
+              className="hidden md:inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded transition-colors"
+              style={{ backgroundColor: '#059669', color: '#fff' }}
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#047857')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#059669')}
+            >
+              <Ticket className="w-4 h-4" />
+              Code inwisselen
+            </button>
             <button
               onClick={onLogin}
               className="hidden md:block text-sm font-medium px-4 py-2 border rounded transition-colors"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { GraduationCap, Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Users, Clock } from 'lucide-react';
+import { GraduationCap, Mail, ArrowLeft, CheckCircle2, AlertCircle, Loader2, Users, Clock, Ticket } from 'lucide-react';
 import { SEO } from './SEO';
 import { Button } from './Button';
 import type { StudentLevel } from '../types';
@@ -7,11 +7,12 @@ import type { StudentLevel } from '../types';
 interface WaitlistPageProps {
   onBack: () => void;
   onLogin: () => void;
+  onActivate: () => void;
 }
 
 const LEVELS: StudentLevel[] = ['VMBO-TL', 'HAVO', 'VWO'];
 
-export const WaitlistPage: React.FC<WaitlistPageProps> = ({ onBack, onLogin }) => {
+export const WaitlistPage: React.FC<WaitlistPageProps> = ({ onBack, onLogin, onActivate }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [level, setLevel] = useState<StudentLevel | ''>('');
@@ -119,10 +120,17 @@ export const WaitlistPage: React.FC<WaitlistPageProps> = ({ onBack, onLogin }) =
                   </p>
                 </div>
 
-                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
+                <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4">
                   <Clock className="w-5 h-5 text-amber-600 flex-shrink-0" />
                   <p className="text-sm text-amber-900">
                     Heb je al een account? <button type="button" onClick={onLogin} className="font-semibold underline hover:no-underline">Log hier in</button> — bestaande gebruikers blijven gewoon toegang houden.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-6">
+                  <Ticket className="w-5 h-5 text-emerald-700 flex-shrink-0" />
+                  <p className="text-sm text-emerald-900">
+                    Heb je een activatiecode? <button type="button" onClick={onActivate} className="font-semibold underline hover:no-underline">Wissel 'm hier in</button> om direct te starten.
                   </p>
                 </div>
 

@@ -22,6 +22,7 @@ import { FeedbackWidget } from './components/FeedbackWidget';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { WaitlistPage } from './components/WaitlistPage';
+import { ActivationCodeForm } from './components/ActivationCodeForm';
 import { LoadingScreen } from './components/LoadingScreen';
 import { XCircle, RefreshCw, LogOut, Settings as SettingsIcon } from 'lucide-react';
 
@@ -429,12 +430,20 @@ const AppContent: React.FC = () => {
           <WaitlistPage
             onBack={() => navigate('/')}
             onLogin={() => navigate('/login')}
+            onActivate={() => navigate('/activate')}
           />
         } />
 
-        {/* Registratie is gesloten — /checkout leidt naar de wachtlijst */}
+        {/* Registratie via Mollie is gesloten — /checkout leidt naar de wachtlijst */}
         <Route path="/checkout" element={<Navigate to="/wachtlijst" replace />} />
-        <Route path="/activate" element={<Navigate to="/wachtlijst" replace />} />
+
+        {/* Activatiecode blijft open: nieuwe gebruikers met een code kunnen registreren */}
+        <Route path="/activate" element={
+          <ActivationCodeForm
+            onBack={() => navigate(-1)}
+            onSuccess={() => navigate('/dashboard')}
+          />
+        } />
 
         <Route path="/privacy" element={<PrivacyPolicy onBack={() => navigate('/')} />} />
         <Route path="/voorwaarden" element={<TermsOfService onBack={() => navigate('/')} />} />

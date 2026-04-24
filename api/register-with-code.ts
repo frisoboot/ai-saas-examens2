@@ -29,13 +29,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Registratie voor nieuwe gebruikers is gesloten; bestaande gebruikers kunnen
-  // activatiecodes nog wel inwisselen via /api/activate-code vanuit /settings.
-  return res.status(503).json({
-    error: 'Registratie is tijdelijk gesloten. Schrijf je in voor de wachtlijst op /wachtlijst.',
-    waitlist: true,
-  });
-
   // Rate limiting
   const clientIP = getClientIP(req);
   const rateLimitResult = checkRateLimit(`register-code:${clientIP}`, {
