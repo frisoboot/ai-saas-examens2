@@ -389,7 +389,7 @@ const AppContent: React.FC = () => {
         <Route path="/" element={
           <LandingPage
             onLogin={() => navigate('/login')}
-            onCheckout={() => navigate('/wachtlijst')}
+            onCheckout={() => navigate('/checkout')}
           />
         } />
 
@@ -401,7 +401,7 @@ const AppContent: React.FC = () => {
           ) : (
             <LoginPage
               onLogin={signIn}
-              onCheckout={() => navigate('/wachtlijst')}
+              onCheckout={() => navigate('/checkout')}
               onLanding={() => navigate('/')}
               onForgotPassword={() => navigate('/forgot-password')}
               isLoading={false}
