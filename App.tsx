@@ -22,6 +22,7 @@ import { FeedbackWidget } from './components/FeedbackWidget';
 import { PrivacyPolicy } from './components/legal/PrivacyPolicy';
 import { TermsOfService } from './components/legal/TermsOfService';
 import { WaitlistPage } from './components/WaitlistPage';
+import { CheckoutForm } from './components/CheckoutForm';
 import { ActivationCodeForm } from './components/ActivationCodeForm';
 import { LoadingScreen } from './components/LoadingScreen';
 import { XCircle, RefreshCw, LogOut, Settings as SettingsIcon } from 'lucide-react';
@@ -388,7 +389,7 @@ const AppContent: React.FC = () => {
         <Route path="/" element={
           <LandingPage
             onLogin={() => navigate('/login')}
-            onCheckout={() => navigate('/wachtlijst')}
+            onCheckout={() => navigate('/checkout')}
           />
         } />
 
@@ -400,7 +401,7 @@ const AppContent: React.FC = () => {
           ) : (
             <LoginPage
               onLogin={signIn}
-              onCheckout={() => navigate('/wachtlijst')}
+              onCheckout={() => navigate('/checkout')}
               onLanding={() => navigate('/')}
               onForgotPassword={() => navigate('/forgot-password')}
               isLoading={false}
@@ -434,8 +435,12 @@ const AppContent: React.FC = () => {
           />
         } />
 
-        {/* Registratie via Mollie is gesloten — /checkout leidt naar de wachtlijst */}
-        <Route path="/checkout" element={<Navigate to="/wachtlijst" replace />} />
+        <Route path="/checkout" element={
+          <CheckoutForm
+            onBack={() => navigate('/')}
+            onSuccess={() => navigate('/payment/success')}
+          />
+        } />
 
         {/* Activatiecode blijft open: nieuwe gebruikers met een code kunnen registreren */}
         <Route path="/activate" element={
@@ -451,7 +456,7 @@ const AppContent: React.FC = () => {
         <Route path="/payment/callback" element={
           <PaymentCallback
             onLogin={() => navigate('/login')}
-            onRetry={() => navigate('/wachtlijst')}
+            onRetry={() => navigate('/checkout')}
             urlPaymentId={urlPaymentId}
           />
         } />

@@ -80,8 +80,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const handleJoinWaitlist = () => {
-    navigate('/wachtlijst');
+  const handleStartRegistration = () => {
+    navigate('/checkout');
   };
 
   const scrollTo = (id: string) => {
@@ -94,8 +94,8 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
   return (
     <div className="min-h-screen bg-white" style={{ fontFamily: "'Roboto', Helvetica, Arial, sans-serif" }}>
       <SEO
-        title="Wachtlijst | AI Examentrainer — VMBO, HAVO & VWO"
-        description="Registratie is tijdelijk gesloten vanwege drukte. Schrijf je in voor de wachtlijst van AI Examentrainer en we laten het weten zodra er weer plek is."
+        title="AI Examentrainer — Oefenen voor je eindexamen VMBO, HAVO & VWO"
+        description="Oefen voor je eindexamen met AI-gegenereerde vragen, echte examens en een persoonlijke AI-tutor. Voor VMBO-TL, HAVO en VWO."
         canonical="https://ai-examentrainer.nl/"
       />
 
@@ -146,13 +146,13 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             {/* Sticky CTA — zichtbaar zodra je scrollt */}
             {isNavScrolled && (
               <button
-                onClick={handleJoinWaitlist}
+                onClick={handleStartRegistration}
                 className="inline-flex items-center gap-1.5 px-4 py-2 text-white text-sm font-semibold rounded transition-colors"
                 style={{ backgroundColor: '#1a56db' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Wachtlijst
+                Nu beginnen
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -166,33 +166,32 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: text */}
             <div>
-              <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }}>
+              <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
                 <Clock className="w-4 h-4" />
-                Registratie tijdelijk gesloten — schrijf je in voor de wachtlijst
+                Nog {daysUntilExam} dagen tot het examen — begin vandaag
               </div>
 
               <h1
                 className="text-reveal text-reveal-delay-2 font-bold text-gray-900 leading-tight mb-5"
                 style={{ fontFamily: "'Merriweather', Georgia, serif", fontSize: 'clamp(2rem, 3vw + 1rem, 3rem)' }}
               >
-                De AI-examenhulp die bijles vervangt — binnenkort weer beschikbaar
+                De AI-examenhulp die bijles vervangt
               </h1>
 
               <p className="text-reveal text-reveal-delay-3 text-gray-600 leading-relaxed mb-6" style={{ fontSize: '1.1rem' }}>
-                Vanwege grote drukte nemen we tijdelijk geen nieuwe aanmeldingen aan. Laat je e-mailadres
-                achter op de wachtlijst en we laten het direct weten zodra er weer plek is. Bestaande gebruikers
-                kunnen gewoon blijven oefenen.
+                Oefen met echte examenvragen, ontvang directe uitleg van een AI-tutor en volg je voortgang per vak.
+                Voor VMBO-TL, HAVO en VWO — altijd beschikbaar, zonder bijlesrooster.
               </p>
 
               <div className="text-reveal text-reveal-delay-4 flex flex-col sm:flex-row gap-3 mb-6">
                 <button
-                  onClick={handleJoinWaitlist}
+                  onClick={handleStartRegistration}
                   className="inline-flex items-center justify-center gap-2 px-7 py-3.5 text-white font-semibold rounded transition-colors text-base"
                   style={{ backgroundColor: '#1a56db' }}
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
                 >
-                  Zet me op de wachtlijst
+                  Nu beginnen
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
@@ -422,12 +421,11 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={handleJoinWaitlist}
+                onClick={handleStartRegistration}
                 className="w-full py-3 rounded border border-gray-300 text-gray-700 font-medium text-sm transition-colors hover:bg-gray-50"
               >
-                Zet me op de wachtlijst
+                Nu beginnen
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
 
             {/* Per kwartaal — popular */}
@@ -458,15 +456,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={handleJoinWaitlist}
+                onClick={handleStartRegistration}
                 className="w-full py-3 rounded text-white font-medium text-sm transition-colors"
                 style={{ backgroundColor: '#1a56db' }}
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Zet me op de wachtlijst
+                Nu beginnen
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
             </div>
 
@@ -497,13 +494,12 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 ))}
               </ul>
               <button
-                onClick={handleJoinWaitlist}
+                onClick={handleStartRegistration}
                 className="w-full py-3 rounded border font-medium text-sm transition-colors hover:bg-gray-50"
                 style={{ borderColor: '#0369a1', color: '#0369a1' }}
               >
-                Zet me op de wachtlijst
+                Nu beginnen
               </button>
-              <p className="text-xs text-gray-400 text-center mt-3">Registratie tijdelijk gesloten</p>
             </div>
           </div>
 
