@@ -45,14 +45,14 @@ const PLAN_INFO: Record<PlanType, {
     price: '€9,95',
     priceDetail: '/maand',
     header: 'Start je proefperiode',
-    subtitle: '5 dagen proberen voor €2, daarna €9,95/maand',
+    subtitle: '5 dagen proberen voor €1, daarna €9,95/maand',
     subtitleDetail: 'Maandelijks opzegbaar via je instellingen',
-    buttonText: 'Probeer 5 dagen (€2,00)',
+    buttonText: 'Probeer 5 dagen (€1,00)',
     disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €9,95/maand afgeschreven. Maandelijks opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
-      '5 dagen proberen voor slechts €2',
+      '5 dagen proberen voor slechts €1',
       'Maandelijks opzegbaar',
     ],
   },
@@ -65,14 +65,14 @@ const PLAN_INFO: Record<PlanType, {
     badge: 'POPULAIR',
     badgeColor: 'bg-gradient-to-r from-orange-500 to-amber-500 text-white',
     header: 'Start je proefperiode',
-    subtitle: '5 dagen proberen voor €2, daarna €24,95/kwartaal',
+    subtitle: '5 dagen proberen voor €1, daarna €24,95/kwartaal',
     subtitleDetail: 'Automatisch verlengd per kwartaal, opzegbaar',
-    buttonText: 'Probeer 5 dagen (€2,00)',
+    buttonText: 'Probeer 5 dagen (€1,00)',
     disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €24,95 per kwartaal afgeschreven. Opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
-      '5 dagen proberen voor slechts €2',
+      '5 dagen proberen voor slechts €1',
       'Goedkoper dan maandelijks',
     ],
   },
@@ -85,14 +85,14 @@ const PLAN_INFO: Record<PlanType, {
     badge: 'BESTE DEAL',
     badgeColor: 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white',
     header: 'Start je proefperiode',
-    subtitle: '5 dagen proberen voor €2, daarna €79,00/jaar',
+    subtitle: '5 dagen proberen voor €1, daarna €79,00/jaar',
     subtitleDetail: 'Automatisch verlengd per jaar, opzegbaar',
-    buttonText: 'Probeer 5 dagen (€2,00)',
+    buttonText: 'Probeer 5 dagen (€1,00)',
     disclaimer: 'Na de proefperiode van 5 dagen wordt automatisch €79,00/jaar afgeschreven. Opzegbaar.',
     benefits: [
       'Onbeperkt AI-oefenvragen',
       'Alle 16 vakken beschikbaar',
-      '5 dagen proberen voor slechts €2',
+      '5 dagen proberen voor slechts €1',
       'Meest voordelig per maand',
     ],
   },
@@ -162,12 +162,12 @@ export const CheckoutForm: React.FC<CheckoutFormProps> = ({ onBack, onSuccess })
     setIsLoading(true);
     setStep('processing');
 
-    // Facebook Pixel: track checkout initiation (altijd €2 trial fee)
+    // Facebook Pixel: track checkout initiation (altijd €1 trial fee)
     if (typeof fbq === 'function') {
       fbq('track', 'InitiateCheckout', {
         content_name: currentPlan.label,
         currency: 'EUR',
-        value: 2.00,
+        value: 1.00,
       });
     }
 

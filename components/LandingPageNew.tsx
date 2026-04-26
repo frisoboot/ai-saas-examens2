@@ -510,7 +510,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
             </div>
             <div>
               <p className="font-semibold text-gray-900 text-sm">Tevreden of geld terug</p>
-              <p className="text-sm text-gray-600">Probeer 5 dagen voor €2. Niet tevreden? Je krijgt je geld terug — geen vragen gesteld. Na de proefperiode kun je maandelijks opzeggen.</p>
+              <p className="text-sm text-gray-600">Probeer 5 dagen voor €1. Niet tevreden? Je krijgt je geld terug — geen vragen gesteld. Na de proefperiode kun je maandelijks opzeggen.</p>
             </div>
           </div>
 
@@ -552,7 +552,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               },
               {
                 question: 'Kan ik opzeggen als het niet bevalt?',
-                answer: 'Absoluut. Je begint met 5 dagen proberen voor €2. Bevalt het niet? Zeg op vóór die 5 dagen en er wordt niets verder in rekening gebracht. Na de proefperiode kun je maandelijks opzeggen via de instellingen.',
+                answer: 'Absoluut. Je begint met 5 dagen proberen voor €1. Bevalt het niet? Zeg op vóór die 5 dagen en er wordt niets verder in rekening gebracht. Na de proefperiode kun je maandelijks opzeggen via de instellingen.',
               },
               {
                 question: 'Is de betaling en de data van mijn kind veilig?',

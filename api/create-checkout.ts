@@ -4,7 +4,7 @@
  * Flow:
  * 1. Valideer input en check of email beschikbaar is
  * 2. Maak Mollie customer aan
- * 3. Maak €2 proefperiode-betaling aan (sequenceType first voor mandaat)
+ * 3. Maak €1 proefperiode-betaling aan (sequenceType first voor mandaat)
  * 4. Sla pending registratie op in database
  * 5. Redirect gebruiker naar Mollie checkout
  * 6. Na succesvolle betaling: webhook activeert account, start 5-daagse trial
@@ -42,25 +42,25 @@ interface CheckoutRequest {
   plan?: 'monthly' | 'quarterly' | 'yearly';
 }
 
-// Alle plannen starten met €2 proefperiode van 5 dagen (sequenceType first voor mandaat).
+// Alle plannen starten met €1 proefperiode van 5 dagen (sequenceType first voor mandaat).
 // Na de proefperiode wordt automatisch het abonnementsbedrag afgeschreven via Mollie subscription.
 const PLAN_CONFIG = {
   monthly: {
     subscriptionAmountCents: 995,
     subscriptionAmountStr: '9.95',
-    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €9,95/maand',
+    description: 'AI Examentrainer - 5 dagen proberen (€1), daarna €9,95/maand',
     interval: '1 month',
   },
   quarterly: {
     subscriptionAmountCents: 2495,
     subscriptionAmountStr: '24.95',
-    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €24,95/kwartaal',
+    description: 'AI Examentrainer - 5 dagen proberen (€1), daarna €24,95/kwartaal',
     interval: '3 months',
   },
   yearly: {
     subscriptionAmountCents: 7900,
     subscriptionAmountStr: '79.00',
-    description: 'AI Examentrainer - 5 dagen proberen (€2), daarna €79,00/jaar',
+    description: 'AI Examentrainer - 5 dagen proberen (€1), daarna €79,00/jaar',
     interval: '12 months',
   },
 } as const;
@@ -326,12 +326,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Alle plannen: €2 proefperiode met sequenceType first (voor mandaat/recurring)
+    // Alle plannen: €1 proefperiode met sequenceType first (voor mandaat/recurring)
     // Na 5 dagen start automatisch het recurring abonnement via Mollie
     const paymentParams: Parameters<typeof mollie.payments.create>[0] = {
       amount: {
         currency: 'EUR',
-        value: '2.00',
+        value: '1.00',
       },
       customerId: customer.id,
       description: planConfig.description,

@@ -2,7 +2,7 @@
  * Vercel Serverless Function - Mollie Webhook
  *
  * Ontvangt betalingsnotificaties van Mollie en:
- * 1. Bij trial-betaling (€2.00, type='trial'): activeert account, start 5-daagse proefperiode
+ * 1. Bij trial-betaling (€1.00, type='trial'): activeert account, start 5-daagse proefperiode
  *    en plant recurring Mollie subscription die na de trial start
  * 2. Bij recurring subscription payment (via subscriptionId): verlengt abonnement
  * 3. Bij failed recurring payment: markeert subscription als payment_failed
@@ -240,7 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
-    // TRIAL BETALING (€2.00) - Account activatie + 5-daagse proefperiode
+    // TRIAL BETALING (€1.00) - Account activatie + 5-daagse proefperiode
     // ========================================================================
     if (metadata.type === 'trial' && payment.status === 'paid') {
       console.log('Processing trial payment for:', metadata.email, 'plan:', metadata.plan);
@@ -348,11 +348,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
       }
 
-      // Log de €2 trial betaling
+      // Log de €1 trial betaling
       await supabase.from('payments').insert({
         subscription_id: subscription?.id,
         mollie_payment_id: paymentId,
-        amount_cents: 200,
+        amount_cents: 100,
         currency: 'EUR',
         status: 'paid',
         description: `Proefperiode betaling - ${planDescriptions[plan] || plan}`,
