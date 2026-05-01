@@ -401,7 +401,7 @@ const AppContent: React.FC = () => {
           ) : (
             <LoginPage
               onLogin={signIn}
-              onCheckout={() => navigate('/checkout')}
+              onCheckout={() => navigate('/wachtlijst')}
               onLanding={() => navigate('/')}
               onForgotPassword={() => navigate('/forgot-password')}
               isLoading={false}

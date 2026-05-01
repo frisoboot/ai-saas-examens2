@@ -81,7 +81,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
   }, []);
 
   const handleStartRegistration = () => {
-    navigate('/checkout');
+    navigate('/wachtlijst');
   };
 
   const scrollTo = (id: string) => {
@@ -152,7 +152,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Nu beginnen
+                Wachtlijst
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             )}
@@ -191,7 +191,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                   onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                   onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
                 >
-                  Nu beginnen
+                  Schrijf je in voor de wachtlijst
                   <ArrowRight className="w-4 h-4" />
                 </button>
                 <button
@@ -206,7 +206,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               <div className="text-reveal text-reveal-delay-5 flex flex-wrap gap-x-5 gap-y-2 text-sm text-gray-500">
                 <span className="flex items-center gap-1.5">
                   <Shield className="w-4 h-4" style={{ color: '#1a56db' }} />
-                  Geen verplichting
+                  Registratie tijdelijk gesloten
                 </span>
                 <span className="flex items-center gap-1.5">
                   <Check className="w-4 h-4" style={{ color: '#1a56db' }} />
@@ -395,12 +395,10 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               Minder dan één uur bijles. Voor de hele maand.
             </h2>
             <p className="text-gray-500 mb-4">Bijles kost gemiddeld €45–60 per uur. AI Examentrainer kost €9,95 per maand — onbeperkt beschikbaar.</p>
-            {daysUntilExam > 0 && (
-              <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
-                <Clock className="w-4 h-4" />
-                Nog {daysUntilExam} dagen — elk dag telt
-              </div>
-            )}
+            <div className="inline-flex items-center gap-2 text-sm font-semibold px-4 py-2 rounded-full" style={{ backgroundColor: '#fef3c7', color: '#92400e' }}>
+              <Clock className="w-4 h-4" />
+              Registratie is tijdelijk gesloten — schrijf je in voor de wachtlijst
+            </div>
           </div>
 
           <div className="grid md:grid-cols-3 gap-6 mb-10">
@@ -424,7 +422,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 onClick={handleStartRegistration}
                 className="w-full py-3 rounded border border-gray-300 text-gray-700 font-medium text-sm transition-colors hover:bg-gray-50"
               >
-                Nu beginnen
+                Schrijf je in voor de wachtlijst
               </button>
             </div>
 
@@ -462,7 +460,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#1442b5')}
                 onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#1a56db')}
               >
-                Nu beginnen
+                Schrijf je in voor de wachtlijst
               </button>
             </div>
             </div>
@@ -498,19 +496,19 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
                 className="w-full py-3 rounded border font-medium text-sm transition-colors hover:bg-gray-50"
                 style={{ borderColor: '#0369a1', color: '#0369a1' }}
               >
-                Nu beginnen
+                Schrijf je in voor de wachtlijst
               </button>
             </div>
           </div>
 
-          {/* Geld-terug-garantie */}
-          <div className="flex items-center gap-4 p-5 rounded-lg mb-6 scroll-reveal" style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#dcfce7' }}>
-              <Shield className="w-6 h-6" style={{ color: '#166534' }} />
+          {/* Wachtlijst melding */}
+          <div className="flex items-center gap-4 p-5 rounded-lg mb-6 scroll-reveal" style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}>
+            <div className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: '#dbeafe' }}>
+              <Users className="w-6 h-6" style={{ color: '#1d4ed8' }} />
             </div>
             <div>
-              <p className="font-semibold text-gray-900 text-sm">Tevreden of geld terug</p>
-              <p className="text-sm text-gray-600">Probeer 5 dagen voor €2. Niet tevreden? Je krijgt je geld terug — geen vragen gesteld. Na de proefperiode kun je maandelijks opzeggen.</p>
+              <p className="font-semibold text-gray-900 text-sm">Registratie is tijdelijk gesloten</p>
+              <p className="text-sm text-gray-600">Schrijf je in voor de wachtlijst en we sturen je een e-mail zodra je kunt starten. Heb je al een activatiecode? Dan kun je direct aan de slag.</p>
             </div>
           </div>
 
@@ -552,7 +550,7 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
               },
               {
                 question: 'Kan ik opzeggen als het niet bevalt?',
-                answer: 'Absoluut. Je begint met 5 dagen proberen voor €2. Bevalt het niet? Zeg op vóór die 5 dagen en er wordt niets verder in rekening gebracht. Na de proefperiode kun je maandelijks opzeggen via de instellingen.',
+                answer: 'Absoluut. Na de proefperiode kun je maandelijks opzeggen via de instellingen. Registratie is op dit moment tijdelijk gesloten — schrijf je in voor de wachtlijst en we laten je weten zodra je kunt starten.',
               },
               {
                 question: 'Is de betaling en de data van mijn kind veilig?',
