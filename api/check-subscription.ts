@@ -40,22 +40,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
-    // Haal email uit query params (GET) of body (POST)
-    const email = req.method === 'GET'
-      ? (req.query.email as string)
-      : req.body?.email;
+    // Verify JWT — gebruiker mag alleen zijn eigen subscription opvragen
+    const authHeader = req.headers.authorization;
+    if (!authHeader?.startsWith('Bearer ')) {
+      return res.status(401).json({ error: 'Authenticatie vereist' });
+    }
+    const token = authHeader.slice(7);
 
-    if (!email) {
-      return res.status(400).json({ error: 'Email is verplicht' });
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false }
+    });
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user?.email) {
+      return res.status(401).json({ error: 'Ongeldige of verlopen sessie' });
     }
 
-    // Initialize Supabase client
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const email = user.email;
 
     // Haal subscription op
     const { data: subscription, error } = await supabase

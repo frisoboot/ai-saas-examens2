@@ -28,16 +28,27 @@ import {
 function decryptPassword(encryptedData: string, secretKey: string): string | null {
   try {
     const parts = encryptedData.split(':');
-    if (parts.length !== 3) {
+
+    let iv: Buffer, salt: Buffer | null, authTag: Buffer, encrypted: string;
+
+    if (parts.length === 4) {
+      // v2 format: iv:salt:authTag:encrypted (random salt per record)
+      iv = Buffer.from(parts[0], 'hex');
+      salt = Buffer.from(parts[1], 'hex');
+      authTag = Buffer.from(parts[2], 'hex');
+      encrypted = parts[3];
+    } else if (parts.length === 3) {
+      // v1 legacy format: iv:authTag:encrypted (static salt)
+      iv = Buffer.from(parts[0], 'hex');
+      salt = null;
+      authTag = Buffer.from(parts[1], 'hex');
+      encrypted = parts[2];
+    } else {
       console.error('Invalid encrypted password format');
       return null;
     }
 
-    const iv = Buffer.from(parts[0], 'hex');
-    const authTag = Buffer.from(parts[1], 'hex');
-    const encrypted = parts[2];
-
-    const key = crypto.scryptSync(secretKey, 'salt', 32);
+    const key = crypto.scryptSync(secretKey, salt ?? 'salt', 32);
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);
 
@@ -152,19 +163,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return { success: true, email, authUserId: existingProfile.auth_user_id };
       }
 
-      // Decrypt het wachtwoord
-      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
+      // Decrypt het wachtwoord — PASSWORD_ENCRYPTION_KEY is verplicht
+      const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY;
       let userPassword: string | null = null;
 
       if (pendingData?.password_hash) {
-        userPassword = decryptPassword(pendingData.password_hash, encryptionKey);
+        if (encryptionKey) {
+          userPassword = decryptPassword(pendingData.password_hash, encryptionKey);
+        }
+        // Absolute legacy fallback voor records versleuteld vóór PASSWORD_ENCRYPTION_KEY werd ingesteld.
+        // Verwijder dit blok zodra alle pending_registrations ouder dan 24u zijn opgeruimd.
         if (!userPassword) {
           userPassword = decryptPassword(pendingData.password_hash, mollieApiKey);
         }
       }
 
       if (!userPassword) {
-        console.error('CRITICAL: Could not retrieve user password for:', email);
+        console.error('CRITICAL: Could not retrieve user password for account activation');
         return { success: false, email, error: 'Password decryption failed' };
       }
 

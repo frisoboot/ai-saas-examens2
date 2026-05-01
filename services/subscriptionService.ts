@@ -40,11 +40,13 @@ export interface PaymentStatusResponse {
 }
 
 /**
- * Check subscription status voor een email
+ * Check subscription status voor de ingelogde gebruiker
  */
-export async function checkSubscription(email: string): Promise<SubscriptionStatus> {
+export async function checkSubscription(accessToken: string): Promise<SubscriptionStatus> {
   try {
-    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`);
+    const response = await fetch(`${API_BASE}/api/check-subscription`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
     const data = await response.json();
 
     if (!response.ok) {
