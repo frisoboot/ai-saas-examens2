@@ -36,7 +36,12 @@ export const SubscriptionSettings: React.FC<SubscriptionSettingsProps> = ({
   const loadSubscription = async () => {
     setLoading(true);
     try {
-      const status = await checkSubscription(userEmail);
+      const { session } = await auth.getSession();
+      if (!session?.access_token) {
+        setSubscription({ hasAccess: false, status: 'none', message: 'Niet ingelogd' });
+        return;
+      }
+      const status = await checkSubscription(session.access_token);
       setSubscription(status);
     } catch (error) {
       console.error('Error loading subscription:', error);

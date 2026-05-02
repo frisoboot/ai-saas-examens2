@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     };
 
-    const loadSubscriptionStatus = async (email: string) => {
+    const loadSubscriptionStatus = async (email: string, accessToken: string) => {
       // Admins hoeven geen subscription check
       if (isAdminEmail(email)) {
         if (mounted) {
@@ -94,7 +94,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        const status = await checkSubscription(email);
+        const status = await checkSubscription(accessToken);
         if (mounted) {
           setState(prev => ({
             ...prev,
@@ -157,7 +157,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }));
           loadUserProfile(session.user);
           if (session.user.email) {
-            loadSubscriptionStatus(session.user.email);
+            loadSubscriptionStatus(session.user.email, session.access_token);
           }
         } else if (mounted) {
           setState(prev => ({ ...prev, isLoading: false }));
@@ -200,7 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (event === 'SIGNED_IN') {
           loadUserProfile(session.user);
           if (session.user.email) {
-            loadSubscriptionStatus(session.user.email);
+            loadSubscriptionStatus(session.user.email, session.access_token);
           }
         }
       } else {
@@ -285,7 +285,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Refresh subscription status
   const refreshSubscription = async () => {
     const email = state.user?.email;
-    if (!email) return;
+    const accessToken = state.session?.access_token;
+    if (!email || !accessToken) return;
 
     if (isAdminEmail(email)) {
       setState(prev => ({ ...prev, hasSubscriptionAccess: true }));
@@ -294,7 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     setState(prev => ({ ...prev, subscriptionLoading: true }));
     try {
-      const status = await checkSubscription(email);
+      const status = await checkSubscription(accessToken);
       setState(prev => ({
         ...prev,
         subscriptionStatus: status,

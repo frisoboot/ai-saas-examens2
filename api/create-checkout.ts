@@ -24,15 +24,16 @@ import crypto from 'crypto';
  */
 function encryptPassword(password: string, secretKey: string): string {
   const iv = crypto.randomBytes(16);
-  const key = crypto.scryptSync(secretKey, 'salt', 32);
+  const salt = crypto.randomBytes(16);
+  const key = crypto.scryptSync(secretKey, salt, 32);
   const cipher = crypto.createCipheriv('aes-256-gcm', key, iv);
 
   let encrypted = cipher.update(password, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag();
 
-  // Combineer IV + authTag + encrypted data
-  return iv.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
+  // Format: iv:salt:authTag:encrypted (v2 — random salt per record)
+  return iv.toString('hex') + ':' + salt.toString('hex') + ':' + authTag.toString('hex') + ':' + encrypted;
 }
 
 interface CheckoutRequest {
@@ -279,9 +280,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Versleutel het wachtwoord veilig voor tijdelijke opslag
     // Dit wordt gebruikt om het account aan te maken na succesvolle betaling
     // Het wachtwoord wordt verwijderd na account activatie
-    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY || mollieApiKey;
-    if (!process.env.PASSWORD_ENCRYPTION_KEY) {
-      console.warn('PASSWORD_ENCRYPTION_KEY not set - falling back to MOLLIE_API_KEY. Set a dedicated encryption key for production.');
+    const encryptionKey = process.env.PASSWORD_ENCRYPTION_KEY;
+    if (!encryptionKey) {
+      console.error('PASSWORD_ENCRYPTION_KEY is not set — cannot encrypt password');
+      return res.status(500).json({ error: 'Server configuratie fout' });
     }
     const encryptedPassword = encryptPassword(password, encryptionKey);
 
