@@ -3,6 +3,7 @@ import { streamText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
 import { setCorsHeaders } from './utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
+import { buildLookalikePrompt, getExamStyleDescription } from './utils/lookalikePrompt.js';
 
 /**
  * Streaming Exam Generation Endpoint
@@ -116,6 +117,7 @@ function transformRawQuestion(
       ...baseQuestion,
       type: 'OPEN',
       modelAnswer: q.modelAnswer || 'Geen modelantwoord beschikbaar.',
+      score: typeof q.score === 'number' ? q.score : 2,
     };
   } else {
     if (!Array.isArray(q.options) || q.options.length < 2) return null;
@@ -127,6 +129,7 @@ function transformRawQuestion(
       type: 'MULTIPLE_CHOICE',
       options: q.options.map((opt: any) => String(opt).trim()),
       correctIndex,
+      score: 1,
     };
   }
 }
@@ -157,86 +160,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Subject en level zijn verplicht.' });
   }
 
-  // Build the exam generation prompt (same as gemini.ts)
-  const examStyleDesc = examStyle === 'tijdvak1'
-    ? 'eerste tijdvak (mei/juni)'
-    : examStyle === 'tijdvak2'
-      ? 'tweede tijdvak (juni/juli, vaak iets moeilijker)'
-      : 'mix van beide tijdvakken';
-
-  let levelExamStyle = "";
-  let cognitiveRequirements = "";
-
-  switch (level) {
-    case 'VMBO-TL':
-      levelExamStyle = `VMBO-TL CENTRAAL EXAMEN KENMERKEN:
-      - Examenduur indicatie: ~90-120 minuten voor volledige toets
-      - Taalgebruik: Helder, direct en toegankelijk Nederlands`;
-      cognitiveRequirements = `Cognitieve niveaus (Bloom):
-      - 50% Onthouden en Begrijpen
-      - 35% Toepassen
-      - 15% Analyseren`;
-      break;
-    case 'HAVO':
-      levelExamStyle = `HAVO CENTRAAL EXAMEN KENMERKEN:
-      - Examenduur indicatie: ~150-180 minuten voor volledige toets
-      - Taalgebruik: Correct Nederlands met vakspecifieke terminologie`;
-      cognitiveRequirements = `Cognitieve niveaus (Bloom):
-      - 30% Onthouden en Begrijpen
-      - 40% Toepassen
-      - 25% Analyseren
-      - 5% Evalueren`;
-      break;
-    case 'VWO':
-      levelExamStyle = `VWO CENTRAAL EXAMEN KENMERKEN:
-      - Examenduur indicatie: ~180-210 minuten voor volledige toets
-      - Taalgebruik: Academisch, genuanceerd`;
-      cognitiveRequirements = `Cognitieve niveaus (Bloom):
-      - 20% Onthouden en Begrijpen
-      - 30% Toepassen
-      - 30% Analyseren
-      - 15% Evalueren
-      - 5% Creëren`;
-      break;
-    default:
-      levelExamStyle = "Pas aan aan het niveau.";
-      cognitiveRequirements = "";
-  }
-
-  const prompt = `
-    Je bent een ervaren CITO-examinator die authentieke ${level} centraal eindexamenvragen maakt voor ${subject}.
-    ${topic ? `SPECIFIEK ONDERWERP: Focus alle vragen op: "${topic}"` : ''}
-
-    ${levelExamStyle}
-    ${cognitiveRequirements}
-
-    OPDRACHT: Genereer PRECIES ${count} examenvragen (70% meerkeuze, 30% open).
-
-    BELANGRIJK - GEEN VISUELE BRONNEN:
-    - Genereer GEEN vragen die verwijzen naar afbeeldingen, kaarten, grafieken, diagrammen, tabellen, figuren of andere visuele bronnen
-    - Vermijd zinnen zoals "Figuur 1 toont...", "Bekijk de kaart...", "In de grafiek zie je...", "De tabel laat zien..."
-    - Alle informatie moet VOLLEDIG in tekstvorm worden gegeven
-    - Als je een vraag wilt stellen over geografische of visuele concepten, beschrijf de situatie dan in woorden
-
-    JSON FORMAT:
-    [
-      {
-        "type": "MULTIPLE_CHOICE",
-        "text": "De examenvraag",
-        "options": ["A", "B", "C", "D"],
-        "correctIndex": 0,
-        "contextText": "Brontekst indien van toepassing"
-      },
-      {
-        "type": "OPEN",
-        "text": "Open vraag",
-        "modelAnswer": "Modelantwoord",
-        "contextText": "Brontekst indien van toepassing"
-      }
-    ]
-
-    Geef ALLEEN de JSON array terug.
-  `;
+  const examStyleDesc = getExamStyleDescription(examStyle);
+  const prompt = buildLookalikePrompt(subject, level, count, topic, examStyle);
 
   // Verify API key
   if (!process.env.AI_GATEWAY_API_KEY) {
