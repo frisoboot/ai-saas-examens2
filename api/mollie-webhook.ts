@@ -69,8 +69,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: 'Server configuratie fout' });
     }
 
-    // Mollie stuurt payment ID in de body
-    const paymentId = req.body?.id;
+    // Mollie stuurt payment ID in de body (vaak als x-www-form-urlencoded)
+    const paymentId = (() => {
+      const body = req.body;
+
+      if (typeof body === 'string') {
+        const params = new URLSearchParams(body);
+        return params.get('id') || undefined;
+      }
+
+      if (body instanceof Buffer) {
+        const params = new URLSearchParams(body.toString('utf-8'));
+        return params.get('id') || undefined;
+      }
+
+      if (body && typeof body === 'object' && 'id' in body) {
+        const maybeId = body.id;
+        return typeof maybeId === 'string' ? maybeId : undefined;
+      }
+
+      return undefined;
+    })();
 
     if (!paymentId) {
       console.error('No payment ID in webhook body');
