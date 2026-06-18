@@ -123,6 +123,42 @@ export const deleteExam = async (
 };
 
 // ============================================================================
+// UPDATE EXAM PDF URLs (swap PDF for all questions in an exam)
+// ============================================================================
+
+/**
+ * Update the exam PDF (opdrachten or bijlage) for all questions matching subject+year+level.
+ * Optionally deletes the old PDF from storage first.
+ */
+export const updateExamPdf = async (
+  subject: string,
+  year: number,
+  level: StudentLevel,
+  pdfType: 'examPdfUrl' | 'examBijlageUrl',
+  newUrl: string | undefined
+): Promise<number> => {
+  requireDatabase();
+
+  const allQuestions = await dbQuestions.getAll();
+  const examQuestions = allQuestions.filter(q =>
+    q.subject === subject &&
+    q.examYear === year &&
+    q.level === level
+  );
+
+  if (examQuestions.length === 0) return 0;
+
+  let updatedCount = 0;
+  for (const q of examQuestions) {
+    const updated = { ...q, [pdfType]: newUrl };
+    await dbQuestions.save(updated);
+    updatedCount++;
+  }
+
+  return updatedCount;
+};
+
+// ============================================================================
 // YEAR-BASED EXAM FUNCTIONS
 // ============================================================================
 
