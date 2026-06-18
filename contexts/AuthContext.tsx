@@ -228,14 +228,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Let op: we zetten hier NIET isLoading, omdat dat de LoginPage zou unmounten
   // en de error state zou verliezen. LoginPage heeft zijn eigen isSubmitting state.
   const signIn = async (email: string, password: string): Promise<{ error: string | null }> => {
-    const { user, error } = await auth.signIn(email, password);
+    try {
+      const { user, error } = await auth.signIn(email, password);
 
-    if (error || !user) {
-      return { error: error || 'Inloggen mislukt' };
+      if (error || !user) {
+        return { error: error || 'Inloggen mislukt' };
+      }
+
+      // Zet auth state direct na succesvolle login, zodat we niet
+      // afhankelijk zijn van onAuthStateChange voor de redirect.
+      // onAuthStateChange kan soms vertraagd zijn of niet afvuren.
+      const session = (await auth.getSession()).session;
+      if (session) {
+        setState(prev => ({
+          ...prev,
+          user: session.user,
+          session,
+          isAuthenticated: true,
+          isAdmin: isAdminEmail(session.user.email),
+          subscriptionLoading: !isAdminEmail(session.user.email) && !!session.user.email
+        }));
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('[AuthContext] signIn exception:', err);
+      return { error: err instanceof Error ? err.message : 'Er ging iets mis bij het inloggen' };
     }
-
-    // Profile wordt geladen via onAuthStateChange
-    return { error: null };
   };
 
   // Sign out functie

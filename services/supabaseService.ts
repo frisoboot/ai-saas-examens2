@@ -556,17 +556,22 @@ export const auth = {
       return { user: null, error: 'Supabase niet geconfigureerd' };
     }
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if (error) {
-      console.error('Inlogfout:', error);
-      return { user: null, error: error.message };
+      if (error) {
+        console.error('Inlogfout:', error);
+        return { user: null, error: error.message };
+      }
+
+      return { user: data.user, error: null };
+    } catch (err) {
+      console.error('Inloggen exception:', err);
+      return { user: null, error: err instanceof Error ? err.message : 'Verbindingsfout bij inloggen' };
     }
-
-    return { user: data.user, error: null };
   },
 
   /**

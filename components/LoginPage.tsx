@@ -34,13 +34,18 @@ export const LoginPage: React.FC<LoginPageProps> = ({
 
     setIsSubmitting(true);
 
-    const result = await onLogin(email, password);
+    try {
+      const result = await onLogin(email, password);
 
-    if (result.error) {
-      setError(translateError(result.error));
+      if (result.error) {
+        setError(translateError(result.error));
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Er ging iets mis bij het inloggen. Probeer het opnieuw.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setIsSubmitting(false);
   };
 
   // Vertaal Supabase errors naar Nederlandse tekst
