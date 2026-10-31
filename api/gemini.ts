@@ -1,8 +1,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
-import { setCorsHeaders } from './utils/cors.js';
-import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
+import { setCorsHeaders } from './_utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from './_utils/rateLimiter.js';
 
 /**
  * Gemini API Endpoint - Server-side AI calls via Vercel AI Gateway

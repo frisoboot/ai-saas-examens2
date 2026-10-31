@@ -15,7 +15,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
-import { setCorsHeaders } from './utils/cors.js';
+import { setCorsHeaders } from '../_utils/cors.js';
 
 // Verlopen gebruikers betalen direct het volledige abonnementsbedrag (geen trial).
 // Alle plannen zijn recurring en gebruiken sequenceType first voor mandaat.

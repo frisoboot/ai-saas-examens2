@@ -7,7 +7,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from '../utils/cors';
+import { setCorsHeaders } from '../../_utils/cors.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
