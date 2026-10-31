@@ -9,6 +9,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from '../_utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from '../_utils/rateLimiter.js';
+import { getAuthenticatedUser } from '../_utils/auth.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers - ondersteunt productie, Vercel previews, en localhost
@@ -41,13 +42,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // Haal email uit query params (GET) of body (POST)
-    const email = req.method === 'GET'
-      ? (req.query.email as string)
-      : req.body?.email;
-
-    if (!email) {
-      return res.status(400).json({ error: 'Email is verplicht' });
+    // Only the logged-in user may check their own subscription:
+    // the email comes from the verified session token, never from the request.
+    const user = await getAuthenticatedUser(req);
+    if (!user || !user.email) {
+      return res.status(401).json({ error: 'Niet ingelogd' });
     }
+    const email = user.email;
 
     // Initialize Supabase client
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {

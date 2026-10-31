@@ -128,6 +128,16 @@ export const rateLimits = {
     maxRequests: 60,
     windowMs: 60 * 1000  // 60 per minute
   },
+  // Password reset: per IP
+  passwordReset: {
+    maxRequests: 5,
+    windowMs: 60 * 60 * 1000  // 5 per hour
+  },
+  // Password reset: per target email address
+  passwordResetPerEmail: {
+    maxRequests: 3,
+    windowMs: 60 * 60 * 1000  // 3 per hour
+  },
   // General API: generous limit
   general: {
     maxRequests: 100,

@@ -3,6 +3,7 @@ import { generateText } from 'ai';
 import { gateway } from '@ai-sdk/gateway';
 import { setCorsHeaders } from './_utils/cors.js';
 import { checkRateLimit, getClientIP, rateLimits } from './_utils/rateLimiter.js';
+import { getAuthenticatedUser, hasActiveAccess } from './_utils/auth.js';
 
 /**
  * Gemini API Endpoint - Server-side AI calls via Vercel AI Gateway
@@ -100,9 +101,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  // Rate limiting - prevent AI API abuse
+  // Auth: only logged-in users with an active subscription/trial (or admins) may use AI
+  const user = await getAuthenticatedUser(req);
+  if (!user) {
+    return res.status(401).json({ error: 'Niet ingelogd' });
+  }
+  if (!(await hasActiveAccess(user.email))) {
+    return res.status(403).json({ error: 'Geen actief abonnement' });
+  }
+
+  // Rate limiting per user (and per IP)
   const clientIP = getClientIP(req);
-  const rateLimitResult = checkRateLimit(`ai:${clientIP}`, rateLimits.aiApi);
+  const userLimit = checkRateLimit(`ai-user:${user.id}`, rateLimits.aiApi);
+  const rateLimitResult = userLimit.allowed ? checkRateLimit(`ai:${clientIP}`, rateLimits.aiApi) : userLimit;
 
   if (!rateLimitResult.allowed) {
     res.setHeader('Retry-After', String(rateLimitResult.retryAfter || 60));
