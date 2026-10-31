@@ -4,6 +4,8 @@
  * Handelt alle subscription-gerelateerde API calls af.
  */
 
+import { supabase } from './supabaseService';
+
 const API_BASE = import.meta.env.VITE_API_URL || '';
 
 export interface SubscriptionStatus {
@@ -42,9 +44,21 @@ export interface PaymentStatusResponse {
 /**
  * Check subscription status voor een email
  */
-export async function checkSubscription(email: string): Promise<SubscriptionStatus> {
+export async function checkSubscription(email: string, accessToken?: string): Promise<SubscriptionStatus> {
   try {
-    const response = await fetch(`${API_BASE}/api/check-subscription?email=${encodeURIComponent(email)}`);
+    // The server derives the email from the session token; `email` is kept for API compatibility
+    void email;
+    let token = accessToken;
+    if (!token && supabase) {
+      const { data: sessionData } = await supabase.auth.getSession();
+      token = sessionData.session?.access_token;
+    }
+    if (!token) {
+      return { hasAccess: false, status: 'none', message: 'Niet ingelogd' };
+    }
+    const response = await fetch(`${API_BASE}/api/check-subscription`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
     const data = await response.json();
 
     if (!response.ok) {

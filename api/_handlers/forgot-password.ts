@@ -8,6 +8,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from '../_utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from '../_utils/rateLimiter.js';
 import { sendPasswordResetEmail } from '../_utils/emailService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -39,6 +40,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({ error: 'Ongeldig email adres' });
+    }
+
+    // Rate limit: per IP and per email address (prevents mail-bombing users)
+    const clientIP = getClientIP(req);
+    const ipLimit = checkRateLimit(`forgot-pw-ip:${clientIP}`, rateLimits.passwordReset);
+    const emailLimit = checkRateLimit(`forgot-pw-email:${email.toLowerCase()}`, rateLimits.passwordResetPerEmail);
+    if (!ipLimit.allowed || !emailLimit.allowed) {
+      res.setHeader('Retry-After', String((ipLimit.allowed ? emailLimit : ipLimit).retryAfter || 900));
+      return res.status(429).json({ error: 'Te veel verzoeken. Probeer het later opnieuw.' });
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {

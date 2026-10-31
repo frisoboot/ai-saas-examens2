@@ -6,6 +6,18 @@
  */
 
 import { Question, StudentProfile, Flashcard, StudentLevel, AIStudyFeedback } from "../types";
+import { supabase } from "./supabaseService";
+
+// The AI endpoints require a logged-in user: send the Supabase access token
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (supabase) {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 // API endpoint for server-side Gemini calls
 const GEMINI_API_ENDPOINT = '/api/gemini';
@@ -14,9 +26,7 @@ const GEMINI_API_ENDPOINT = '/api/gemini';
 async function callGeminiAPI<T>(action: string, payload: Record<string, any>): Promise<T> {
   const response = await fetch(GEMINI_API_ENDPOINT, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ action, payload }),
   });
 
@@ -278,7 +288,7 @@ export const streamLookalikeExamQuestions = async (
 ): Promise<Question[]> => {
   const response = await fetch(GEMINI_STREAM_ENDPOINT, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: await getAuthHeaders(),
     body: JSON.stringify({ subject, level, count, topic, examStyle }),
   });
 
