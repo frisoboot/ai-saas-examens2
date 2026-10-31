@@ -70,17 +70,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Ongeldige activatiecode' });
     }
 
-    // Zoek de activatiecode
-    const { data: activationCode, error: codeError } = await supabase
+    // Zoek de activatiecode (match zonder streepjes, zelfde als register-with-code)
+    const { data: allCodes, error: codeError } = await supabase
       .from('activation_codes')
-      .select('*')
-      .eq('code', normalizedCode)
-      .maybeSingle();
+      .select('*');
 
     if (codeError) {
       console.error('Error fetching activation code:', codeError);
       return res.status(500).json({ error: 'Database fout' });
     }
+
+    const strippedCode = normalizedCode.replace(/-/g, '');
+    const activationCode = allCodes?.find(
+      c => String(c.code).toUpperCase().replace(/-/g, '') === strippedCode
+    );
 
     if (!activationCode) {
       return res.status(404).json({ error: 'Activatiecode niet gevonden' });

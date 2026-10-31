@@ -121,24 +121,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: 'Deze activatiecode is al volledig gebruikt' });
     }
 
-    // Check of email al bestaat als Supabase user
-    const { data: existingUsers } = await supabase.auth.admin.listUsers() as { data: { users: Array<{ email?: string }> } | null };
-    const emailExists = existingUsers?.users?.some(
-      (u: { email?: string }) => u.email?.toLowerCase() === normalizedEmail
-    );
+    // Maak Supabase auth account aan. Bestaat het e-mailadres al, dan faalt createUser
+    // (listUsers() gaf maar de eerste 50 gebruikers terug, dus die check was onbetrouwbaar).
+    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+      email: normalizedEmail,
+      password: password,
+      email_confirm: true, // Auto-confirm, geen verificatie email
+      user_metadata: { role: 'student', level }
+    });
 
-    if (emailExists) {
+    if (authError && (authError.status === 422 || /already|exists|registered/i.test(authError.message || ''))) {
       return res.status(400).json({
         error: 'Dit e-mailadres is al geregistreerd. Log in en gebruik de code via Instellingen.'
       });
     }
-
-    // Maak Supabase auth account aan
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email: normalizedEmail,
-      password: password,
-      email_confirm: true // Auto-confirm, geen verificatie email
-    });
 
     if (authError || !authData.user) {
       console.error('Error creating user:', authError);
@@ -178,10 +174,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { error: profileError } = await supabase
       .from('student_profiles')
       .insert({
-        user_id: userId,
+        auth_user_id: userId,
         email: normalizedEmail,
         name: normalizedEmail.split('@')[0],
         level: level,
+        struggle_points: '',
         is_active: true
       });
 

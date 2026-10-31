@@ -140,25 +140,47 @@ const questionToDb = (question: Question): DbQuestion => {
 };
 
 // Vragen operaties
+// Supabase/PostgREST geeft maximaal 1000 rijen per request terug.
+// Haal daarom in pagina's op, anders vallen bij >1000 vragen de oudste stilletjes weg.
+const QUESTIONS_PAGE_SIZE = 1000;
+
+async function fetchAllQuestionRows(subject?: string): Promise<DbQuestion[]> {
+  if (!supabase) {
+    throw new Error('Supabase niet geconfigureerd');
+  }
+
+  const rows: DbQuestion[] = [];
+  for (let from = 0; ; from += QUESTIONS_PAGE_SIZE) {
+    let query = supabase
+      .from(TABLES.QUESTIONS)
+      .select('*')
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(from, from + QUESTIONS_PAGE_SIZE - 1);
+
+    if (subject !== undefined) {
+      query = query.eq('subject', subject);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    rows.push(...((data || []) as DbQuestion[]));
+    if (!data || data.length < QUESTIONS_PAGE_SIZE) break;
+  }
+  return rows;
+}
+
 export const dbQuestions = {
   // Haal alle vragen op
   async getAll(): Promise<Question[]> {
-    if (!supabase) {
-      throw new Error('Supabase niet geconfigureerd');
-    }
-
-    const { data, error } = await supabase
-      .from(TABLES.QUESTIONS)
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const rows = await fetchAllQuestionRows();
+      return rows.map(dbToQuestion);
+    } catch (error) {
       console.error('Fout bij ophalen vragen:', error);
       throw error;
     }
-
-    // Converteer database records naar TypeScript objects
-    return (data || []).map(dbToQuestion);
   },
 
   // Haal één vraag op
@@ -230,19 +252,13 @@ export const dbQuestions = {
       throw new Error('Supabase niet geconfigureerd');
     }
 
-    const { data, error } = await supabase
-      .from(TABLES.QUESTIONS)
-      .select('*')
-      .eq('subject', subject)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const rows = await fetchAllQuestionRows(subject);
+      return rows.map(dbToQuestion);
+    } catch (error) {
       console.error('Fout bij ophalen vragen per vak:', error);
       throw error;
     }
-
-    // Converteer database records naar TypeScript objects
-    return (data || []).map(dbToQuestion);
   }
 };
 

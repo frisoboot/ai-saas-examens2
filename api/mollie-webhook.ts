@@ -121,6 +121,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // ========================================================================
+    // HELPER: Stop een eventueel lopend Mollie-abonnement voordat we een nieuw
+    // abonnement aanmaken of het ID overschrijven. Anders blijft het oude
+    // abonnement doorlopen en wordt de klant dubbel afgeschreven.
+    // ========================================================================
+    async function cancelExistingMollieSubscription(email: string): Promise<void> {
+      const { data: sub } = await supabase
+        .from('subscriptions')
+        .select('mollie_subscription_id, mollie_customer_id')
+        .eq('user_email', email)
+        .maybeSingle();
+
+      if (!sub?.mollie_subscription_id || !sub.mollie_customer_id) return;
+
+      try {
+        await mollie.customerSubscriptions.cancel(sub.mollie_subscription_id, {
+          customerId: sub.mollie_customer_id,
+        });
+        console.log('Cancelled previous Mollie subscription:', sub.mollie_subscription_id);
+      } catch (cancelError) {
+        // Kan al geannuleerd/afgelopen zijn; niet fataal
+        console.warn('Could not cancel previous Mollie subscription:', sub.mollie_subscription_id, cancelError);
+      }
+    }
+
+    // ========================================================================
     // HELPER: Create or find account (used by both verification and one-time purchase)
     // ========================================================================
     async function createOrFindAccount(
@@ -309,6 +334,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id')
         .eq('user_email', email)
         .maybeSingle();
+
+      if (existingSub) {
+        await cancelExistingMollieSubscription(email);
+      }
 
       let subscription: { id: string } | null = null;
       const subData = {
@@ -774,6 +803,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       let subscription: { id: string } | null = null;
 
       if (existingSub) {
+        await cancelExistingMollieSubscription(email);
+
         const { data: updatedSub, error: updateError } = await supabase
           .from('subscriptions')
           .update({
