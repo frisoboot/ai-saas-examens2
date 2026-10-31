@@ -15,8 +15,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from './utils/cors.js';
-import { checkRateLimit, getClientIP } from './utils/rateLimiter.js';
+import { setCorsHeaders } from '../_utils/cors.js';
+import { checkRateLimit, getClientIP } from '../_utils/rateLimiter.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, req.headers.origin, 'POST,OPTIONS');

@@ -5,8 +5,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from './utils/cors.js';
-import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
+import { setCorsHeaders } from '../_utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from '../_utils/rateLimiter.js';
 
 const VALID_CATEGORIES = ['bug', 'feature_request', 'content', 'general'] as const;
 type FeedbackCategory = typeof VALID_CATEGORIES[number];

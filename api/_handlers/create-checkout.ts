@@ -14,8 +14,8 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { createMollieClient, SequenceType, type Payment } from '@mollie/api-client';
-import { setCorsHeaders } from './utils/cors.js';
-import { checkRateLimit, getClientIP, rateLimits } from './utils/rateLimiter.js';
+import { setCorsHeaders } from '../_utils/cors.js';
+import { checkRateLimit, getClientIP, rateLimits } from '../_utils/rateLimiter.js';
 import crypto from 'crypto';
 
 /**

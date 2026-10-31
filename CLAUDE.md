@@ -31,28 +31,28 @@ AI Examentrainer is a Dutch exam preparation SaaS platform. Students practice fo
 ```
 .
 ├── api/                         # Vercel serverless functions (backend)
-│   ├── admin/                   # Admin-only endpoints
-│   │   ├── activation-codes.ts  # Manage activation codes
-│   │   ├── feedback.ts          # View user-submitted feedback
-│   │   ├── health-check.ts      # System health check
-│   │   ├── subscriptions.ts     # Subscription management
-│   │   └── users.ts             # User management
-│   ├── utils/
-│   │   ├── cors.ts              # CORS whitelist config
-│   │   ├── emailService.ts      # Transactional email via Resend
-│   │   └── rateLimiter.ts       # In-memory rate limiter
-│   ├── activate-code.ts         # Redeem activation code (authenticated)
-│   ├── cancel-subscription.ts
-│   ├── check-payment-status.ts
-│   ├── check-subscription.ts
-│   ├── create-checkout.ts       # Mollie checkout initiation
-│   ├── forgot-password.ts       # Password reset email
-│   ├── gemini.ts                # AI proxy (non-streaming)
-│   ├── gemini-stream.ts         # AI proxy with SSE streaming
-│   ├── mollie-webhook.ts        # Payment webhook handler
-│   ├── register-with-code.ts    # Register via activation code (no payment)
-│   ├── resubscribe.ts           # Resubscription for expired accounts
-│   └── submit-feedback.ts       # User feedback submission
+│   │   # Vercel Hobby allows max 12 functions per deployment. Endpoints are
+│   │   # therefore bundled: add new endpoints as a handler in api/_handlers/
+│   │   # and register them in a router — do NOT add new top-level api/*.ts files.
+│   │   # Files/folders starting with `_` are not deployed as functions.
+│   ├── [route].ts               # Router for /api/<name> → api/_handlers/<name>.ts
+│   ├── admin/[action].ts        # Router for /api/admin/<action> → api/_handlers/admin/
+│   ├── gemini.ts                # AI proxy (non-streaming) — own function
+│   ├── gemini-stream.ts         # AI proxy with SSE streaming (maxDuration 60) — own function
+│   ├── mollie-webhook.ts        # Payment webhook handler — own function
+│   ├── _utils/                  # cors.ts, emailService.ts (Resend), rateLimiter.ts
+│   └── _handlers/
+│       ├── admin/               # activation-codes, feedback, health-check, subscriptions, users
+│       ├── activate-code.ts     # Redeem activation code (authenticated)
+│       ├── cancel-subscription.ts
+│       ├── check-payment-status.ts
+│       ├── check-subscription.ts
+│       ├── create-checkout.ts   # Mollie checkout initiation
+│       ├── forgot-password.ts   # Password reset email
+│       ├── register-with-code.ts # Register via activation code (no payment)
+│       ├── resubscribe.ts       # Resubscription for expired accounts
+│       ├── submit-feedback.ts   # User feedback submission
+│       └── waitlist.ts          # Waitlist signup
 ├── components/                  # React components
 │   ├── exam/                    # Exam result sub-components
 │   │   ├── ExamScoreCards.tsx
@@ -204,7 +204,7 @@ Three route guard components are defined in `App.tsx`:
 
 ### API Endpoints
 All endpoints are Vercel serverless functions in `/api/`. They follow this pattern:
-1. CORS handling (whitelist in `api/utils/cors.ts`)
+1. CORS handling (whitelist in `api/_utils/cors.ts`)
 2. HTTP method check
 3. Auth verification (Bearer token + admin email check for admin endpoints)
 4. Rate limiting where applicable
@@ -233,14 +233,14 @@ All endpoints are Vercel serverless functions in `/api/`. They follow this patte
 
 ### Activation Codes
 An alternative registration path that bypasses Mollie entirely:
-- Admin creates codes via `AdminActivationCodes` → `api/admin/activation-codes.ts`.
-- New users register at `/activate` via `ActivationCodeForm` → `api/register-with-code.ts`.
-- Existing users redeem a code at `/settings` → `api/activate-code.ts`.
+- Admin creates codes via `AdminActivationCodes` → `api/_handlers/admin/activation-codes.ts`.
+- New users register at `/activate` via `ActivationCodeForm` → `api/_handlers/register-with-code.ts`.
+- Existing users redeem a code at `/settings` → `api/_handlers/activate-code.ts`.
 - Codes are stored in the `activation_codes` DB table and marked used after redemption.
 
 ### Email
-- Transactional email via Resend (`api/utils/emailService.ts`).
-- Used for password reset (`api/forgot-password.ts`) and potentially other notifications.
+- Transactional email via Resend (`api/_utils/emailService.ts`).
+- Used for password reset (`api/_handlers/forgot-password.ts`) and potentially other notifications.
 - Requires `RESEND_API_KEY` and `RESEND_FROM_EMAIL` env vars.
 
 ### Markdown and Math Rendering

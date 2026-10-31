@@ -7,8 +7,8 @@
 
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { setCorsHeaders } from './utils/cors.js';
-import { sendPasswordResetEmail } from './utils/emailService.js';
+import { setCorsHeaders } from '../_utils/cors.js';
+import { sendPasswordResetEmail } from '../_utils/emailService.js';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(res, req.headers.origin, 'POST,OPTIONS');

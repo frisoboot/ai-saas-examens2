@@ -19,7 +19,7 @@ import {
   sendWelcomeEmail,
   sendSubscriptionRenewedEmail,
   sendPaymentFailedEmail,
-} from './utils/emailService.js';
+} from './_utils/emailService.js';
 
 /**
  * Decrypt een versleuteld wachtwoord
