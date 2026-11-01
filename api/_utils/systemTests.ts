@@ -103,6 +103,7 @@ function testApiRequiresLogin(baseUrl: string): Check {
     ];
 
     const open: string[] = [];
+    const broken: string[] = [];
     const results: Record<string, number> = {};
     await Promise.all(endpoints.map(async ({ path, method }) => {
       const r = await fetch(`${baseUrl}${path}`, {
@@ -116,11 +117,21 @@ function testApiRequiresLogin(baseUrl: string): Check {
       if (!isJson) {
         throw new Error(`geen JSON-antwoord van ${path} (preview-deploy achter Vercel-login?)`);
       }
-      if (r.status !== 401 && r.status !== 403) open.push(`${path} (${r.status})`);
+      if (r.status === 401 || r.status === 403) return;
+      // 5xx = endpoint kapot (bv. ontbrekende env var), niet "open"
+      if (r.status >= 500) {
+        const body = await r.json().catch(() => ({} as any));
+        broken.push(`${path} (${r.status}: ${body?.error || 'serverfout'})`);
+      } else {
+        open.push(`${path} (${r.status})`);
+      }
     }));
 
     if (open.length) {
       return { status: 'unhealthy', message: `Open zonder inlog: ${open.join(', ')}`, details: results };
+    }
+    if (broken.length) {
+      return { status: 'degraded', message: `Niet open, maar kapot: ${broken.join(', ')}`, details: results };
     }
     return { status: 'healthy', message: `Alle ${endpoints.length} beschermde endpoints weigeren niet-ingelogde verzoeken`, details: results };
   });
