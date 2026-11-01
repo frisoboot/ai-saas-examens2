@@ -71,16 +71,20 @@ async function runBrowserTests(userId: string | undefined): Promise<ServiceHealt
   start = Date.now();
   try {
     if (!supabase || !userId) throw new Error('Niet ingelogd');
-    const { data, error } = await supabase.from('student_profiles').select('email, is_admin').eq('auth_user_id', userId).maybeSingle();
+    const { data: rows, error } = await supabase.from('student_profiles').select('email, is_admin').eq('auth_user_id', userId);
     if (error) throw error;
     const { count: profileCount } = await supabase.from('student_profiles').select('email', { count: 'exact', head: true });
+    const data = rows?.[0];
+    const duplicate = (rows?.length || 0) > 1;
     results.push({
       name: 'Test: Profiel & admin-rechten (browser)',
-      status: data?.is_admin ? 'healthy' : 'degraded',
+      status: duplicate ? 'degraded' : data?.is_admin ? 'healthy' : 'degraded',
       responseTime: Date.now() - start,
-      message: data
-        ? (data.is_admin ? 'Eigen profiel gevonden, admin in database, ziet alle profielen' : 'Profiel gevonden maar is_admin staat uit: admin-schermen in de database werken niet')
-        : 'Geen profiel gevonden voor dit account',
+      message: duplicate
+        ? `Dit account is aan ${rows!.length} profielen gekoppeld (${rows!.map(r => r.email).join(', ')})`
+        : data
+          ? (data.is_admin ? 'Eigen profiel gevonden, admin in database, ziet alle profielen' : 'Profiel gevonden maar is_admin staat uit: admin-schermen in de database werken niet')
+          : 'Geen profiel gevonden voor dit account',
       details: { profielenZichtbaar: profileCount ?? 0 },
     });
   } catch (err: any) {

@@ -283,7 +283,7 @@ Use the path alias `@/*` (maps to project root) for imports.
 - `MOLLIE_API_KEY` - Mollie payment API key (use `test_...` for dev, `live_...` for production)
 - `RESEND_API_KEY` - Resend email service API key
 - `RESEND_FROM_EMAIL` - Sender address, e.g. `AI Examentrainer <noreply@ai-examentrainer.nl>`
-- `GEMINI_MODEL` - Optional model override (default: `google/gemini-2.0-flash`)
+- `GEMINI_MODEL` - Optional model override (default: `google/gemini-3-flash`; gemini-2.0-flash is niet meer beschikbaar in de AI Gateway)
 - `GEMINI_MODEL_PRO` - Optional pro model override (default: `google/gemini-2.5-pro`)
 
 **Security rule**: Only `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are explicitly exposed in `vite.config.ts`. Never add `VITE_` prefix to secret keys.

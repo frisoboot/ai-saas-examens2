@@ -16,7 +16,7 @@ import { getAuthenticatedUser, hasActiveAccess } from './_utils/auth.js';
  */
 
 // Model configuration - AI Gateway format
-const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'google/gemini-2.0-flash';
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'google/gemini-3-flash';
 const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'google/gemini-2.5-pro';
 
 // Exacte vakken die een sterker model nodig hebben voor HAVO/VWO
