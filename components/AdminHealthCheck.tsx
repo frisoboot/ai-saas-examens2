@@ -17,6 +17,8 @@ import {
   Loader2,
 } from 'lucide-react';
 import { Button } from './Button';
+import { supabase } from '../services/supabaseService';
+import { getQuestions } from '../services/storageService';
 
 interface ServiceHealth {
   name: string;
@@ -37,6 +39,64 @@ interface HealthCheckResponse {
     unhealthy: number;
   };
   error?: string;
+}
+
+/**
+ * Tests die in de browser draaien met de sessie van de ingelogde admin.
+ * Zo testen we de echte route die gebruikers ook nemen (RLS + paginering).
+ */
+async function runBrowserTests(userId: string | undefined): Promise<ServiceHealth[]> {
+  const results: ServiceHealth[] = [];
+
+  // 1. Vragen laden zoals de app dat doet (moet alle vragen opleveren, ook >1000)
+  let start = Date.now();
+  try {
+    if (!supabase) throw new Error('Supabase niet geconfigureerd');
+    const { count, error } = await supabase.from('questions').select('id', { count: 'exact', head: true });
+    if (error) throw error;
+    const loaded = await getQuestions();
+    const ok = loaded.length === count && loaded.length > 0;
+    results.push({
+      name: 'Test: Vragen laden (browser)',
+      status: ok ? 'healthy' : 'unhealthy',
+      responseTime: Date.now() - start,
+      message: ok ? `Alle ${loaded.length} vragen geladen` : `Geladen ${loaded.length} van ${count} vragen`,
+      details: { geladen: loaded.length, inDatabase: count ?? 0 },
+    });
+  } catch (err: any) {
+    results.push({ name: 'Test: Vragen laden (browser)', status: 'unhealthy', responseTime: Date.now() - start, message: err?.message || String(err) });
+  }
+
+  // 2. Eigen profiel lezen + admin-recht in de database
+  start = Date.now();
+  try {
+    if (!supabase || !userId) throw new Error('Niet ingelogd');
+    const { data, error } = await supabase.from('student_profiles').select('email, is_admin').eq('auth_user_id', userId).maybeSingle();
+    if (error) throw error;
+    const { count: profileCount } = await supabase.from('student_profiles').select('email', { count: 'exact', head: true });
+    results.push({
+      name: 'Test: Profiel & admin-rechten (browser)',
+      status: data?.is_admin ? 'healthy' : 'degraded',
+      responseTime: Date.now() - start,
+      message: data
+        ? (data.is_admin ? 'Eigen profiel gevonden, admin in database, ziet alle profielen' : 'Profiel gevonden maar is_admin staat uit: admin-schermen in de database werken niet')
+        : 'Geen profiel gevonden voor dit account',
+      details: { profielenZichtbaar: profileCount ?? 0 },
+    });
+  } catch (err: any) {
+    results.push({ name: 'Test: Profiel & admin-rechten (browser)', status: 'unhealthy', responseTime: Date.now() - start, message: err?.message || String(err) });
+  }
+
+  return results;
+}
+
+function summarize(services: ServiceHealth[]) {
+  return {
+    total: services.length,
+    healthy: services.filter(s => s.status === 'healthy').length,
+    degraded: services.filter(s => s.status === 'degraded').length,
+    unhealthy: services.filter(s => s.status === 'unhealthy').length,
+  };
 }
 
 const getStatusIcon = (status: string) => {
@@ -66,6 +126,13 @@ const getStatusColor = (status: string) => {
 };
 
 const getServiceIcon = (serviceName: string) => {
+  if (serviceName.startsWith('Test:')) {
+    if (serviceName.includes('afgeschermd') || serviceName.includes('inlog')) return <Shield className="w-5 h-5" />;
+    if (serviceName.includes('Vragen')) return <Database className="w-5 h-5" />;
+    if (serviceName.includes('AI')) return <Bot className="w-5 h-5" />;
+    if (serviceName.includes('Betalingen')) return <CreditCard className="w-5 h-5" />;
+    if (serviceName.includes('Werkbladen')) return <HardDrive className="w-5 h-5" />;
+  }
   if (serviceName.includes('Database')) return <Database className="w-5 h-5" />;
   if (serviceName.includes('Auth')) return <Shield className="w-5 h-5" />;
   if (serviceName.includes('Storage')) return <HardDrive className="w-5 h-5" />;
@@ -113,7 +180,14 @@ export const AdminHealthCheck: React.FC = () => {
       }
 
       const data: HealthCheckResponse = await response.json();
-      setHealthData(data);
+      const browserTests = await runBrowserTests(session.user?.id);
+      const services = [...browserTests, ...data.services];
+      const summary = summarize(services);
+      const status: HealthCheckResponse['status'] =
+        browserTests.some(t => t.status === 'unhealthy') ? 'unhealthy'
+        : data.status === 'healthy' && summary.degraded > 0 ? 'degraded'
+        : data.status;
+      setHealthData({ ...data, services, summary, status });
       setLastChecked(new Date());
     } catch (err: any) {
       console.error('Health check failed:', err);
