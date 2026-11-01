@@ -6,6 +6,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { setCorsHeaders } from '../../_utils/cors.js';
+import { runSystemTests } from '../../_utils/systemTests.js';
 
 // Check of email een admin is
 const isAdminEmail = (email: string | undefined): boolean => {
@@ -431,7 +432,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Environment check is synchronous
     const envHealth = checkEnvironmentVariables();
 
+    // Functionele systeemtests (beveiliging, data, AI, betalingen, e-mail, opslag)
+    const systemTests = await runSystemTests(req, supabaseAdmin);
+
     const services: ServiceHealth[] = [
+      ...systemTests,
       envHealth,
       dbHealth,
       authHealth,
@@ -455,7 +460,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Check if critical services are unhealthy
       const criticalUnhealthy = services.filter(
         s => s.status === 'unhealthy' &&
-        ['Supabase Database', 'Supabase Auth', 'Environment Config'].includes(s.name)
+        ['Supabase Database', 'Supabase Auth', 'Environment Config',
+         'Test: Database afgeschermd', 'Test: API vereist inlog'].includes(s.name)
       );
       overallStatus = criticalUnhealthy.length > 0 ? 'unhealthy' : 'degraded';
     } else if (summary.degraded > 0) {
