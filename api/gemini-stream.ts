@@ -16,7 +16,7 @@ import { getAuthenticatedUser, hasActiveAccess } from './_utils/auth.js';
 export const maxDuration = 60;
 
 // Model configuration - same as gemini.ts
-const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'google/gemini-2.0-flash';
+const GEMINI_MODEL_FLASH = process.env.GEMINI_MODEL || 'google/gemini-3-flash';
 const GEMINI_MODEL_PRO = process.env.GEMINI_MODEL_PRO || 'google/gemini-2.5-pro';
 const EXACT_SUBJECTS = ['Wiskunde B', 'Wiskunde A', 'Natuurkunde', 'Scheikunde'];
 const PRO_LEVELS = ['HAVO', 'VWO'];

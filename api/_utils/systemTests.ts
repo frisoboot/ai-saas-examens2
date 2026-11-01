@@ -211,11 +211,11 @@ function testQuestionBank(admin: SupabaseClient): Check {
 function testAIGeneration(): Check {
   return () => timed('Test: AI-antwoord (Gemini)', async () => {
     if (!process.env.AI_GATEWAY_API_KEY) return { status: 'unhealthy', message: 'AI_GATEWAY_API_KEY ontbreekt' };
-    const model = process.env.GEMINI_MODEL || 'google/gemini-2.0-flash';
+    const model = process.env.GEMINI_MODEL || 'google/gemini-3-flash';
     const { text } = await generateText({
       model: gateway(model),
       prompt: 'Antwoord met precies één woord: OK',
-      maxOutputTokens: 5,
+      maxOutputTokens: 200, // ruim: Gemini 3 kan denk-tokens gebruiken
     });
     const ok = /ok/i.test(text);
     return {
