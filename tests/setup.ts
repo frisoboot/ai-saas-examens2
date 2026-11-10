@@ -4,7 +4,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { vi } from 'vitest';
+import { afterEach, vi } from 'vitest';
 
 // Mock import.meta.env for tests
 vi.stubGlobal('import.meta', {

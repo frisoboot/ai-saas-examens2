@@ -383,7 +383,7 @@ export const ImageOverview: React.FC<ImageOverviewProps> = ({ onBack }) => {
         </div>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedBySubject).map(([subject, subjectQuestions]) => (
+          {Object.entries<Question[]>(groupedBySubject).map(([subject, subjectQuestions]) => (
             <div key={subject} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">

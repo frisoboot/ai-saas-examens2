@@ -11,12 +11,15 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
       },
       plugins: [react()],
-      define: {
-        // SECURITY: Gemini API key is NOT exposed to client - handled server-side in /api/gemini
-        // Only public keys are exposed (Supabase anon key is designed to be public, protected by RLS)
-        'import.meta.env.VITE_SUPABASE_URL': JSON.stringify(env.VITE_SUPABASE_URL),
-        'import.meta.env.VITE_SUPABASE_ANON_KEY': JSON.stringify(env.VITE_SUPABASE_ANON_KEY)
-      },
+      // SECURITY: Gemini API key is NOT exposed to client - handled server-side in /api/gemini
+      // Only public keys are exposed (Supabase anon key is designed to be public, protected by RLS)
+      // Only define values that are actually set: defining `undefined` leaks the
+      // literal string "undefined" into process.env during tests.
+      define: Object.fromEntries(
+        (['VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY'] as const)
+          .filter((key) => env[key] !== undefined)
+          .map((key) => [`import.meta.env.${key}`, JSON.stringify(env[key])])
+      ),
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
