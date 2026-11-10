@@ -20,6 +20,14 @@ import {
   sendSubscriptionRenewedEmail,
   sendPaymentFailedEmail,
 } from './_utils/emailService.js';
+import { cancelAllActiveMollieSubscriptions } from './_utils/mollieSubscriptions.js';
+import { claimPayment, releasePaymentClaim } from './_utils/paymentClaim.js';
+
+/**
+ * Fout waarbij Mollie de webhook later opnieuw moet aanroepen (HTTP 500).
+ * De betaling is dan nog niet verwerkt en de claim is vrijgegeven.
+ */
+class RetryableWebhookError extends Error {}
 
 /**
  * Decrypt een versleuteld wachtwoord
@@ -56,6 +64,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
+
+  // Geeft de claim op de betaling vrij als de verwerking wordt afgebroken
+  let releaseClaim: () => Promise<void> = async () => {};
 
   try {
     // Environment variables check
@@ -108,40 +119,115 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(200).json({ received: true });
     }
 
-    // Idempotency check: skip if this payment was already processed
-    const { data: existingPayment } = await supabase
-      .from('payments')
-      .select('id')
-      .eq('mollie_payment_id', paymentId)
-      .maybeSingle();
+    // Idempotency: claim de betaling VOORDAT we iets verwerken. Zo kan een dubbele
+    // webhook-aanroep (bijv. een retry van Mollie terwijl de eerste nog loopt)
+    // niet twee keer een account activeren of een abonnement aanmaken.
+    let paymentClaimed = false;
+    let paymentLogged = false;
 
-    if (existingPayment) {
-      console.log('Webhook already processed for payment:', paymentId);
-      return res.status(200).json({ received: true, alreadyProcessed: true });
+    if (payment.status === 'paid') {
+      let claim;
+      try {
+        claim = await claimPayment(
+          supabase,
+          paymentId,
+          Math.round(parseFloat(payment.amount.value) * 100)
+        );
+      } catch (claimError) {
+        console.error('Could not claim payment, asking Mollie to retry:', claimError);
+        return res.status(500).json({ received: false, error: 'Could not claim payment' });
+      }
+
+      if (claim === 'already_processed') {
+        console.log('Webhook already processed for payment:', paymentId);
+        return res.status(200).json({ received: true, alreadyProcessed: true });
+      }
+      if (claim === 'in_progress') {
+        // Geen 200: Mollie probeert het later opnieuw. Is de andere aanroep dan klaar,
+        // dan valt de retry in 'already_processed'; is die gecrasht, dan neemt de retry het over.
+        console.log('Payment is being processed by another webhook call:', paymentId);
+        return res.status(409).json({ received: false, inProgress: true });
+      }
+
+      paymentClaimed = true;
+      releaseClaim = async () => {
+        if (paymentClaimed && !paymentLogged) {
+          paymentClaimed = false;
+          await releasePaymentClaim(supabase, paymentId);
+        }
+      };
+    } else {
+      const { data: existingPayment } = await supabase
+        .from('payments')
+        .select('id')
+        .eq('mollie_payment_id', paymentId)
+        .neq('status', 'pending')
+        .maybeSingle();
+
+      if (existingPayment) {
+        console.log('Webhook already processed for payment:', paymentId);
+        return res.status(200).json({ received: true, alreadyProcessed: true });
+      }
     }
 
     // ========================================================================
-    // HELPER: Stop een eventueel lopend Mollie-abonnement voordat we een nieuw
-    // abonnement aanmaken of het ID overschrijven. Anders blijft het oude
-    // abonnement doorlopen en wordt de klant dubbel afgeschreven.
+    // HELPER: Leg de verwerkte betaling vast op de geclaimde regel in `payments`.
     // ========================================================================
-    async function cancelExistingMollieSubscription(email: string): Promise<void> {
-      const { data: sub } = await supabase
-        .from('subscriptions')
-        .select('mollie_subscription_id, mollie_customer_id')
-        .eq('user_email', email)
-        .maybeSingle();
+    async function logPayment(fields: {
+      subscription_id?: string;
+      amount_cents: number;
+      description: string;
+    }): Promise<void> {
+      paymentLogged = true;
+      const { error: logError } = await supabase
+        .from('payments')
+        .update({
+          ...fields,
+          currency: 'EUR',
+          status: 'paid',
+          payment_method: payment.method || null,
+          paid_at: payment.paidAt || new Date().toISOString(),
+        })
+        .eq('mollie_payment_id', paymentId);
 
-      if (!sub?.mollie_subscription_id || !sub.mollie_customer_id) return;
+      if (logError) {
+        console.error('Could not log payment:', paymentId, logError);
+      }
+    }
 
+    // ========================================================================
+    // HELPER: Stop ALLE lopende Mollie-abonnementen van deze klant voordat we een
+    // nieuw abonnement aanmaken of het opgeslagen ID overschrijven. Anders blijft
+    // een oud abonnement doorlopen en wordt de klant dubbel afgeschreven.
+    //
+    // We vragen de lopende abonnementen op bij Mollie zelf (voor de opgeslagen
+    // klant, de klant van deze betaling en alle Mollie-klanten met hetzelfde
+    // e-mailadres), zodat ook abonnementen die niet (meer) in onze database staan
+    // worden gestopt. Mislukt dit, dan breken we af: Mollie roept de webhook later
+    // opnieuw aan en er komt geen tweede abonnement naast het oude.
+    // ========================================================================
+    async function stopActiveMollieSubscriptions(
+      email: string,
+      paymentCustomerId?: string | null
+    ): Promise<void> {
       try {
-        await mollie.customerSubscriptions.cancel(sub.mollie_subscription_id, {
-          customerId: sub.mollie_customer_id,
+        const { data: sub, error: subError } = await supabase
+          .from('subscriptions')
+          .select('mollie_customer_id')
+          .eq('user_email', email)
+          .maybeSingle();
+        if (subError) throw subError;
+
+        const cancelled = await cancelAllActiveMollieSubscriptions(mollie, {
+          customerIds: [sub?.mollie_customer_id, paymentCustomerId],
+          email,
         });
-        console.log('Cancelled previous Mollie subscription:', sub.mollie_subscription_id);
+        if (cancelled.length > 0) {
+          console.log('Cancelled previous Mollie subscriptions for', email, cancelled);
+        }
       } catch (cancelError) {
-        // Kan al geannuleerd/afgelopen zijn; niet fataal
-        console.warn('Could not cancel previous Mollie subscription:', sub.mollie_subscription_id, cancelError);
+        console.error('Could not stop existing Mollie subscriptions for', email, cancelError);
+        throw new RetryableWebhookError('Could not stop existing Mollie subscriptions');
       }
     }
 
@@ -302,6 +388,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
+        await releaseClaim();
         if (accountResult.error === 'Password decryption failed') {
           return res.status(500).json({ received: false, error: accountResult.error });
         }
@@ -335,9 +422,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('user_email', email)
         .maybeSingle();
 
-      if (existingSub) {
-        await cancelExistingMollieSubscription(email);
-      }
+      await stopActiveMollieSubscriptions(email, customerId);
 
       let subscription: { id: string } | null = null;
       const subData = {
@@ -378,15 +463,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Log de €2 trial betaling
-      await supabase.from('payments').insert({
+      await logPayment({
         subscription_id: subscription?.id,
-        mollie_payment_id: paymentId,
         amount_cents: 200,
-        currency: 'EUR',
-        status: 'paid',
         description: `Proefperiode betaling - ${planDescriptions[plan] || plan}`,
-        payment_method: payment.method || null,
-        paid_at: payment.paidAt || new Date().toISOString(),
       });
 
       // Maak Mollie recurring subscription aan die start na de proefperiode
@@ -483,6 +563,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
+        await releaseClaim();
         if (accountResult.error === 'Password decryption failed') {
           return res.status(500).json({ received: false, error: accountResult.error });
         }
@@ -505,6 +586,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('user_email', email)
         .maybeSingle();
 
+      await stopActiveMollieSubscriptions(email, customerId);
+
       let subscription: { id: string } | null = null;
 
       if (existingSub) {
@@ -518,6 +601,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             trial_started_at: null,
             trial_ends_at: null,
             mollie_customer_id: customerId,
+            mollie_subscription_id: null,
             current_period_start: now.toISOString(),
             current_period_end: periodEnd.toISOString()
           })
@@ -554,18 +638,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Log eerste betaling
-      await supabase
-        .from('payments')
-        .insert({
-          subscription_id: subscription?.id,
-          mollie_payment_id: paymentId,
-          amount_cents: 1495,
-          currency: 'EUR',
-          status: 'paid',
-          description: 'Eerste betaling - Maandelijks abonnement',
-          payment_method: payment.method || null,
-          paid_at: payment.paidAt || new Date().toISOString()
-        });
+      await logPayment({
+        subscription_id: subscription?.id,
+        amount_cents: 1495,
+        description: 'Eerste betaling - Maandelijks abonnement',
+      });
 
       // Maak Mollie subscription aan na proefperiode (bedrag afhankelijk van gekozen plan)
       if (customerId) {
@@ -650,6 +727,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const accountResult = await createOrFindAccount(pending, metadata.email, metadata.level);
       if (!accountResult.success) {
+        await releaseClaim();
         if (accountResult.error === 'Password decryption failed') {
           return res.status(500).json({ received: false, error: accountResult.error });
         }
@@ -673,6 +751,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .select('id')
         .eq('user_email', email)
         .maybeSingle();
+
+      // Eenmalig pakket vervangt een eventueel lopend abonnement
+      await stopActiveMollieSubscriptions(email, customerId);
 
       let subscription: { id: string } | null = null;
 
@@ -724,18 +805,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Log payment
-      await supabase
-        .from('payments')
-        .insert({
-          subscription_id: subscription?.id,
-          mollie_payment_id: paymentId,
-          amount_cents: priceCents,
-          currency: 'EUR',
-          status: 'paid',
-          description: plan === 'yearly' ? 'Jaarpakket (12 maanden)' : 'Examenpakket (4 maanden)',
-          payment_method: payment.method || null,
-          paid_at: payment.paidAt || new Date().toISOString()
-        });
+      await logPayment({
+        subscription_id: subscription?.id,
+        amount_cents: priceCents,
+        description: plan === 'yearly' ? 'Jaarpakket (12 maanden)' : 'Examenpakket (4 maanden)',
+      });
 
       // Geen Mollie recurring subscription aanmaken - dit is een eenmalige betaling
 
@@ -800,11 +874,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('user_email', email)
         .maybeSingle();
 
+      await stopActiveMollieSubscriptions(email, customerId);
+
       let subscription: { id: string } | null = null;
 
       if (existingSub) {
-        await cancelExistingMollieSubscription(email);
-
         const { data: updatedSub, error: updateError } = await supabase
           .from('subscriptions')
           .update({
@@ -857,18 +931,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .eq('email', email);
 
       // Log betaling
-      await supabase
-        .from('payments')
-        .insert({
-          subscription_id: subscription?.id,
-          mollie_payment_id: paymentId,
-          amount_cents: priceCents,
-          currency: 'EUR',
-          status: 'paid',
-          description: `Herabonnering - ${planDescriptions[plan] || plan}`,
-          payment_method: payment.method || null,
-          paid_at: payment.paidAt || new Date().toISOString()
-        });
+      await logPayment({
+        subscription_id: subscription?.id,
+        amount_cents: priceCents,
+        description: `Herabonnering - ${planDescriptions[plan] || plan}`,
+      });
 
       // Maak Mollie recurring subscription aan voor alle recurring plannen
       if (customerId && planIntervals[plan]) {
@@ -970,18 +1037,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .eq('id', subscription.id);
 
         // Log payment (bedrag uit subscription record)
-        await supabase
-          .from('payments')
-          .insert({
-            subscription_id: subscription.id,
-            mollie_payment_id: paymentId,
-            amount_cents: subscription.price_cents || 995,
-            currency: 'EUR',
-            status: 'paid',
-            description: planDescriptions[subscription.plan_type] || 'Abonnementsbetaling',
-            payment_method: payment.method || null,
-            paid_at: payment.paidAt || new Date().toISOString()
-          });
+        await logPayment({
+          subscription_id: subscription.id,
+          amount_cents: subscription.price_cents || 995,
+          description: planDescriptions[subscription.plan_type] || 'Abonnementsbetaling',
+        });
 
         // Stuur verlengingsmail
         try {
@@ -1066,18 +1126,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .maybeSingle();
 
       // Log payment
-      await supabase
-        .from('payments')
-        .insert({
-          subscription_id: subscription?.id,
-          mollie_payment_id: paymentId,
-          amount_cents: 1495,
-          currency: 'EUR',
-          status: 'paid',
-          description: 'Maandelijks abonnement',
-          payment_method: payment.method || null,
-          paid_at: payment.paidAt || new Date().toISOString()
-        });
+      await logPayment({
+        subscription_id: subscription?.id,
+        amount_cents: 1495,
+        description: 'Maandelijks abonnement',
+      });
 
       console.log('LEGACY subscription payment processed for:', metadata.email);
     }
@@ -1114,11 +1167,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // Betaald maar door geen enkele flow verwerkt: geen regel in `payments` achterlaten
+    await releaseClaim();
+
     // Mollie verwacht een 200 response
     return res.status(200).json({ received: true });
 
   } catch (error) {
     console.error('Webhook error:', error);
+    await releaseClaim();
+
+    if (error instanceof RetryableWebhookError) {
+      // Geen 200: Mollie roept de webhook later opnieuw aan
+      return res.status(500).json({ received: false, error: error.message });
+    }
+
     // Return 200 anyway om Mollie te laten weten dat we de webhook hebben ontvangen
     return res.status(200).json({
       received: true,
