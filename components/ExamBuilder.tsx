@@ -53,6 +53,7 @@ interface JsonQuestion {
   contextText?: string;
   options?: string[];
   correctIndex?: number;
+  correctAnswer?: string; // Alternative to correctIndex: option letter (A/B/C/D) or full option text
   modelAnswer?: string;
   imageUrl?: string;
   hasImage?: boolean;  // Mark that this question needs an image (for later upload)
@@ -72,6 +73,7 @@ interface JsonImportFormat {
   examPdfUrl?: string; // PDF tekstboekje URL for the entire exam
   examBijlageUrl?: string; // Bijlage PDF URL for the entire exam
   examKaartUrl?: string; // Kaartboekje PDF URL for the entire exam
+  examLinks?: ExamLink[]; // External links for the entire exam
   questions: JsonQuestion[];
 }
 

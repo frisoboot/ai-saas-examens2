@@ -88,7 +88,14 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const examDate = useMemo(() => new Date('2026-05-11'), []);
+  // Start of the first period (eerste tijdvak) of the central exams, per year.
+  // Add next year's date here once it is published; the banner hides itself
+  // when no upcoming date is known.
+  const examDate = useMemo(() => {
+    const now = Date.now();
+    const next = ['2026-05-11', '2027-05-14'].map((d) => new Date(d)).find((d) => d.getTime() > now);
+    return next ?? new Date(0);
+  }, []);
   const daysUntilExam = useCountdown(examDate);
 
   return (
@@ -166,10 +173,12 @@ export const LandingPageNew: React.FC<LandingPageProps> = ({ onLogin }) => {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
             {/* Left: text */}
             <div>
-              <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
-                <Clock className="w-4 h-4" />
-                Nog {daysUntilExam} dagen tot het examen — begin vandaag
-              </div>
+              {daysUntilExam > 0 && (
+                <div className="text-reveal text-reveal-delay-1 inline-flex items-center gap-2 text-sm font-semibold mb-5 px-3 py-1.5 rounded" style={{ backgroundColor: '#eff6ff', color: '#1e40af', border: '1px solid #bfdbfe' }}>
+                  <Clock className="w-4 h-4" />
+                  Nog {daysUntilExam} {daysUntilExam === 1 ? 'dag' : 'dagen'} tot het examen — begin vandaag
+                </div>
+              )}
 
               <h1
                 className="text-reveal text-reveal-delay-2 font-bold text-gray-900 leading-tight mb-5"
